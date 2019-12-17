@@ -16,8 +16,9 @@ Module description: This module is a generic sftp/ftp file downloader deployed i
 from os.path import join, abspath, dirname
 import sys
 
-sys.path.append(abspath(join(dirname(__file__), '..', '..', '..')))
-sys.path.append(abspath(join(dirname(__file__), '..', '..', '..', 'vf_utils')))
+
+sys.path.append(abspath(join(dirname(__file__), '..')))
+sys.path.append(abspath(join(dirname(__file__), '..', 'vf_utils')))
 
 
 from vf_utils import DynamoUtil, S3Client, SecretsUtil, SFTPUtil
@@ -137,7 +138,7 @@ def transfer_file_from_sftp_to_s3(source_name, destination_s3_bucket,
                                     f"Message: File {file} from {source_name} is already exist on {destination_s3_bucket}"
                                     f" S3 bucket but data within the file has been modified. "
                                     f"Downloading the file {file} again as overwrite flag is set."
-                                    f"\nTriggered: {strftime('%Y-%m-%d %H:%M:%S', gmtime())"
+                                    f"\nTriggered: {strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
                                 )
                                 sns_notification(
                                     SNS_SUCCESS_TOPIC,
@@ -285,6 +286,7 @@ def transfer_file_from_sftp_to_s3(source_name, destination_s3_bucket,
                                 f"{destination_s3_bucket} successfully."
                                 f"\nTriggered: "
                                 f"{strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
+                            )
                             sns_notification(
                                 SNS_SUCCESS_TOPIC,
                                 message,
@@ -297,6 +299,7 @@ def transfer_file_from_sftp_to_s3(source_name, destination_s3_bucket,
                             f"{destination_s3_bucket}. Skipping the download."
                             f"\nTriggered: "
                             f"{strftime('%Y-%m-%d %H:%M:%S', gmtime())}"
+                        )
                         sns_notification(
                             SNS_SUCCESS_TOPIC,
                             message,
@@ -305,14 +308,17 @@ def transfer_file_from_sftp_to_s3(source_name, destination_s3_bucket,
                 ftp_conn.quit()
             except Exception as e:
                 message = (
-                    f"Exception: {e)\nMessage: File {file} could not be "
+                    f"Exception: {str(e)}\nMessage: File {file} could not be "
                     f"uploaded to S3 bucket {destination_s3_bucket}"
                     f"\nFunction name: transfer_file_from_sftp_to_s3"
+                )
                 sns_notification(
                     SNS_SUCCESS_TOPIC,
                     message,
                     "General exception occurred."
                 )
+    except:
+        pass
 
 
 # Function to send out notification
@@ -320,7 +326,8 @@ def sns_notification(sns_topic, messages, subject):
     sns_response = sns.publish(
         TopicArn=sns_topic,
         Message=messages,
-        Subject=subject)
+        Subject=subject
+    )
     sns_table = dynamo_db.Table(f'vf-{environment}-sns-details')
     sns_table.put_item(
         Item={
@@ -352,8 +359,10 @@ def get_exact_file_name(file_pattern, delta_date_no):
 
         return filename
     except Exception as e:
-        message = "Exception: {str(e)}\nMessage: {file_pattern} does not contain proper date format." + \
-                  "\nFunction name: get_exact_file_name"
+        message = (
+            f"Exception: {str(e)}\nMessage: {file_pattern} does not contain proper date format."
+            f"\nFunction name: get_exact_file_name"
+        )
         sns_notification(SNS_FAILURE_TOPIC, message, "General exception occurred.")
 
 
@@ -369,8 +378,10 @@ def md5Checksum(server_file_path):
                 m.update(data)
             return m.hexdigest()
     except Exception as e:
-        message = f"Exception: {str(e)}\nMessage: Failed in calculating checksum value." \
-                  + "\nFunction name: md5Checksum"
+        message = (
+            f"Exception: {str(e)}\nMessage: Failed in calculating checksum value."
+            "\nFunction name: md5Checksum"
+        )
         sns_notification(SNS_FAILURE_TOPIC, message, "General exception occurred.")
 
 
