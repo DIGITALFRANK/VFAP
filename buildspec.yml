@@ -1,0 +1,21 @@
+version: 0.1       
+phases:       
+  install:     
+    runtime-versions:     
+      python: 3.8     
+    commands:    
+      - echo "In Install" 
+	  - pip install -r requirements.txt
+  pre_build:     
+    commands:     
+      - sam --version     
+  build:     
+    commands:
+      - echo "Ingestion Routine Build"
+      - sh $CODEBUILD_SRC_DIR/ingestion-routine/build.sh
+  post_build:     
+    commands:     
+      - echo "Post Build Actions"
+artifacts:
+  files:    
+    - template-resolved.json 
