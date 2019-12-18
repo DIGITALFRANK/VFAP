@@ -3,7 +3,6 @@
 import boto3
 import json
 import os
-from cfn_flip import flip
 
 ssm_client = boto3.client('ssm')
 
@@ -13,7 +12,7 @@ def parse_template_json():
             abspath = abspath.strip('\n')
             parent_path = '/'.join(abspath.split('/')[:-1])
             with open(abspath, 'r') as intemplate, open(f'{parent_path}/template-resolved.json', 'w+') as outtemplate:
-                template_json = json.loads(flip(intemplate, in_format='yaml'))
+                template_json = json.load(intemplate)
                 environment_map = template_json.get('Mappings').get('EnvironmentMap')
                 for env, env_vars_obj in environment_map.items():
                     param_store_json = ssm_client.get_parameter(Name=env).get('Parameter').get('Value')
