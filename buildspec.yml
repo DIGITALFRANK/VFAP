@@ -3,9 +3,9 @@ phases:
   install:     
     runtime-versions:     
       python: 3.8     
-    commands:    
-      - echo "In Install" 
-	  - pip install -r requirements.txt
+    commands:
+      - echo "In Install"
+      - pip install -r requirements.txt
   pre_build:     
     commands:     
       - sam --version     
