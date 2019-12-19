@@ -1,5 +1,5 @@
 # Build commands for ingestion routine
-
+set -ue
 # Resolve Mapping parameter values for template.json
 find $CODEBUILD_SRC_DIR/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
 cd $CODEBUILD_SRC_DIR/param-resolver/src/
