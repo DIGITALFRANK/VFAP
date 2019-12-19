@@ -18,7 +18,8 @@ aws s3 cp $CODEBUILD_SRC_DIR/ingestion-routine/src/ingestion-routine.zip s3://vf
 aws lambda list-functions | grep ingestion-routine > /dev/null 2>&1
 if [ 0 -eq $? ]; then
 	echo "Lambda exists. Update the zip file"
-	aws lambda update-function-code --function-name my-function --s3-bucket vf-artifacts-bucket --s3-key vfap/ingestion-routine/src/ingestion-routine.zip
+	aws lambda update-function-code --function-name vf-dev-ingestion-routine  --s3-bucket vf-artifacts-bucket --s3-key vfap/ingestion-routine/src/ingestion-routine.zip
+	aws lambda update-function-code --function-name vf-qa-ingestion-routine  --s3-bucket vf-artifacts-bucket --s3-key vfap/ingestion-routine/src/ingestion-routine.zip
 else
 	echo "Lambda does not exist. Don't update the code"
 fi
