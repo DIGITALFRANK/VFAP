@@ -16,5 +16,5 @@ phases:
     commands:     
       - echo "Post Build Actions"
 artifacts:
-  files:    
-    - template-resolved.json 
+  files:
+    - main.json

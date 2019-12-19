@@ -1,0 +1,39 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Main stack",
+    "Parameters": {
+        "EnvironmentType": {
+            "Description": "The environment type",
+            "Type": "String",
+            "Default": "dev",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        }
+    },
+    "Resources": {
+        "IngestionLambdaCF": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "Parameters": {
+                    "EnvironmentType": { "Ref": "EnvironmentType" },
+					"ResourceGroup": "VFAP:SUPPORT",
+					"Application": "VFAP:INGEST",
+					"LambdaFunctionName": "ingestion-routine"
+                },
+                "TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingestion-routine/templates/template-resolved.json",
+                "Tags": [
+                    { "Key": "CostCenter", "Value": "118204800" },
+                    { "Key": "TechOwnerEmail", "Value": "DEEPAK_LAKSHMANAN1@VFC.COM" },
+                    { "Key": "Environment", "Value": { "Ref": "EnvironmentType" } },
+                    { "Key": "BusinessOwnerEmail", "Value": "DEEPAK_LAKSHMANAN1@VFC.COM" },
+                    { "Key": "ResourceGroup", "Value": "VFAP:SUPPORT" },
+                    { "Key": "Application", "Value": "VFAP:INGEST" }
+                ]
+            }
+        }
+    }
+}
