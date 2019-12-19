@@ -7,4 +7,4 @@ cd $CODEBUILD_SRC_DIR/param-resolver/src/
 python3 param-resolver.py
 zip -r9 $CODEBUILD_SRC_DIR/ingestion-routine/src/ingestion-routine.zip $CODEBUILD_SRC_DIR/ingestion-routine/src/*
 aws s3 cp $CODEBUILD_SRC_DIR/ingestion-routine/src/ingestion-routine.zip s3://vf-artifacts-bucket/vfap/ingestion-routine/src/
-aws s3 sync $CODEBUILD_SRC_DIR/ingestion-routine/templates/*  s3://vf-artifacts-bucket/vfap/ingestion-routine/templates/
+aws s3 sync $CODEBUILD_SRC_DIR/ingestion-routine/templates/  s3://vf-artifacts-bucket/vfap/ingestion-routine/templates/
