@@ -1,19 +1,19 @@
-version: 0.2       
-phases:       
-  install:     
-    runtime-versions:     
-      python: 3.8     
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
     commands:
       - echo "In Install"
-  pre_build:     
-    commands:     
-      - sam --version     
-  build:     
+  pre_build:
+    commands:
+      - sam --version
+  build:
     commands:
       - echo "Ingestion Routine Build"
-      - sh $CODEBUILD_SRC_DIR/ingestion-routine/build.sh
-  post_build:     
-    commands:     
+      - find $CODEBUILD_SRC_DIR/ -name build.sh -type f -exec sh {} \;
+  post_build:
+    commands:
       - echo "Post Build Actions"
 artifacts:
   files:
