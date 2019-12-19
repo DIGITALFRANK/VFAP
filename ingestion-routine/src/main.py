@@ -18,10 +18,10 @@ import sys
 
 
 sys.path.append(abspath(join(dirname(__file__), '..')))
-sys.path.append(abspath(join(dirname(__file__), '..', 'vf_utils')))
+sys.path.append(abspath(join(dirname(__file__), '..', 'utils')))
 
 
-from vf_utils import DynamoUtil, S3Client, SecretsUtil, SFTPUtil
+from utils import DynamoUtil, S3Client, SecretsUtil, SFTPUtil
 
 import hashlib
 import logging
