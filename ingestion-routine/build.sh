@@ -9,7 +9,8 @@ python3 param-resolver.py
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/
 pip install -r requirements.txt --target $CODEBUILD_SRC_DIR/ingestion-routine/src/
-mv $CODEBUILD_SRC_DIR/utils $CODEBUILD_SRC_DIR/ingestion-routine/src/
+mkdir $CODEBUILD_SRC_DIR/ingestion-routine/src/utils
+mv $CODEBUILD_SRC_DIR/utils/* $CODEBUILD_SRC_DIR/ingestion-routine/src/utils/
 cd $CODEBUILD_SRC_DIR/ingestion-routine/src/
 zip ingestion-routine.zip ./*
 aws s3 cp $CODEBUILD_SRC_DIR/ingestion-routine/src/ingestion-routine.zip s3://vf-artifacts-bucket/vfap/ingestion-routine/src/
