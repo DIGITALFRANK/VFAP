@@ -12,6 +12,7 @@ phases:
     commands:
       - echo "Ingestion Routine Build"
       - find $CODEBUILD_SRC_DIR/ingest_routine -name build.sh -type f -exec sh {} \;
+      - find $CODEBUILD_SRC_DIR/refined_routine -name build.sh -type f -exec sh {} \;
   post_build:
     commands:
       - echo "Post Build Actions"
