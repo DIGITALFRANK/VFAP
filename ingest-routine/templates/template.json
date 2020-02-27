@@ -39,21 +39,13 @@
                 "ENABLED",
                 "DISABLED"
             ]
+        },
+		"LambdaRole":{
+            "Description": "Lambda Role",
+            "Type": "String"
         }		
     },
-    "Mappings": {
-        "EnvironmentMap": {
-            "dev": {
-                "LambdaRole": ""
-            },            
-            "qa": {
-                "LambdaRole": ""
-            },
-            "prod": {
-                "LambdaRole": ""
-            }
-        }
-    },
+    "Mappings": { },
     "Resources": {
 		"IngestionLambdaCF": {
 			  "Type": "AWS::CloudFormation::Stack",
@@ -65,7 +57,7 @@
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "Version": { "Ref": "Version" },
-				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole"  ] }
+				  "LambdaRole": { "Ref": "LambdaRole" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/ingest-routine-lambda.json",
                 "Tags": [

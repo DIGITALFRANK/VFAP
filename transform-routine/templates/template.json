@@ -28,21 +28,13 @@
 		"TechOwnerEmail": {
             "Description": "The Technical Owner Email",
             "Type": "String"
+        },
+		"GlueRole": {
+            "Description": "Glue Role",
+            "Type": "String"
         }
 	},
-	"Mappings": {
-        "EnvironmentMap": {
-            "dev": {
-                "GlueRole": ""
-            },            
-            "qa": {
-                "GlueRole": ""
-            },
-            "prod": {
-                "GuleRole": ""
-            }
-        }
-	},
+	"Mappings": {},
 	"Resources": {
 		"MergeGlueStack": {
 		  "Type": "AWS::Glue::Job",
@@ -67,7 +59,7 @@
 			"GlueVersion": "1.0",
 			"MaxRetries": 0,
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-job" ] ] },
-			"Role": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole"  ] },
+			"Role": { "Ref": "GlueRole" },
 			"Tags": {
 			  "CostCenter": "118204800",
 			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },

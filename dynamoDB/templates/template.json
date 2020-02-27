@@ -27,21 +27,13 @@
 		"TechOwnerEmail": {
             "Description": "The Technical Owner Email",
             "Type": "String"
+        },
+		"KMSKeyID": {
+            "Description": "KMS Key ID",
+            "Type": "String"
         }
     },
-    "Mappings": {
-        "EnvironmentMap": {
-            "dev": {
-                "KMSKeyID": ""
-            },
-            "qa": {
-                "KMSKeyID": ""
-            },
-            "prod": {
-                "KMSKeyID": ""
-            }
-        }
-    },
+    "Mappings": { },
     "Resources": {
 		"ConfigDynamoDBTable": {
 			  "Type": "AWS::CloudFormation::Stack",
@@ -52,7 +44,7 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID"  ] }
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/tables/config-dynamo-table.json",
                 "Tags": [
@@ -74,7 +66,7 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID"  ] }
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/tables/etlbroker-dynamo-table.json",
                 "Tags": [
@@ -96,7 +88,7 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID"  ] }
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/tables/etlstatus-dynamo-table.json",
                 "Tags": [
@@ -118,7 +110,7 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID"  ] }
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/tables/filelog-dynamo-table.json",
                 "Tags": [
@@ -140,7 +132,7 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID"  ] }
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/tables/processlog-dynamo-table.json",
                 "Tags": [

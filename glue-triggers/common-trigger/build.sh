@@ -1,9 +1,9 @@
 # Build commands for Common glue job triggers
 set -ue
 # Resolve Mapping parameter values for template.json
-find $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
-cd $CODEBUILD_SRC_DIR/param-resolver/src/
-python3 param-resolver.py
+#find $CODEBUILD_SRC_DIR/dynamoDB/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
+#cd $CODEBUILD_SRC_DIR/param-resolver/src/
+#python3 param-resolver.py
 
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/

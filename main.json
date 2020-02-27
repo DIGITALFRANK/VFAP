@@ -48,6 +48,37 @@
 			"Default": "V-1.0.0"
 		}	
   },
+  "Mappings": {
+		"EnvironmentMap": {
+            "dev": {
+                "GlueSecurityGroupList": "sg-0656b89da87fa5f96",
+				"GlueSubnetId": "subnet-0f180509443c91289",
+				"JDBCConnURL": "jdbc:redshift://vf-uap-qa-redshift.cr1nto27bgv4.us-east-1.redshift.amazonaws.com:5439/vfuap",
+				"RedshiftUser": "admin",
+				"GlueRole": "arn:aws:iam::198203393024:role/vf-dev-glueServiceRole",
+				"KMSKeyID": "4f77d2f7-5dab-4a62-ab1a-be47abbc666f",
+				"LambdaRole": "arn:aws:iam::198203393024:role/vf-uap-qa-us-east-1-iam-pipelineActivationRole"
+            },
+            "qa": {
+                "GlueSecurityGroupList": "sg-0656b89da87fa5f96",
+				"GlueSubnetId": "subnet-0f180509443c91289",
+				"JDBCConnURL": "jdbc:redshift://vf-qa-nonprod-redshift-cluster-cr-redshiftcluster-w80kbavla3gq.cr1nto27bgv4.us-east-1.redshift.amazonaws.com:5439/uat",
+				"RedshiftUser": "admin",
+				"GlueRole": "arn:aws:iam::198203393024:role/vf-dev-glueServiceRole",
+				"KMSKeyID": "b940d3b6-58be-4e88-a212-d100181471c8",
+				"LambdaRole": "arn:aws:iam::198203393024:role/vf-uap-qa-us-east-1-iam-pipelineActivationRole"
+            },
+            "prod": {
+                "GlueSecurityGroupList": "",
+				"GlueSubnetId": "",
+				"JDBCConnURL": "",
+				"RedshiftUser": "",
+				"GlueRole": "",
+				"KMSKeyID": "",
+				"LambdaRole": ""
+            }
+        }  
+  },
   "Resources": {
 		"IngestionStack": {
 			  "Type": "AWS::CloudFormation::Stack",
@@ -59,9 +90,10 @@
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "Version": { "Ref": "Version" },
-				  "State": { "Ref": "State" }
+				  "State": { "Ref": "State" },
+				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -80,9 +112,10 @@
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" }
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/param-store/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/param-store/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -101,9 +134,10 @@
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" }
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/secrets/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/secrets/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -122,9 +156,10 @@
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" }
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -139,9 +174,13 @@
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
-				  "Environment": { "Ref": "Environment" }
+				  "Environment": { "Ref": "Environment" },
+				  "GlueSecurityGroupList": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSecurityGroupList" ] },
+				  "GlueSubnetId": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSubnetId" ] },
+				  "RedshiftUser": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "RedshiftUser" ] },
+				  "JDBCConnURL": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "JDBCConnURL" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-conn/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-conn/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -161,9 +200,10 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" }
+				  "Version": { "Ref": "Version" },
+				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/refine-routine/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/refine-routine/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -184,9 +224,10 @@
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "Version": { "Ref": "Version" },
-				  "State": { "Ref": "State" }
+				  "State": { "Ref": "State" },
+				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/merge-trigger/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/merge-trigger/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -206,9 +247,10 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" }
+				  "Version": { "Ref": "Version" },
+				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -227,9 +269,10 @@
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" }
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole" ] }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/transform-routine/templates/template-resolved.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/transform-routine/templates/template.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },

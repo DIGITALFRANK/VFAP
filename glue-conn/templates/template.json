@@ -11,30 +11,25 @@
                 "qa"
             ],
             "ConstraintDescription": "must be a dev, test or prod"
+        },
+		"GlueSecurityGroupList": {
+            "Description": "Glue security group list",
+            "Type": "String"
+        },
+        "GlueSubnetId": {
+            "Description": "Glue SubnetId",
+            "Type": "String"
+        },
+        "RedshiftUser": {
+            "Description": "Redshift username",
+            "Type": "String"
+        },
+		"JDBCConnURL": {
+            "Description": "Redshfit JDBC URL",
+            "Type": "String"
         }
     },
-	"Mappings": {
-        "EnvironmentMap": {
-            "dev": {
-                "GlueSecurityGroupList": "",
-				"GlueSubnetId": "",
-				"JDBCConnURL": "",
-				"RedshiftUser": ""
-            },
-            "qa": {
-                "GlueSecurityGroupList": "",
-				"GlueSubnetId": "",
-				"JDBCConnURL": "",
-				"RedshiftUser": ""
-            },
-            "prod": {
-                "GlueSecurityGroupList": "",
-				"GlueSubnetId": "",
-				"JDBCConnURL": "",
-				"RedshiftUser": ""
-            }
-        }
-    },
+	"Mappings": { },
 	"Conditions" : {
 		"CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
 		"CreateQAResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "qa"]},
@@ -52,14 +47,14 @@
                     "PhysicalConnectionRequirements": {
                         "AvailabilityZone": "us-east-1a",
                         "SecurityGroupIdList": [
-                            { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSecurityGroupList"  ] }
+                            { "Ref": "GlueSecurityGroupList" }
                         ],
-                        "SubnetId": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSubnetId"  ] }
+                        "SubnetId": { "Ref": "GlueSubnetId" }
                     },
                     "ConnectionType": "JDBC",
                     "ConnectionProperties": {
-                        "JDBC_CONNECTION_URL": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "JDBCConnURL"  ] },
-                        "USERNAME": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "RedshiftUser"  ] },
+                        "JDBC_CONNECTION_URL": { "Ref": "JDBCConnURL" },
+                        "USERNAME": { "Ref": "RedshiftUser" },
                         "PASSWORD": "updatemanually"
                     }
                 }

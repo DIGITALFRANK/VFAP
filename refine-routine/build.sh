@@ -1,9 +1,10 @@
 # Build commands for Refine routine
 set -ue
 # Resolve Mapping parameter values for template.json
-find $CODEBUILD_SRC_DIR/refine-routine/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
-cd $CODEBUILD_SRC_DIR/param-resolver/src/
-python3 param-resolver.py
+# Resolve Mapping parameter values for template.json
+#find $CODEBUILD_SRC_DIR/dynamoDB/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
+#cd $CODEBUILD_SRC_DIR/param-resolver/src/
+#python3 param-resolver.py
 
 # Copy all VFAP utils
 mkdir $CODEBUILD_SRC_DIR/refine-routine/src/utils

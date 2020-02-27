@@ -31,21 +31,13 @@
 		"Version":{
             "Description": "Lambda version",
             "Type": "String"
+        },
+		"LambdaRole":{
+            "Description": "Lambda Role",
+            "Type": "String"
         }
     },
-    "Mappings": {
-        "EnvironmentMap": {
-            "dev": {
-                "LambdaRole": ""
-            },
-            "qa": {
-                "LambdaRole": ""
-            },
-            "prod": {
-                "LambdaRole": ""
-            }
-        }
-    },
+    "Mappings": { },
     "Resources": {
         "LambdaFunction": {
             "Type": "AWS::Lambda::Function",
@@ -64,7 +56,7 @@
 						"environment": { "Ref": "Environment" }
 					}
 				},
-                "Role": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole"  ] },
+                "Role": { "Ref": "LambdaRole" },
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
