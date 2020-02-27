@@ -21,7 +21,7 @@ version = i['version']
 print(version)
 
 version = semantic_version.Version(version)
-increment = "M"
+increment = "m"
 if increment == "M":
 	new_version = version.next_major()
 	update_version(new_version)
@@ -34,3 +34,10 @@ elif increment == "p":
 	new_version = version.next_patch()
 	update_version(new_version)
 	print(str(new_version))
+
+with open('main.json', 'r') as file:
+	json_data = json.load(file)
+	json_data['Parameters']['Version']['Default']=str(new_version)
+with open('main.json', 'w') as file:
+	json.dump(json_data, file, indent=4)
+

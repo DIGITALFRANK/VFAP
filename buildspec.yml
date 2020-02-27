@@ -11,6 +11,7 @@ phases:
     commands:
       - echo "In Pre_build"
       - python sem.py
+      - cat main.json
   build:
     commands:
       - echo "VFAP repo Build"
