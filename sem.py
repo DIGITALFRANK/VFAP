@@ -10,7 +10,7 @@ sm_client = boto3.client('secretsmanager')
 
 def update_version(new_version):
 	secretString="{\"version\": \"" + str(new_version) + "\"}"
-	response = client.update_secret(
+	response = sm_client.update_secret(
 		SecretId='versioning',
 		SecretString=secretString
 	)
