@@ -11,7 +11,7 @@ i  = json.loads(response['SecretString'])
 version = i['version']
 print(version)
 
-version = semantic_version.Version('0.1.1')
+version = semantic_version.Version(version)
 increment = "M"
 if increment == "M":
 	new_version = version.next_major()
