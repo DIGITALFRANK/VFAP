@@ -22,7 +22,7 @@ echo $version
 
 # Build array from version string.
 a=()
-for i in ${string//./ }
+for i in ${version//./ }
 do
         a+=("$i")
 done
