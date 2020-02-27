@@ -1,4 +1,7 @@
 version: 0.2
+env:
+  secrets-manager:
+    v: versioning:version:AWSCURRENT:AWSCURRENT
 phases:
   install:
     runtime-versions:
@@ -10,6 +13,7 @@ phases:
     commands:
       - echo "In Pre_build"
       - python --version
+      - echo $v
       - python $CODEBUILD_SRC_DIR/sem.py
   build:
     commands:
