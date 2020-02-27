@@ -5,11 +5,12 @@ phases:
       python: 3.7
     commands:
       - echo "In Install"
-      - apt-get install jq -y
+      - pip install semantic_version
   pre_build:
     commands:
       - echo "In Pre_build"
-      - sh $CODEBUILD_SRC_DIR/increment_version.sh -m 1.1.0
+      - python --version
+      - python $CODEBUILD_SRC_DIR/sem.py
   build:
     commands:
       - echo "VFAP repo Build"
