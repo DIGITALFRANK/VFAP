@@ -1,13 +1,15 @@
 import semantic_version
 import boto3
+import json
 
 # M - Major
 # m - Minor
 # p - patch
 sm_client = boto3.client('secretsmanager')
 response = sm_client.get_secret_value(SecretId='versioning')
-print(response)
-print(response['SecretString'])
+i  = json.loads(response['SecretString'])
+version = i['version']
+print(version)
 
 version = semantic_version.Version('0.1.1')
 increment = "M"
