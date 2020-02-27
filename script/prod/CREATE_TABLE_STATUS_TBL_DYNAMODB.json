@@ -1,0 +1,15 @@
+{
+    "TableName": "vf-prod-etl-file-status",
+    "KeySchema": [
+      { "AttributeName": "file_name", "KeyType": "HASH" },
+      { "AttributeName": "processing_date", "KeyType": "RANGE" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "file_name", "AttributeType": "S" },
+      { "AttributeName": "processing_date", "AttributeType": "S" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 10,
+      "WriteCapacityUnits": 10
+    }    
+}

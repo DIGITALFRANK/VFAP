@@ -1,0 +1,60 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Cloud watch rule Creation template",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+		"LambdaARN": {
+            "Description": "Lambda function ARN",
+            "Type": "String"
+        },
+		"State": {
+            "Description": "Cloud watch trigger state",
+            "Type": "String",
+			"AllowedValues": [
+                "ENABLED",
+                "DISABLED"
+            ]
+        }		
+    },
+    "Mappings": {},
+    "Resources": {
+		"ScheduledRule": {
+		  "Type": "AWS::Events::Rule",
+		  "Properties": {
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "googleanalytics" ] ] },
+			"Description": "This rule triggers Ingest Module for googleanalytics datasource",
+			"ScheduleExpression": "cron(00 14 * * ? *)",
+			"State": { "Ref": "State" },
+			"Targets": [{
+			  "Arn": { "Ref": "LambdaARN" },
+			  "Id": "IngestLambdafunction",
+			  "Input": "{\"source_id\": 1003 }"
+			}]
+		  }
+		},
+		"PermissionForEventsToInvokeLambda": {
+		  "Type": "AWS::Lambda::Permission",
+		  "Properties": {
+			"FunctionName": { "Ref": "LambdaARN" },
+			"Action": "lambda:InvokeFunction",
+			"Principal": "events.amazonaws.com",
+			"SourceArn": { "Fn::GetAtt": ["ScheduledRule", "Arn"] }
+		  }
+		}
+    },
+	"Outputs" : {
+	  "CWTriggerName" : {
+		"Description": "The Cloud watch trigger Name",  
+		"Value" : { "Ref" : "ScheduledRule" }
+	  }
+	}
+}

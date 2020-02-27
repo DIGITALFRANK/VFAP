@@ -1,0 +1,117 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Glue jobs stack",
+  "Parameters": {
+		"Environment": {
+		  "Description": "The environment type",
+		  "Type": "String",
+		  "Default": "dev",
+		  "AllowedValues": [
+			"dev",
+			"prod",
+			"qa"
+		  ],
+		  "ConstraintDescription": "must be a dev, test or prod"
+		},
+		"ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        }
+	},
+	"Mappings": {
+        "EnvironmentMap": {
+            "dev": {
+                "GlueRole": ""
+            },            
+            "qa": {
+                "GlueRole": ""
+            },
+            "prod": {
+                "GuleRole": ""
+            }
+        }
+	},
+	"Resources": {
+		"MergeGlueStack": {
+		  "Type": "AWS::Glue::Job",
+		  "Properties": {
+			"AllocatedCapacity": 15,
+			"Command": {
+			  "Name": "glueetl",
+			  "PythonVersion": "3",
+			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/main.py"
+			},
+			"DefaultArguments": {
+			  "--FILE_NAME": "FILE_NAME",
+			  "--DATE": "DATE",
+			  "--TempDir": { "Fn::Join": [ "-", [ "s3://vf-datalake", { "Ref": "Environment" }, "refined/temp" ] ] },
+			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/transform-routine/src/transform-routine.zip",
+			  "--extra-files": "s3://vf-artifacts-bucket/vfap/config-files/config_store.ini"          
+			},
+			"Description": "Glue ETL job for Merging transformed files",
+			"ExecutionProperty": {
+			  "MaxConcurrentRuns": 3
+			},
+			"GlueVersion": "1.0",
+			"MaxRetries": 0,
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-job" ] ] },
+			"Role": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole"  ] },
+			"Tags": {
+			  "CostCenter": "118204800",
+			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+			  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+			  "Environment": { "Ref": "Environment" },
+			  "ResourceGroup": { "Ref": "ResourceGroup" },
+			  "Application": { "Ref": "Application" }
+			},
+			"Timeout": 30
+		  }
+		},
+		"TransformGlueStack": {
+		  "Type": "AWS::Glue::Job",
+		  "Properties": {
+			"AllocatedCapacity": 15,
+			"Command": {
+			  "Name": "glueetl",
+			  "PythonVersion": "3",
+			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/digital_main.py"
+			},
+			"DefaultArguments": {
+			  "--FILE_NAME": "FILE_NAME",
+			  "--TempDir": { "Fn::Join": [ "-", [ "s3://vf-datalake", { "Ref": "Environment" }, "refined/temp" ] ] },
+			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/transform-routine/src/transform-routine.zip",
+			  "--extra-files": "s3://vf-artifacts-bucket/vfap/config-files/config_store.ini" 
+			},
+			"Description": "Glue ETL job for transforming the files",
+			"ExecutionProperty": {
+			  "MaxConcurrentRuns": 15
+			},
+			"GlueVersion": "1.0",
+			"MaxRetries": 0,
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "transformed-job" ] ] },
+			"Role": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole"  ] },
+			"Tags": {
+			  "CostCenter": "118204800",
+			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+			  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+			  "Environment": { "Ref": "Environment" },
+			  "ResourceGroup": { "Ref": "ResourceGroup" },
+			  "Application": { "Ref": "Application" }
+			},
+			"Timeout": 30
+		  }
+		}
+    }
+}

@@ -1,0 +1,69 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Glue connections template",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        }
+    },
+	"Mappings": {
+        "EnvironmentMap": {
+            "dev": {
+                "GlueSecurityGroupList": "",
+				"GlueSubnetId": "",
+				"JDBCConnURL": "",
+				"RedshiftUser": ""
+            },
+            "qa": {
+                "GlueSecurityGroupList": "",
+				"GlueSubnetId": "",
+				"JDBCConnURL": "",
+				"RedshiftUser": ""
+            },
+            "prod": {
+                "GlueSecurityGroupList": "",
+				"GlueSubnetId": "",
+				"JDBCConnURL": "",
+				"RedshiftUser": ""
+            }
+        }
+    },
+	"Conditions" : {
+		"CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
+		"CreateQAResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "qa"]},
+		"CreateDevResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "dev"]}
+	},
+    "Resources": {
+        "QADbConnection": {
+            "Type": "AWS::Glue::Connection",
+			"Condition" : "CreateQAResources",
+            "Properties": {
+                "CatalogId": { "Ref": "AWS::AccountId" },
+				"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] },
+                "ConnectionInput": {
+                    "Description": "JDBC Connection to QA Redshfit server",
+                    "PhysicalConnectionRequirements": {
+                        "AvailabilityZone": "us-east-1a",
+                        "SecurityGroupIdList": [
+                            { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSecurityGroupList"  ] }
+                        ],
+                        "SubnetId": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSubnetId"  ] }
+                    },
+                    "ConnectionType": "JDBC",
+                    "ConnectionProperties": {
+                        "JDBC_CONNECTION_URL": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "JDBCConnURL"  ] },
+                        "USERNAME": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "RedshiftUser"  ] },
+                        "PASSWORD": "updatemanually"
+                    }
+                }
+            }
+        }
+    }
+}

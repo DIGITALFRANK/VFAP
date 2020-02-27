@@ -1,0 +1,70 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "DynamoDB Table Creation template",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"KMSKeyID": {
+            "Description": "The KMS Key ID",
+            "Type": "String"
+        }		
+    },
+    "Mappings": {},
+    "Resources": {
+		"DynamoDBTable": {
+		  "Type" : "AWS::DynamoDB::Table",
+		  "Properties" : {
+			  "AttributeDefinitions" : [ { "AttributeName": "source_id", "AttributeType": "N" } ],
+			  "KeySchema" : [ { "AttributeName" : "source_id", "KeyType" : "HASH" } ],
+			  "ProvisionedThroughput" : {
+				  "ReadCapacityUnits": 10,
+				  "WriteCapacityUnits": 10
+			  },
+			  "SSESpecification" : {
+				  "KMSMasterKeyId" : { "Ref": "KMSKeyID" },
+				  "SSEEnabled" : "true",
+				  "SSEType" : "KMS"
+			  },
+			  "TableName" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "config-table" ] ] },
+			  "Tags" : [ 
+				  { "Key": "CostCenter", "Value": "118204800" },
+				  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+				  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+				  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+				  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+				  { "Key": "Application", "Value": { "Ref": "Application" } }
+			  ]
+			}
+		}
+    },
+	"Outputs" : {
+	  "DynamoDBTableName" : {
+		"Description": "The DynamoDB Table Name",  
+		"Value" : { "Ref" : "DynamoDBTable" }
+	  }
+	}
+}

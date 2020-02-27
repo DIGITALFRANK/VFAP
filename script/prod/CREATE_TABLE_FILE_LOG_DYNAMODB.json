@@ -1,0 +1,13 @@
+{
+    "TableName": "vf-prod-filelog",
+    "KeySchema": [
+      { "AttributeName": "file_name", "KeyType": "HASH" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "file_name", "AttributeType": "S" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 10,
+      "WriteCapacityUnits": 10
+    }   
+}

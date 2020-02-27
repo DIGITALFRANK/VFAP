@@ -1,0 +1,13 @@
+{
+    "TableName": "vf-qa-etl-file-broker",
+    "KeySchema": [
+      { "AttributeName": "feed_name", "KeyType": "HASH" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "feed_name", "AttributeType": "S" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 10,
+      "WriteCapacityUnits": 10
+    }       
+}

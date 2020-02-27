@@ -1,0 +1,253 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Ingestion Routine cloud formation stack",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"Version":{
+            "Description": "Lambda version",
+            "Type": "String"
+        },
+		"State": {
+            "Description": "Cloud watch trigger state",
+            "Type": "String",
+			"AllowedValues": [
+                "ENABLED",
+                "DISABLED"
+            ]
+        }		
+    },
+    "Mappings": {
+        "EnvironmentMap": {
+            "dev": {
+                "LambdaRole": ""
+            },            
+            "qa": {
+                "LambdaRole": ""
+            },
+            "prod": {
+                "LambdaRole": ""
+            }
+        }
+    },
+    "Resources": {
+		"IngestionLambdaCF": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "Version": { "Ref": "Version" },
+				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole"  ] }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/ingest-routine-lambda.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"AdobeAttrCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/adobe-attribution-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"AdobeEcommCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/adobe-ecomm-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"CatchpointCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/catchpoint-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"CoremetricsCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/coremetrics-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"ForeseeCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/foresee-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"GoogleCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/googleanalytics-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"SnapchatCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/snapchat-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"TwitterCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/twitter-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"youtubeCWRule": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "LambdaARN": { "Fn::GetAtt": [ "IngestionLambdaCF", "Outputs.LambdaARN" ] },
+				  "State": { "Ref": "State" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/cw-rules/youtube-rule.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        }		
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "TableName": "vf-qa-processlog",
+    "KeySchema": [
+      { "AttributeName": "request_id", "KeyType": "HASH" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "request_id", "AttributeType": "S" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 10,
+      "WriteCapacityUnits": 10
+    }   
+}

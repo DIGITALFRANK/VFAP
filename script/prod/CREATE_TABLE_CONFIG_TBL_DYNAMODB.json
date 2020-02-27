@@ -1,0 +1,13 @@
+{
+    "TableName": "vf-prod-configtbl",
+    "KeySchema": [
+      { "AttributeName": "source_id", "KeyType": "HASH" }
+    ],
+    "AttributeDefinitions": [
+      { "AttributeName": "source_id", "AttributeType": "N" }
+    ],
+    "ProvisionedThroughput": {
+      "ReadCapacityUnits": 10,
+      "WriteCapacityUnits": 10
+    }       
+}

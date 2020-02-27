@@ -2,15 +2,15 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      python: 3.8
+      python: 3.7
     commands:
       - echo "In Install"
   pre_build:
     commands:
-      - sam --version
+      - echo "In Pre_build"
   build:
     commands:
-      - echo "Ingestion Routine Build"
+      - echo "VFAP repo Build"
       - find $CODEBUILD_SRC_DIR/ -name build.sh -type f -exec sh {} \;
   post_build:
     commands:
@@ -18,3 +18,4 @@ phases:
 artifacts:
   files:
     - main.json
+    

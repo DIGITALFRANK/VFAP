@@ -1,0 +1,71 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Ingestion Routine Lambda cloud formation stack",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"Version":{
+            "Description": "Lambda version",
+            "Type": "String"
+        },
+		"LambdaRole":{
+            "Description": "Lambda Role",
+            "Type": "String"
+        }
+    },
+    "Mappings": {},
+    "Resources": {
+        "LambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "ingestion-routine" ] ] },
+                "Handler": "main.lambda_handler",
+                "Runtime": "python3.7",
+                "Description": "Ingest routine lambda function",
+                "Code": { 
+					"ZipFile": { "Fn::Join": [ "", [ "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/src/ingest-routine", "-", { "Ref": "Version" }, ".zip" ] ] }
+                },
+                "MemorySize": 2048,
+                "Timeout": 900,
+                "Role": { "Ref": "LambdaRole" },
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        }
+    },
+	"Outputs": {
+		"LambdaARN": {
+			"Value": { "Fn::GetAtt": [ "LambdaFunction", "Arn" ] }
+		}
+	}
+}
