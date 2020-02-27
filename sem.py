@@ -5,7 +5,8 @@ import boto3
 # m - Minor
 # p - patch
 sm_client = boto3.client('secretsmanager')
-response = client.get_secret_value(SecretId='versioning')
+response = sm_client.get_secret_value(SecretId='versioning')
+print(response)
 print(response['SecretString'])
 
 version = semantic_version.Version('0.1.1')
