@@ -18,7 +18,10 @@ shift $(($OPTIND - 1))
 aws s3 cp s3://vf-artifacts-bucket/vfap/semantic-versioning/src/current.txt $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt
 version=$(cat $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt | cut -d '-' -f 2)
 
+echo $version
+
 # Build array from version string.
+set -f
 a=(${version//./ })
 
 # If version string is missing or has the wrong number of members, show usage message.
