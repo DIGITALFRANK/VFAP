@@ -5,9 +5,11 @@ phases:
       python: 3.7
     commands:
       - echo "In Install"
+      - sudo apt-get install jq -y
   pre_build:
     commands:
       - echo "In Pre_build"
+      - sh $CODEBUILD_SRC_DIR/semantic-versioning/src/versioning.sh -m
   build:
     commands:
       - echo "VFAP repo Build"
@@ -15,6 +17,7 @@ phases:
   post_build:
     commands:
       - echo "Post Build Actions"
+      - aws s3 cp $CODEBUILD_SRC_DIR/main.json s3://vf-artifacts-bucket/vfap/main.json
 artifacts:
   files:
     - main.json
