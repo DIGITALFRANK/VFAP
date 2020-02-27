@@ -21,8 +21,13 @@ version=$(cat $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt | cut -d '-
 echo $version
 
 # Build array from version string.
-set -f
-a=(${version//./ })
+a=()
+for i in ${string//./ }
+do
+        a+=("$i")
+done
+
+echo "${a[@]}"
 
 # If version string is missing or has the wrong number of members, show usage message.
 #if [ ${#a[@]} -ne 2 ]
