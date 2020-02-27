@@ -1,7 +1,4 @@
 version: 0.2
-env:
-  secrets-manager:
-    v: versioning:version:AWSCURRENT:AWSCURRENT
 phases:
   install:
     runtime-versions:
@@ -9,12 +6,11 @@ phases:
     commands:
       - echo "In Install"
       - pip install semantic_version
+      - pip install boto3
   pre_build:
     commands:
       - echo "In Pre_build"
-      - python --version
-      - echo $v
-      - python $CODEBUILD_SRC_DIR/sem.py
+      - python sem.py
   build:
     commands:
       - echo "VFAP repo Build"
