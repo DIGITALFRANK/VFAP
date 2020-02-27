@@ -19,14 +19,14 @@ aws s3 cp s3://vf-artifacts-bucket/vfap/semantic-versioning/src/current.txt $COD
 version=$(cat $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt | cut -d '-' -f 2)
 
 # Build array from version string.
-a=( ${version//./ } )
+a=(${version//./ })
 
 # If version string is missing or has the wrong number of members, show usage message.
-if [ ${#a[@]} -ne 2 ]
-then
-  echo "usage: $(basename $0) [-Mmp]"
-  exit 1
-fi
+#if [ ${#a[@]} -ne 2 ]
+#then
+#  echo "usage: $(basename $0) [-Mmp]"
+#  exit 1
+#fi
 
 # Increment version numbers as requested.
 if [ ! -z $major ]
