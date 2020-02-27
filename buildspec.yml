@@ -13,7 +13,6 @@ phases:
   build:
     commands:
       - echo "VFAP repo Build"
-      - find $CODEBUILD_SRC_DIR/ -name build.sh -type f -exec sh {} \;
   post_build:
     commands:
       - echo "Post Build Actions"
