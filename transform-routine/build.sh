@@ -8,6 +8,7 @@ set -ue
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/transform-routine/src/modules/site-packages/
 zip -r site-packages.zip .
+cp site-packages.zip $CODEBUILD_SRC_DIR/transform-routine/src/
 
 cd $CODEBUILD_SRC_DIR/transform-routine/src/
 zip -r transform-routine.zip .
