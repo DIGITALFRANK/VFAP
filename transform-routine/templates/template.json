@@ -49,7 +49,7 @@
 			  "--FILE_NAME": "FILE_NAME",
 			  "--DATE": "DATE",
 			  "--TempDir": { "Fn::Join": [ "-", [ "s3://vf-datalake", { "Ref": "Environment" }, "refined/temp" ] ] },
-			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/transform-routine/src/transform-routine.zip",
+			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/transform-routine/src/site-packages.zip,s3://vf-artifacts-bucket/vfap/transform-routine/src/transform-routine.zip",
 			  "--extra-files": "s3://vf-artifacts-bucket/vfap/config-files/config_store.ini"          
 			},
 			"Description": "Glue ETL job for Merging transformed files",

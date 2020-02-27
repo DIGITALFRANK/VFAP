@@ -6,8 +6,11 @@ set -ue
 #python3 param-resolver.py
 
 # Packing lambda with dependencies
+cd $CODEBUILD_SRC_DIR/transformed-routine/src/modules/site-packages/
+zip -r site-packages.zip .
+
 cd $CODEBUILD_SRC_DIR/transform-routine/src/
-zip -r transform-routine .
+zip -r transform-routine.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
