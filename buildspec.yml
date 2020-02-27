@@ -9,7 +9,7 @@ phases:
   pre_build:
     commands:
       - echo "In Pre_build"
-      - sh $CODEBUILD_SRC_DIR/semantic-versioning/src/versioning.sh -m
+      - $CODEBUILD_SRC_DIR/semantic-versioning/src/versioning.sh -m
   build:
     commands:
       - echo "VFAP repo Build"
