@@ -47,10 +47,16 @@
                 "Runtime": "python3.7",
                 "Description": "Ingest routine lambda function",
                 "Code": { 
-					"ZipFile": { "Fn::Join": [ "", [ "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/src/ingest-routine", "-", { "Ref": "Version" }, ".zip" ] ] }
+					"S3Bucket" : "vf-artifacts-bucket",
+					"S3Key" : { "Fn::Join": [ "", [ "vfap/ingest-routine/src/ingest-routine", "-", { "Ref": "Version" }, ".zip" ] ] }
                 },
                 "MemorySize": 2048,
                 "Timeout": 900,
+				"Environment" : {
+					"Variables" : {
+						"environment": { "Ref": "Environment" }
+					}
+				},
                 "Role": { "Ref": "LambdaRole" },
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },

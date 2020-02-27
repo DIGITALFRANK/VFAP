@@ -17,11 +17,11 @@ cp $CODEBUILD_SRC_DIR/utils/* $CODEBUILD_SRC_DIR/ingest-routine/src/utils/
 
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/ingest-routine/src/
-zip -r ingest-routine-V.1.0.0.zip .
+zip -r ingest-routine-V.1.1.0.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
 aws s3 sync $CODEBUILD_SRC_DIR/ingest-routine/templates/  s3://vf-artifacts-bucket/vfap/ingest-routine/templates/
-aws s3 cp $CODEBUILD_SRC_DIR/ingest-routine/src/ingest-routine-V.1.0.0.zip s3://vf-artifacts-bucket/vfap/ingest-routine/src/
+aws s3 cp $CODEBUILD_SRC_DIR/ingest-routine/src/ingest-routine-V.1.1.0.zip s3://vf-artifacts-bucket/vfap/ingest-routine/src/
 
 echo "Build.sh completed"

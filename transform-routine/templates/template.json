@@ -45,6 +45,9 @@
 			  "PythonVersion": "3",
 			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/main.py"
 			},
+			"Connections": {
+			  "Connections" : [ { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] } ]
+			},
 			"DefaultArguments": {
 			  "--FILE_NAME": "FILE_NAME",
 			  "--DATE": "DATE",
@@ -79,6 +82,9 @@
 			  "Name": "glueetl",
 			  "PythonVersion": "3",
 			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/digital_main.py"
+			},
+			"Connections": {
+			  "Connections" : [ { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] } ]
 			},
 			"DefaultArguments": {
 			  "--FILE_NAME": "FILE_NAME",

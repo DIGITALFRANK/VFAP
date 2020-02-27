@@ -47,7 +47,8 @@
                 "Runtime": "python3.7",
                 "Description": "Common glue job trigger lambda function",
                 "Code": { 
-					"ZipFile": { "Fn::Join": [ "", [ "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/common-trigger/src/common-gluejob-trigger", "-", { "Ref": "Version" }, ".zip" ] ] }
+					"S3Bucket" : "vf-artifacts-bucket",
+					"S3Key" : { "Fn::Join": [ "", [ "vfap/glue-triggers/common-trigger/src/common-gluejob-trigger", "-", { "Ref": "Version" }, ".zip" ] ] }
                 },
                 "MemorySize": 2048,
                 "Timeout": 900,

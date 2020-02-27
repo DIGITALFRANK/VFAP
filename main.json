@@ -45,7 +45,7 @@
 		"Version":{
 			"Description": "Lambda version",
 			"Type": "String",
-			"Default": "V-1.0.0"
+			"Default": "V-1.1.0"
 		}	
   },
   "Mappings": {
