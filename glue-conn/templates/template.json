@@ -41,9 +41,9 @@
 			"Condition" : "CreateQAResources",
             "Properties": {
                 "CatalogId": { "Ref": "AWS::AccountId" },
-				"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] },
                 "ConnectionInput": {
                     "Description": "JDBC Connection to QA Redshfit server",
+					"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] },
                     "PhysicalConnectionRequirements": {
                         "AvailabilityZone": "us-east-1a",
                         "SecurityGroupIdList": [
