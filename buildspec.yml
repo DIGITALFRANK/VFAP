@@ -12,12 +12,10 @@ phases:
   build:
     commands:
       - echo "VFAP repo Build"
-      - sh $CODEBUILD_SRC_DIR/semantic-versioning/src/versioning.sh -m
       - find $CODEBUILD_SRC_DIR/ -name build.sh -type f -exec sh {} \;
   post_build:
     commands:
       - echo "Post Build Actions"
-      - aws s3 cp $CODEBUILD_SRC_DIR/main.json s3://vf-artifacts-bucket/vfap/main.json
 artifacts:
   files:
     - main.json
