@@ -15,13 +15,13 @@ done
 
 shift $(($OPTIND - 1))
 
-aws s3 cp s3://vf-artifacts-bucket/vfap/semantic-versioning/src/current.txt $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt
-version=$(cat $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt | cut -d '-' -f 2)
+aws s3 cp s3://vf-artifacts-bucket/vfap/semantic-versioning/src/current.txt $CODEBUILD_SRC_DIR/current.txt
+version=$(cat $CODEBUILD_SRC_DIR/current.txt | cut -d '-' -f 2)
 
 echo $version
 
 # Build array from version string.
-
+a=()
 for i in ${version//./ }
 do
         a+=("$i")
@@ -57,8 +57,8 @@ fi
 
 echo "Update version number in current.txt file"
 new_version="V-${a[0]}.${a[1]}.${a[2]}"
-echo "V-${a[0]}.${a[1]}.${a[2]}" > $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt 
-aws s3 cp $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt s3://vf-artifacts-bucket/vfap/semantic-versioning/src/
+echo "V-${a[0]}.${a[1]}.${a[2]}" > $CODEBUILD_SRC_DIR/current.txt 
+aws s3 cp $CODEBUILD_SRC_DIR/current.txt s3://vf-artifacts-bucket/vfap/semantic-versioning/src/
 
 echo "New updated version: $new_version"
 

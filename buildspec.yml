@@ -9,7 +9,8 @@ phases:
   pre_build:
     commands:
       - echo "In Pre_build"
-      - sh $CODEBUILD_SRC_DIR/semantic-versioning/src/versioning.sh -m
+      - aws s3 cp s3://vf-artifacts-bucket/vfap/semantic-versioning/src/versioning.sh $CODEBUILD_SRC_DIR/
+      - sh $CODEBUILD_SRC_DIR/versioning.sh -m
   build:
     commands:
       - echo "VFAP repo Build"
