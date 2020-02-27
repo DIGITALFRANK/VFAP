@@ -5,7 +5,7 @@ phases:
       python: 3.7
     commands:
       - echo "In Install"
-      - sudo apt-get install jq -y
+      - apt-get install jq -y
   pre_build:
     commands:
       - echo "In Pre_build"
