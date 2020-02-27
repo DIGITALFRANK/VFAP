@@ -21,7 +21,7 @@ version=$(cat $CODEBUILD_SRC_DIR/semantic-versioning/src/current.txt | cut -d '-
 echo $version
 
 # Build array from version string.
-a=()
+
 for i in ${version//./ }
 do
         a+=("$i")
