@@ -93,7 +93,7 @@
 			"GlueVersion": "1.0",
 			"MaxRetries": 0,
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "transformed-job" ] ] },
-			"Role": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole"  ] },
+			"Role": { "Ref": "GlueRole" },
 			"Tags": {
 			  "CostCenter": "118204800",
 			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },

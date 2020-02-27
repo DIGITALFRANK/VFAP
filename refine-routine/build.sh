@@ -8,11 +8,8 @@ set -ue
 
 # Copy all VFAP utils
 mkdir $CODEBUILD_SRC_DIR/refine-routine/src/utils
-mkdir $CODEBUILD_SRC_DIR/refine-routine/src/utils/api_utils
-mkdir $CODEBUILD_SRC_DIR/refine-routine/src/utils/get_refined
 
-cp $CODEBUILD_SRC_DIR/utils/api_utils/* $CODEBUILD_SRC_DIR/refine-routine/src/utils/api_utils/
-cp $CODEBUILD_SRC_DIR/utils/get_refined/* $CODEBUILD_SRC_DIR/refine-routine/src/utils/get_refined/
+cp $CODEBUILD_SRC_DIR/utils/* $CODEBUILD_SRC_DIR/refine-routine/src/utils/
 
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/refine-routine/src/
