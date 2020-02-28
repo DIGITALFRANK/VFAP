@@ -30,14 +30,14 @@
 		"ScheduledRule": {
 		  "Type": "AWS::Events::Rule",
 		  "Properties": {
-			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-ecomm-trigger" ] ] },
-			"Description": "This rule invokes glue merge job for ecomm dashboard data",
-			"ScheduleExpression": "cron(50 14 * * ? *)",
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-adobe-weekly-trigger" ] ] },
+			"Description": "This rule invokes glue merge job for adobe weekly",
+			"ScheduleExpression": "cron(0 16 ? * SUN *)",
 			"State": { "Ref": "State" },
 			"Targets": [{
 			  "Arn": { "Ref": "LambdaARN" },
 			  "Id": "MergeLambdaFunction",
-			  "Input": "{\"feed_name\": \"VF_FILE_ECOMMERGE_\" }"
+			  "Input": "{\"feed_name\": \"VF_FILE_ADOBEWEEKLY_\" }"
 			}]
 		  }
 		},
