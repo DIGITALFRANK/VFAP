@@ -36,6 +36,13 @@ class snapchat:
                 message,
                 "General exception occurred."
             )
+            
+        file = '/tmp/snapchat_stories.json'
+        if os.path.exists(file):
+            os.remove(file)
+        file1 = '/tmp/snapchat_snaps.json'
+        if os.path.exists(file1):
+            os.remove(file1)
         date_format = api_params['dateformat']
         yesterday_date = datetime.strftime(datetime.now() - timedelta(1), date_format)
         #get required parameters from DynamoDb
