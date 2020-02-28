@@ -14,7 +14,7 @@ phases:
   build:
     commands:
       - echo "VFAP Repo Build"
-      - export VERSION=$VERSION
+      - echo $VERSION > current.version
       - sh $CODEBUILD_SRC_DIR/ingest-routine/build.sh
   post_build:
     commands:
