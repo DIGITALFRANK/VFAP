@@ -6,6 +6,7 @@ import csv
 from utils.sns_obj import sns_notification
 from utils.secrets_util import SecretsUtil
 from utils.s3_util import S3Client
+import os
 
 secrets_util = SecretsUtil()
 SNS_FAILURE_TOPIC = 'TODO'
@@ -36,7 +37,7 @@ class snapchat:
                 message,
                 "General exception occurred."
             )
-            
+        
         file = '/tmp/snapchat_stories.json'
         if os.path.exists(file):
             os.remove(file)

@@ -10,6 +10,7 @@ from utils.secrets_util import SecretsUtil
 import sys
 from utils.s3_util import S3Client
 from utils.sns_obj import sns_notification
+import os
 
 SNS_FAILURE_TOPIC = 'TODO'
 os.chdir("/tmp/")
@@ -58,7 +59,6 @@ class youtube:
         file = '/tmp/youtube.json'
         if os.path.exists(file):
             os.remove(file)
-
         # api calls to get the json data from different apis
         for i in range(0, len(channel_id_list)):
             params = {'id': channel_id_list[i],

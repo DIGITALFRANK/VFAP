@@ -5,6 +5,7 @@ from utils.sns_obj import sns_notification
 from utils.secrets_util import SecretsUtil
 from utils.s3_util import S3Client
 from datetime import datetime, timedelta
+import os
 
 secrets_util = SecretsUtil()
 SNS_FAILURE_TOPIC = 'TODO'
@@ -57,7 +58,6 @@ class twitter:
         file = '/tmp/tweets.csv'
         if os.path.exists(file):
             os.remove(file)
-
         # authorize twitter, initialize tweepy
 
         # initialize a list to hold all the tweepy Tweets
@@ -77,8 +77,8 @@ class twitter:
             # keep grabbing tweets until there are no tweets left to grab
             date = alltweets[0].created_at.strftime('%Y-%m-%d')
             twitter_id = alltweets[0].user.id
-            twitter_name = alltweets[0].screen_name
-            author = alltweets[0].user.user.name
+            twitter_name = alltweets[0].user.screen_name
+            author = alltweets[0].user.name
             following_count = alltweets[0].user.friends_count
             follower_count = alltweets[0].user.followers_count
             listed_count = alltweets[0].user.listed_count

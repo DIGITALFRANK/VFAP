@@ -4,8 +4,8 @@ import os
 from datetime import datetime, timedelta
 
 #environment = os.environ.get('environment', 'dev')
-gluejobname = f'vf-{environment}-merge-job'
 environment = os.environ['environment']
+gluejobname = f'vf-{environment}-merge-job'
 # gluejobname = f'vf_{environment}_merge_job'
 
 def lambda_handler(event, context):
@@ -15,7 +15,7 @@ def lambda_handler(event, context):
     
     date = datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d')
     print(date)
-    filename = 'VF_FILE_ECOMMERGE_'+date
+    filename = event["feed_name"]+date
     print(filename)
     
     try:
