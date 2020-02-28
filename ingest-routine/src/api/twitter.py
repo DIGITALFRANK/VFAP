@@ -54,6 +54,9 @@ class twitter:
         bucket_key_folder = api_params['bucket_key_folder']
         # initializing the tweepy aut api
         api = tweepy.API(auth)
+        file = '/tmp/tweets.csv'
+        if os.path.exists(file):
+            os.remove(file)
 
         # authorize twitter, initialize tweepy
 
