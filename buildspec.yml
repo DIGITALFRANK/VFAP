@@ -15,6 +15,7 @@ phases:
     commands:
       - echo "VFAP Repo Build"
       - echo $VERSION
+      - sh $CODEBUILD_SRC_DIR/ingest-routine/build.sh
   post_build:
     commands:
       - echo "Post Build Actions"
