@@ -1,12 +1,16 @@
 import semantic_version
 import boto3
 import json
+import os
+import sys
 
 # M - Major
 # m - Minor
 # p - patch
 
 sm_client = boto3.client('secretsmanager')
+
+increment = str(sys.argv[1])
 
 def update_version(new_version):
 	secretString="{\"version\": \"" + str(new_version) + "\"}"
@@ -21,7 +25,7 @@ version = i['version']
 print(version)
 
 version = semantic_version.Version(version)
-increment = "m"
+
 if increment == "M":
 	new_version = version.next_major()
 	update_version(new_version)
@@ -41,3 +45,4 @@ with open('main.json', 'r') as file:
 with open('main.json', 'w') as file:
 	json.dump(json_data, file, indent=4)
 
+os.environ['VERSION'] = str(new_version)

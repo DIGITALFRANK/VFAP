@@ -10,11 +10,11 @@ phases:
   pre_build:
     commands:
       - echo "In Pre_build"
-      - python sem.py
-      - cat main.json
+      - python sem.py m
   build:
     commands:
-      - echo "VFAP repo Build"
+      - echo "VFAP Repo Build"
+      - echo "version: $VERSION"
   post_build:
     commands:
       - echo "Post Build Actions"
