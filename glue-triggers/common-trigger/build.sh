@@ -5,13 +5,15 @@ set -ue
 #cd $CODEBUILD_SRC_DIR/param-resolver/src/
 #python3 param-resolver.py
 
+VERSION=$(cat $CODEBUILD_SRC_DIR/current.txt)
+
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/
-zip -r common-gluejob-trigger-V-1.1.0.zip .
+zip -r common-gluejob-trigger-$VERSION.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
 aws s3 sync $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/templates/  s3://vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/
-aws s3 cp $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/common-gluejob-trigger-V-1.1.0.zip s3://vf-artifacts-bucket/vfap/glue-triggers/common-trigger/src/
+aws s3 cp $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/common-gluejob-trigger-$VERSION.zip s3://vf-artifacts-bucket/vfap/glue-triggers/common-trigger/src/
 
 echo "Build.sh completed"
