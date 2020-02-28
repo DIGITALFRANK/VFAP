@@ -15,7 +15,8 @@ pip install -r requirements.txt --target $CODEBUILD_SRC_DIR/ingest-routine/src/e
 mkdir $CODEBUILD_SRC_DIR/ingest-routine/src/utils
 cp $CODEBUILD_SRC_DIR/utils/* $CODEBUILD_SRC_DIR/ingest-routine/src/utils/
 
-VERSION=$(cat $CODEBUILD_SRC_DIR/current.version)
+VERSION=$(cat $CODEBUILD_SRC_DIR/current.txt)
+echo $VERSION
 
 # Packing lambda with dependencies
 cd $CODEBUILD_SRC_DIR/ingest-routine/src/

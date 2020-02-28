@@ -45,4 +45,6 @@ with open('main.json', 'r') as file:
 with open('main.json', 'w') as file:
 	json.dump(json_data, file, indent=4)
 
-os.environ['VERSION'] = str(new_version)
+#os.environ['VERSION'] = str(new_version)
+with open("current.txt", "w") as current:
+    current.write(str(new_version))
