@@ -55,6 +55,9 @@ class youtube:
         url = api_params['api_url']
         bucket_key_folder = api_params['bucket_key_folder']
         response_list = []
+        file = '/tmp/youtube.json'
+        if os.path.exists(file):
+            os.remove(file)
 
         # api calls to get the json data from different apis
         for i in range(0, len(channel_id_list)):
