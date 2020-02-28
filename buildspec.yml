@@ -14,7 +14,7 @@ phases:
   build:
     commands:
       - echo "VFAP Repo Build"
-      - echo "version: $VERSION"
+      - echo $VERSION
   post_build:
     commands:
       - echo "Post Build Actions"
