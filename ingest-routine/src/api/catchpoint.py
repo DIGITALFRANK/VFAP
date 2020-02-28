@@ -93,6 +93,9 @@ class catchpoint:
             s3_client.move_from_tmp_to_bucket("/tmp/catchpoint.json",
                                               bucket_key_folder + "/" + "WEB_PERFORMANCE_CATCHPOINT_{}.json".format(
                                                   yesterday_date), target_bucket)
+            file = '/tmp/catchpoint.json'
+            if os.path.exists(file):
+                os.remove(file)
         except Exception as e:
             message = (
                 f"Exception: {e} \nMessage:  catchpoint data could not be"
