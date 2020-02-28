@@ -40,7 +40,7 @@
 				"ENABLED",
 				"DISABLED"
 			],
-			"Default": "DISABLED"
+			"Default": "ENABLED"
 		},
 		"Version":{
 			"Description": "Lambda version",
