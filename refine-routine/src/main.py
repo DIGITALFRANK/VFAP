@@ -18,6 +18,8 @@ def lambda_handler(event, context):
     foldername = event['Records'][0]['s3']['object']['key']
     if foldername.find('WeatherTrends') != -1:
         file_name = foldername.split('/')[4]
+        date = foldername.split('/')[3]
+        # print(date[7:15])
     else:
         file_name = foldername.split('/')[2]
     #getting the feed name of the data source to get dynamoDB records
@@ -30,7 +32,19 @@ def lambda_handler(event, context):
         parsing_class.parser(params['raw_source_bucket'], source_key_name, params['rf_dstn_bucket'])
     elif file_name.find('reports') != -1:
         parsing_class.parser(params['raw_source_bucket'], source_key_name, params['rf_dstn_bucket'])
+    elif file_name.find('WeatherTrends') != -1:
+        source_key_name = params['raw_source_file_name'] + date + "/" + file_name
+        print("Key name: " + source_key_name)
+        file, date = parsing_class.parser(params['raw_source_bucket'], source_key_name)
+        dstn_file_name = params['rf_dstn_filename'] + date +'.'+params['raw_source_filetype']
+        #Uploading the csv in temp folder to destination s3 bucket
+        s3.upload_file(file, params['rf_dstn_bucket'], dstn_file_name)
+        #Removing the file stored in /tmp folder
+        if os.path.exists(file):
+            os.remove(file)
+        print("Removed the file %s" % file)
     else:
+        print("Key name: " + source_key_name)
         file, date = parsing_class.parser(params['raw_source_bucket'], source_key_name)
         dstn_file_name = params['rf_dstn_filename'] + date +'.'+params['raw_source_filetype']
         #Uploading the csv in temp folder to destination s3 bucket

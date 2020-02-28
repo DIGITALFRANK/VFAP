@@ -10,6 +10,9 @@ class rf_weather:
 
     @staticmethod
     def parser(source_bucket, file_name):
+        print(file_name)
+        print(source_bucket)
+        file_name = file_name.replace('%3D', '=')
         y = file_name.rsplit('/')
         local_file_name = '/tmp/' + y[2]
         sr3.Bucket(source_bucket).download_file(file_name, local_file_name)
