@@ -17,6 +17,8 @@ import sys
 ### This function is to get next version based on update_type
 def get_version(current_version,update_type):
 	### Initialize the semantic_version
+	print(current_version)
+	print(update_type)
 	version = semantic_version.Version(current_version)
 	
 	if update_type == "M":
