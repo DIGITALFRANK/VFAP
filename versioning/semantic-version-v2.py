@@ -14,27 +14,22 @@ import semantic_version
 import os
 import sys
 
-### This function is to get next version based on update_type
-def get_version(current_version,update_type):
-	### Initialize the semantic_version
-	print(current_version)
-	print(update_type)
-	version = semantic_version.Version(current_version)
-	
-	if update_type == "M":
-		new_version = version.next_major()
-	elif update_type == "m":
-		new_version = version.next_minor()
-	elif update_type == "p":
-		new_version = version.next_patch()
-	else:
-		print("[ERROR]: Vaild update type is M - major, m - minor and p - patch")
-	
-	print("New version: " + str(new_version))
-	return new_version
+### Read input arguments
+current_version = str(sys.argv[1])
+update_type = str(sys.argv[2])
 
-if __name__ == '__main__':
-	### Read input arguments
-	current_version = str(sys.argv[1])
-	update_type = str(sys.argv[2])
-	get_version(current_version,update_type)
+print(current_version)
+print(update_type)
+
+version = semantic_version.Version(current_version)
+
+if update_type == "M":
+	new_version = version.next_major()
+elif update_type == "m":
+	new_version = version.next_minor()
+elif update_type == "p":
+	new_version = version.next_patch()
+else:
+	print("[ERROR]: Vaild update type is M - major, m - minor and p - patch")
+
+print(str(new_version))

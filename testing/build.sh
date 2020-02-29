@@ -22,9 +22,9 @@ echo "$current_version"
 new_version=$(python $versioning_base_path/semantic-version-v2.py current_version m)
 
 ### Following command will update the template with new version
-python $versioning_base_path/update-template.py new_version template_path
+#python $versioning_base_path/update-template.py new_version template_path
 
-aws s3 cp $templates_base_path/merge-gluejob-lambda.json $artifacts_base_path/templates/
+#aws s3 cp $templates_base_path/merge-gluejob-lambda.json $artifacts_base_path/templates/
 
 # Upload config files to artifacts-bucket
 #echo "Syncing the artifacts"
