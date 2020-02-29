@@ -15,8 +15,8 @@ template_path="$templates_base_path/merge-gluejob-lambda.json"
 ### Alternatively we can also use following
 ### base_path=$(dirname "$0")
 
-current_version=$(aws s3 ls $artifacts_base_path/ --recursive | sort | tail -n 1 | awk '{print $4}' | grep zip | awk -F '-' '{print $NF}' | awk {'print substr($1,1,5)'})
-
+unformatted_version=$(aws s3 ls $artifacts_base_path/ --recursive | sort | tail -n 1 | awk '{print $4}' | grep zip | awk -F '-' '{print $NF}')
+current_version=${unformatted_version::-4}
 echo "$current_version"
 
 ### Following command will get new version
