@@ -21,9 +21,9 @@ update_type = str(sys.argv[2])
 print(current_version)
 
 ### This function is to get next version based on update_type
-def get_version():
+def get_version(current):
 	### Initialize the semantic_version
-	version = semantic_version.Version(current_version)
+	version = semantic_version.Version(current)
 	
 	if update_type == "M":
 		new_version = version.next_major()
@@ -38,4 +38,4 @@ def get_version():
 	return new_version
 
 if __name__ == '__main__':
-	get_version()
+	get_version(current_version)
