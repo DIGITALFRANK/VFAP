@@ -13,7 +13,7 @@ phases:
     commands:
       - echo "VFAP Build"
       - chmod +x init.sh
-      - ./init.sh
+      - sh "bash ./init.sh"
 artifacts:
   files:
     - main.json
