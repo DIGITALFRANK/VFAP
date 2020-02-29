@@ -1,3 +1,5 @@
+#!/bin/sh
+
 #Please select following modules you want to build
 #	1 ) 	config-file
 #	2 ) 	dynamoDB
