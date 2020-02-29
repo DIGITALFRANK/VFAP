@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #Please select following modules you want to build
-#	1 ) 	config-file
+#	1 ) 	config-files
 #	2 ) 	dynamoDB
 #	3 ) 	glue-conn
 #	4 ) 	glue-triggers/common-trigger
@@ -14,7 +14,7 @@
 
 # buildModules=("config-file" "dynamoDB" "glue-conn" "glue-triggers/common-trigger" "glue-triggers/merge-trigger" "ingest-routine" "param-store" "refine-routine" "secrets" "transform-routine")
 
-buildModules="config-file"
+buildModules="config-files"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
