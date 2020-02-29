@@ -14,7 +14,6 @@
 
 # buildModules=("config-file" "dynamoDB" "glue-conn" "glue-triggers/common-trigger" "glue-triggers/merge-trigger" "ingest-routine" "param-store" "refine-routine" "secrets" "transform-routine")
 
-
 buildModules="config-files"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
