@@ -20,7 +20,7 @@ echo "$current_version"
 
 ### Following command will get new version
 new_version=$(python $versioning_base_path/semantic-version-v2.py current_version m)
-print(new_version)
+echo $new_version
 
 ### Following command will update the template with new version
 #python $versioning_base_path/update-template.py new_version template_path
