@@ -35,12 +35,15 @@ class tr_ecomm_merge(Dataprocessor_merge):
             # Reading the Dataframe from fiscal file and master data file
             lookup_df = self.redshift_table_to_dataframe(self.env_params[
                                                              "fiscal_table"])
+            lookup_df.show()
             master_df = self.redshift_table_to_dataframe(self.env_params[
                                                              "ecomml_table"])
+            master_df.show()
             brand_adj_df = self.read_from_s3(common_file_delimiter,
                                              self.env_params["refined_bucket"],
                                              self.env_params[
                                                  "brand_adj_mapping"])
+            brand_adj_df.show()
             logger.info("Converting the fiscal calender and master data into "
                         "data frames")
             fiscal_calender = lookup_df.withColumn('joined_column',
@@ -54,6 +57,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
                                                        sf.col('fiscalyear'),
                                                        sf.col('fiscalmonth'))))
 
+            fiscal_calender.show()
             fiscal_calender1 = fiscal_calender.withColumn(
                 'fiscal_year_quarter', when((lookup_df.fiscalqtr == 'Q1'),
                                             sf.concat(sf.col('fiscalyear'),
@@ -64,6 +68,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
                     'fiscalyear'), lit(3)))
                     .when((lookup_df.fiscalqtr == 'Q4'), sf.concat(sf.col(
                     'fiscalyear'), lit(4))))
+            fiscal_calender1.show()
 
             # Deriving the Brand Adj column from Brand column
             brand_adj_df.createOrReplaceTempView("mapper")
@@ -72,6 +77,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
                               "mapper m, merged l where m.brand = l.BRAND")
             logger.info("Deriving the Brand Adjective Column from Brand")
 
+            df_final.show()
             # Creating a temporary view of Merged Data frame
             df_final.createOrReplaceTempView("master")
 
@@ -94,6 +100,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
                 "join lookup l on cast(m.DATE as String) = cast(l.date as "
                 "String)")
             logger.info("Generating the Fiscal values")
+            df_initial.show()
 
             # Creating Temporary View of Data frame with previous year
             # fiscal values
@@ -131,6 +138,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
 
             logger.info("Generating the previous year values by looking up "
                         "with Master Data File")
+            final_df.show()
 
             # Adding the Country Column in Final Data File
             final_country = final_df.withColumn('Country', when(
@@ -153,12 +161,14 @@ class tr_ecomm_merge(Dataprocessor_merge):
                 final_df.BRAND.contains('DICKIES'), lit('USA')).
                                            otherwise(lit('EUROPE')))
 
+            final_country.show()
             # reading the Currency Data frame
             currency_df = self.read_from_s3(currency_file_delimiter,
                                             self.env_params[
                                                 "refined_bucket"],
                                             self.env_params["currency_converter_file"])
             logger.info("Reading the Currency exchange value into Data frame")
+            currency_df.show()
 
             # Creating Temporary View of the currency and the Master data frame
             final_country.createOrReplaceTempView("final")
@@ -197,6 +207,7 @@ class tr_ecomm_merge(Dataprocessor_merge):
                 "from final m, currency c where m.REGION = c.REGION and "
                 "m.Country = c.COUNTRY")
 
+            final_df1.show()
             final_df_sales_usd = final_df1.withColumn(
                 "total_sales_eur", when(final_df1.brand_region == 'EMEA',
                                         final_df1.total_sales).otherwise(0))
