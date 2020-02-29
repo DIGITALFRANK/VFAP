@@ -6,7 +6,7 @@ import os
 import sys
 
 ### This function is to update the version in template file
-def update_version_inCF(new_version,template_path)
+def update_version_inCF(new_version,template_path):
 	if template_path != "NULL":
 		with open(template_path, 'r+') as file:
 			new_template=file.read().replace('###version###', new_version)
