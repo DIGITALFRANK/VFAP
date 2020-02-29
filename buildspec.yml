@@ -6,14 +6,13 @@ phases:
     commands:
       - echo "In Install"
       - pip install semantic_version
-      - pip install boto3
   pre_build:
     commands:
       - echo "In Pre_build"
   build:
     commands:
       - echo "VFAP Build"
-      - ./init.sh
+      - $CODEBUILD_SRC_DIR/init.sh
 artifacts:
   files:
     - main.json
