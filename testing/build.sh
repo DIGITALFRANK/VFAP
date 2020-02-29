@@ -17,6 +17,8 @@ template_path="$templates_base_path/merge-gluejob-lambda.json"
 
 current_version=$(aws s3 ls $artifacts_base_path/ --recursive | sort | tail -n 1 | awk '{print $4}' | grep zip | awk -F '-' '{print $NF}' | awk {'print substr($1,1,5)'})
 
+echo "$current_version"
+
 ### Following command will get new version
 new_version=$(python $versioning_base_path/semantic-version-v2.py current_version m)
 
