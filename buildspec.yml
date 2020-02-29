@@ -12,7 +12,6 @@ phases:
   build:
     commands:
       - echo "VFAP Build"
-      - ls $CODEBUILD_SRC_DIR/
       - sh init.sh
 artifacts:
   files:
