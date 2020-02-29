@@ -10,16 +10,10 @@ phases:
   pre_build:
     commands:
       - echo "In Pre_build"
-      - python semantic-version.py m
   build:
     commands:
       - echo "VFAP Repo Build"
-      - find $CODEBUILD_SRC_DIR/ -name build.sh -type f -exec sh {} \;
-  post_build:
-    commands:
-      - echo "Post Build Actions"
-      - rm -rf $CODEBUILD_SRC_DIR/current.txt
-      - aws s3 cp $CODEBUILD_SRC_DIR/main.json s3://vf-artifacts-bucket/vfap/main.json
+      - sh init.sh
 artifacts:
   files:
     - main.json
