@@ -15,6 +15,6 @@ def update_version_inCF(new_version,template_path):
 
 if __name__ == '__main__':
 	### Read input arguments
-	template_path = str(sys.argv[1])
-	new_version = str(sys.argv[2])
+	new_version = str(sys.argv[1])
+	template_path = str(sys.argv[2])
 	update_version_inCF(new_version,template_path)
