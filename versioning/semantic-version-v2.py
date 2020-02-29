@@ -35,5 +35,4 @@ if __name__ == '__main__':
 	### Read input arguments
 	current_version = str(sys.argv[1])
 	update_type = str(sys.argv[2])
-	print(current_version)
 	get_version(current_version)
