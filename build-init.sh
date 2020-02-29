@@ -18,8 +18,3 @@ for module in $(echo $buildModules | sed "s/,/ /g")
 do
     find $CODEBUILD_SRC_DIR/$module/ -iname build.sh -type f -exec sh {} \;
 done
-
-#for module in "${buildModules[@]}"
-#do
-#	find $CODEBUILD_SRC_DIR/$module/ -name build.sh -type f -exec sh {} \;
-#done
