@@ -15,7 +15,7 @@ import os
 import sys
 
 ### This function is to get next version based on update_type
-def get_version(current_version):
+def get_version(current_version,update_type):
 	### Initialize the semantic_version
 	version = semantic_version.Version(current_version)
 	
@@ -35,4 +35,4 @@ if __name__ == '__main__':
 	### Read input arguments
 	current_version = str(sys.argv[1])
 	update_type = str(sys.argv[2])
-	get_version(current_version)
+	get_version(current_version,update_type)
