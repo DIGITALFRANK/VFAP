@@ -18,6 +18,8 @@ import sys
 current_version = str(sys.argv[1])
 update_type = str(sys.argv[2])
 
+print(current_version)
+
 ### This function is to get next version based on update_type
 def get_version():
 	### Initialize the semantic_version
