@@ -12,8 +12,8 @@ phases:
       - echo "In Pre_build"
   build:
     commands:
-      - echo "VFAP Repo Build"
-      - sh init.sh
+      - echo "VFAP Build"
+      - ./init.sh
 artifacts:
   files:
     - main.json
