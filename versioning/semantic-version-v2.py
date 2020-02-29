@@ -28,10 +28,11 @@ def get_version(current_version,update_type):
 	else:
 		print("[ERROR]: Vaild update type is M - major, m - minor and p - patch")
 	
-	return new_version
+	return str(new_version)
 
 if __name__ == '__main__':
 	### Read input arguments
 	current_version = str(sys.argv[1])
 	update_type = str(sys.argv[2])
 	new_version=get_version(current_version,update_type)
+	print(new_version)
