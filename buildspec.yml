@@ -12,7 +12,6 @@ phases:
   build:
     commands:
       - echo "VFAP Build"
-      - cat build-init.sh
       - sh build-init.sh
 artifacts:
   files:
