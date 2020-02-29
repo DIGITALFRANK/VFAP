@@ -12,11 +12,10 @@
 
 # buildModules=("config-file" "dynamoDB" "glue-conn" "glue-triggers/common-trigger" "glue-triggers/merge-trigger" "ingest-routine" "param-store" "refine-routine" "secrets" "transform-routine")
 
-buildModules="config-files"
+buildModules="testing"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
-	echo "$module"
-	find $CODEBUILD_SRC_DIR/ -iname build.sh
+	echo "Running module: $module"
     find $CODEBUILD_SRC_DIR/$module/ -iname build.sh -type f -exec sh {} \;
 done
