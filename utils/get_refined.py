@@ -41,6 +41,7 @@ class filename:
             elif file_name.find('COREMETRICS') != -1:
                 refined_file = file_name
             elif file_name.find('Extract') != -1:
+                file_name = file_name.replace('+', ' ').replace('%28', '(').replace('%29', ')')
                 file = file_name.split(" ")
                 refined_file = file[0]+file[1]+'_'+'Data_FORESEE_'+file[4].upper()+'_'+file[5]
                 print(refined_file)
