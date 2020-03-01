@@ -2,6 +2,7 @@
 set -ue
 
 module_name="param-store"
+echo "===========================[ Build: $module_name ]============================"
 artifacts_base_path="s3://vf-artifacts-bucket/vfap/$module_name"
 
 # Upload templates to artifacts-bucket

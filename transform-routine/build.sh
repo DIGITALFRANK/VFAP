@@ -2,6 +2,7 @@
 set -ue
 
 module_name="transform-routine"
+echo "========================[ Build: $module_name ]========================="
 
 src_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname src -type d)
 templates_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname templates -type d)

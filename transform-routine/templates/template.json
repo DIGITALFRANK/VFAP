@@ -57,10 +57,10 @@
 			},
 			"Description": "Glue ETL job for Merging transformed files",
 			"ExecutionProperty": {
-			  "MaxConcurrentRuns": 3
+			  "MaxConcurrentRuns": 15
 			},
 			"GlueVersion": "1.0",
-			"MaxRetries": 0,
+			"MaxRetries": 1,
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-job" ] ] },
 			"Role": { "Ref": "GlueRole" },
 			"Tags": {
@@ -94,10 +94,10 @@
 			},
 			"Description": "Glue ETL job for transforming the files",
 			"ExecutionProperty": {
-			  "MaxConcurrentRuns": 15
+			  "MaxConcurrentRuns": 30
 			},
 			"GlueVersion": "1.0",
-			"MaxRetries": 0,
+			"MaxRetries": 1,
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "transformed-job" ] ] },
 			"Role": { "Ref": "GlueRole" },
 			"Tags": {

@@ -18,8 +18,6 @@ template_path="$templates_base_path/merge-gluejob-lambda.json"
 
 current_version=$(aws s3 ls $artifacts_base_path/ --recursive | grep zip | sort | tail -n 1 | awk '{print $4}' | awk -F '-' '{print $NF}' | cut -d '.' -f 1-3)
 
-echo "version:$current_version:" 
-
 #if [[ $current_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 #then
 #        echo "Current version: $current_version"

@@ -32,7 +32,7 @@
 		  "Properties": {
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "merge-ecomm-trigger" ] ] },
 			"Description": "This rule invokes glue merge job for ecomm dashboard data",
-			"ScheduleExpression": "cron(50 14 * * ? *)",
+			"ScheduleExpression": "cron(30 15 * * ? *)",
 			"State": { "Ref": "State" },
 			"Targets": [{
 			  "Arn": { "Ref": "LambdaARN" },
