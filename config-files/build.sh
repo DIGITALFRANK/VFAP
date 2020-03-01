@@ -2,6 +2,7 @@
 set -ue
 
 module_name="config-files"
+echo "===========================[ Build: $module_name ]==========================="
 artifacts_base_path="s3://vf-artifacts-bucket/vfap/$module_name"
 
 # Upload config files to artifacts-bucket
