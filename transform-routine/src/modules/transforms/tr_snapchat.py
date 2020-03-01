@@ -34,6 +34,9 @@ class tr_snapchat(Dataprocessor_Job):
         try:
             # validating the timestamp value :taking 10 characters from left
             dftimestamp = df.withColumn("timestamp", lit(date_obj))
+            dftimestamp = dftimestamp.withColumn("timestamp", date_format(
+                to_date(col("timestamp").cast("string"), "yyyy-MM-dd"),
+                "yyyy-MM-dd"))
             df_insert = dftimestamp.withColumn("ETL_INSERT_TIME", lit(now))
             df_update = df_insert.withColumn("ETL_UPDATE_TIME", lit(""))
             df_jobid = df_update.withColumn("JOB_ID", lit(job_run_id))
