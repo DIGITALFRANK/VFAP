@@ -1,19 +1,35 @@
 # Build commands for Common glue job triggers
 set -ue
-# Resolve Mapping parameter values for template.json
-#find $CODEBUILD_SRC_DIR/dynamoDB/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
-#cd $CODEBUILD_SRC_DIR/param-resolver/src/
-#python3 param-resolver.py
 
-VERSION=$(cat $CODEBUILD_SRC_DIR/current.txt)
+module_name="glue-triggers/common-trigger"
+
+src_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname src -type d)
+templates_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname templates -type d)
+versioning_base_path="$CODEBUILD_SRC_DIR/versioning"
+artifacts_base_path="s3://vf-artifacts-bucket/vfap/$module_name"
+
+### if no templates to update set template_path to NULL or uncomment following line
+### template_path="NULL"
+template_path="$templates_base_path/template.json"
+
+### Alternatively we can also use following
+### base_path=$(dirname "$0")
+
+current_version=$(aws s3 ls $artifacts_base_path/ --recursive | sort | tail -n 1 | awk '{print $4}' | grep zip | awk -F '-' '{print $NF}' | cut -d '.' -f 1-3)
+
+### Following command will get new version
+new_version=$(python $versioning_base_path/semantic-version-v2.py $current_version m)
+
+### Following command will update the template with new version
+python $versioning_base_path/update-template.py $new_version $template_path
 
 # Packing lambda with dependencies
-cd $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/
-zip -r common-gluejob-trigger-$VERSION.zip .
+cd $src_base_path
+zip -r common-trigger-$new_version.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
-aws s3 sync $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/templates/  s3://vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/
-aws s3 cp $CODEBUILD_SRC_DIR/glue-triggers/common-trigger/src/common-gluejob-trigger-$VERSION.zip s3://vf-artifacts-bucket/vfap/glue-triggers/common-trigger/src/
+aws s3 sync $templates_base_path/  $artifacts_base_path/templates/
+aws s3 cp $src_base_path/common-trigger-$new_version.zip $artifacts_base_path/src/
 
 echo "Build.sh completed"

@@ -1,4 +1,5 @@
-# Build commands for DynamoDB tables creation
+# testing build.sh
+
 set -ue
 
 module_name="testing"
@@ -23,17 +24,7 @@ new_version=$(python $versioning_base_path/semantic-version-v2.py $current_versi
 ### Following command will update the template with new version
 python $versioning_base_path/update-template.py $new_version $template_path
 
+### Upload artifacts
 aws s3 cp $templates_base_path/merge-gluejob-lambda.json $artifacts_base_path/templates/
-
-# Upload config files to artifacts-bucket
-#echo "Syncing the artifacts"
-#aws s3 sync $CODEBUILD_SRC_DIR/config-files/ s3://vf-artifacts-bucket/vfap/config-files/
-
-### temporary solution till we figure out the solution
-### Copying the envrionment specific config_store.ini file
-
-#aws s3 cp $CODEBUILD_SRC_DIR/config-files/dev/config_store.ini s3://vf-artifacts-bucket/vfap/config-files/dev/config_store.ini
-#aws s3 cp $CODEBUILD_SRC_DIR/config-files/qa/config_store.ini s3://vf-artifacts-bucket/vfap/config-files/qa/config_store.ini
-# aws s3 cp $CODEBUILD_SRC_DIR/config-files/prod/config_store.ini s3://vf-artifacts-bucket/vfap/config-files/prod/config_store.ini
 
 echo "Build.sh completed"

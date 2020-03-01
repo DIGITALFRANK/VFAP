@@ -28,10 +28,6 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"Version":{
-            "Description": "Lambda version",
-            "Type": "String"
-        },
 		"LambdaRole":{
             "Description": "Lambda Role",
             "Type": "String"
@@ -48,7 +44,7 @@
                 "Description": "Common glue job trigger lambda function",
                 "Code": { 
 					"S3Bucket" : "vf-artifacts-bucket",
-					"S3Key" : { "Fn::Join": [ "", [ "vfap/glue-triggers/common-trigger/src/common-gluejob-trigger", "-", { "Ref": "Version" }, ".zip" ] ] }
+					"S3Key" : "vfap/glue-triggers/common-trigger/src/common-trigger-###version###.zip"
                 },
                 "MemorySize": 2048,
                 "Timeout": 900,

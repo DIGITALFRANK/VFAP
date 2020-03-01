@@ -41,12 +41,7 @@
 				"DISABLED"
 			],
 			"Default": "ENABLED"
-		},
-		"Version":{
-			"Description": "Lambda version",
-			"Type": "String",
-			"Default": "1.1.0"
-		}	
+		}
   },
   "Mappings": {
 		"EnvironmentMap": {
@@ -89,7 +84,6 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" },
 				  "State": { "Ref": "State" },
 				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
@@ -200,7 +194,6 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" },
 				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/refine-routine/templates/template.json",
@@ -223,7 +216,6 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" },
 				  "State": { "Ref": "State" },
 				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
@@ -247,7 +239,6 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" },
 				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/template.json",

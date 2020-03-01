@@ -10,16 +10,11 @@
 #	9 ) 	secrets
 #	10) 	transform-routine
 
-# buildModules=("config-file" "dynamoDB" "glue-conn" "glue-triggers/common-trigger" "glue-triggers/merge-trigger" "ingest-routine" "param-store" "refine-routine" "secrets" "transform-routine")
+# buildModules="config-file,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine"
 
-buildModules="config-files"
+buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
     find $CODEBUILD_SRC_DIR/$module/ -iname build.sh -type f -exec sh {} \;
 done
-
-#for module in "${buildModules[@]}"
-#do
-#	find $CODEBUILD_SRC_DIR/$module/ -name build.sh -type f -exec sh {} \;
-#done

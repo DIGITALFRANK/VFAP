@@ -1,22 +1,25 @@
 # Build commands for merge glue job triggers
 set -ue
-# Resolve Mapping parameter values for template.json
-#find $CODEBUILD_SRC_DIR/dynamoDB/ -iname template.json > $CODEBUILD_SRC_DIR/param-resolver/src/templates.txt
-#cd $CODEBUILD_SRC_DIR/param-resolver/src/
-#python3 param-resolver.py
+
+module_name="transform-routine"
+
+src_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname src -type d)
+templates_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname templates -type d)
+versioning_base_path="$CODEBUILD_SRC_DIR/versioning"
+artifacts_base_path="s3://vf-artifacts-bucket/vfap/$module_name"
 
 # Packing lambda with dependencies
-cd $CODEBUILD_SRC_DIR/transform-routine/src/modules/site-packages/
+cd $src_base_path/modules/site-packages/
 zip -r site-packages.zip .
-cp site-packages.zip $CODEBUILD_SRC_DIR/transform-routine/src/
+cp site-packages.zip $src_base_path/
 
-cd $CODEBUILD_SRC_DIR/transform-routine/src/
-zip -r transform-routine.zip .
+cd $src_base_path/
+zip -r $module_name.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
-aws s3 sync $CODEBUILD_SRC_DIR/transform-routine/templates/  s3://vf-artifacts-bucket/vfap/transform-routine/templates/
-aws s3 sync $CODEBUILD_SRC_DIR/transform-routine/src/ s3://vf-artifacts-bucket/vfap/transform-routine/src/
+aws s3 sync $templates_base_path/  $artifacts_base_path/templates/
+aws s3 sync $src_base_path/ $artifacts_base_path/src/
 
 echo "Build.sh completed"
 

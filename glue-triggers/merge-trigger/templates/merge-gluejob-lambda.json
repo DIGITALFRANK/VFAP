@@ -28,10 +28,6 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"Version":{
-            "Description": "Lambda version",
-            "Type": "String"
-        },
 		"LambdaRole":{
             "Description": "LambdaRole",
             "Type": "String"
@@ -55,7 +51,7 @@
                 "Description": "Merge glue job trigger lambda function",
                 "Code": { 
 					"S3Bucket" : "vf-artifacts-bucket",
-					"S3Key" : { "Fn::Join": [ "", [ "vfap/glue-triggers/merge-trigger/src/merge-gluejob-trigger", "-", { "Ref": "Version" }, ".zip" ] ] }
+					"S3Key" : "vfap/glue-triggers/merge-trigger/src/merge-trigger-###version###.zip"
                 },
                 "MemorySize": 2048,
                 "Timeout": 900,

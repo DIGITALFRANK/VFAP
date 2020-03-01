@@ -28,10 +28,6 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"Version":{
-            "Description": "Lambda version",
-            "Type": "String"
-        },
 		"State": {
             "Description": "Cloud watch trigger state",
             "Type": "String",
@@ -56,7 +52,6 @@
 				  "Application": { "Ref": "Application" },
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "Version": { "Ref": "Version" },
 				  "LambdaRole": { "Ref": "LambdaRole" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/ingest-routine-lambda.json",
