@@ -18,7 +18,13 @@ template_path="$templates_base_path/template.json"
 
 current_version=$(aws s3 ls $artifacts_base_path/ --recursive | grep zip | sort | tail -n 1 | awk '{print $4}' | awk -F '-' '{print $NF}' | cut -d '.' -f 1-3)
 
-echo "current_version: $current_version"
+if [[ $current_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+then
+        echo "Current version: $current_version"
+else
+        echo "[ Error ]: Current version format is incorrect. required format X.X.X"
+		exit 1
+fi
 
 ### Following command will get new version
 new_version=$(python $versioning_base_path/semantic-version-v2.py $current_version m)
