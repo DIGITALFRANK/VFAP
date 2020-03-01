@@ -30,7 +30,7 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
         env_params = self.env_params
         qdate = datetime.now()-timedelta(1).strftime('%Y-%m-%d')
         delimiter = params["raw_source_file_delimiter"]
-        query = "DELETE FROM vfap_uat.vfap_attribution WHERE day = '{}';".format(
+        query = "DELETE FROM vfap_retail.vfap_attribution WHERE day = '{}';".format(
             qdate)
         # attribution_weekly = \
         #     'digitallab/common_files/VF_ADOBE_WEEKLY_ATTRIBUTION_CHANNEL.csv'
