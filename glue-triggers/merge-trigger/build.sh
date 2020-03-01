@@ -20,7 +20,7 @@ current_version=$(aws s3 ls $artifacts_base_path/ --recursive | grep zip | sort 
 
 echo "version:$current_version:" 
 
-if [[ $current_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+if [[ $current_version =~ ^[0-9]+.[0-9]+.[0-9]+$ ]]
 then
         echo "Current version: $current_version"
 else
