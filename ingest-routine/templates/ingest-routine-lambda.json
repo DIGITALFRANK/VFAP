@@ -44,7 +44,7 @@
                 "Description": "Ingest routine lambda function",
                 "Code": { 
 					"S3Bucket" : "vf-artifacts-bucket",
-					"S3Key" : "vfap/ingest-routine/src/ingest-routine-###version###.zip" ] ] }
+					"S3Key" : "vfap/ingest-routine/src/ingest-routine-###version###.zip"
                 },
                 "MemorySize": 2048,
                 "Timeout": 900,
