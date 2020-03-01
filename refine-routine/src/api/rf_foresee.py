@@ -26,9 +26,9 @@ class rf_foresee:
             for filename in z.namelist():
                 if filename.find('Data-Vans Store') != -1:
                     sr3.meta.client.upload_fileobj(z.open(filename), Bucket=destination_bucket, Key=destination+f'CustomExtract_Data_FORESEE_VANS_Store_VAN_'+date+'.txt')
-                elif filename.find('Data-Vans Mobile') != -1:
+                elif filename.find('Data-VANS Mobile') != -1:
                     sr3.meta.client.upload_fileobj(z.open(filename), Bucket=destination_bucket, Key=destination+f'CustomExtract_Data_FORESEE_VANS_Mobile_VAN_'+date+'.txt')
-                elif filename.find('Data-Vans Browse') != -1:
+                elif filename.find('Data-VANS Browse') != -1:
                     sr3.meta.client.upload_fileobj(z.open(filename), Bucket=destination_bucket, Key=destination+f'CustomExtract_Data_FORESEE_VANS_Browse_VAN_'+date+'.txt')
         except Exception as error:
             print(error)
