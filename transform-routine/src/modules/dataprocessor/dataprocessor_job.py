@@ -29,7 +29,7 @@ class Dataprocessor_Job:
         print("Found parameter store key as : {}".format(self.key))
         self.env_params = utils.get_param_store_configs(self.key)
         self.redshift_details = utils.get_secret(self.env_params["secret_manager_key"])
-        print("Using Redshift credentials as {}".format(self.redshift_details))
+        # print("Using Redshift credentials as {}".format(self.redshift_details))
         self.spark = glueContext.spark_session
         logger = get_logger(__name__)
         self.logger = logger
