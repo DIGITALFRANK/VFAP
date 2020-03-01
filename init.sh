@@ -10,9 +10,9 @@
 #	9 ) 	secrets
 #	10) 	transform-routine
 
-# buildModules="config-file,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine"
+# buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine"
 
-buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine"
+buildModules="ingest-routine"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
