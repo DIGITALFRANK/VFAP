@@ -29,7 +29,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
         redshift_details = self.redshift_details
         qdate = datetime.now()-timedelta(1).strftime('%Y-%m-%d')
         env_params = self.env_params
-        query = "DELETE FROM vfap_uat.vfap_attribution WHERE day = '{}';".format(
+        query = "DELETE FROM vfap_retail.vfap_attribution WHERE day = '{}';".format(
             qdate)
         delimiter = params["raw_source_file_delimiter"]
         # attribution_biweekly = \
