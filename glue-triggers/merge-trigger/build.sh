@@ -2,6 +2,10 @@
 set -ue
 
 module_name="glue-triggers/merge-trigger"
+
+# Valid values for update type is M for Major updates, m for minor updates and p for patch update. The update type is case sensitive.
+update_type="m"
+
 echo "===================[ Build: $module_name ]===================="
 
 src_base_path=$(find $CODEBUILD_SRC_DIR/$module_name/  -iname src -type d)
@@ -27,7 +31,7 @@ current_version=$(aws s3 ls $artifacts_base_path/ --recursive | grep zip | sort 
 #fi
 
 ### Following command will get new version
-new_version=$(python $versioning_base_path/semantic-version-v2.py $current_version m)
+new_version=$(python $versioning_base_path/semantic-version-v2.py $current_version $update_type)
 
 ### Following command will update the template with new version
 python $versioning_base_path/update-template.py $new_version $template_path

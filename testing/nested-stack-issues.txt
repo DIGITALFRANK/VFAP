@@ -1,0 +1,1 @@
+aws cloudformation continue-update-rollback --stack-name vf-uat-endtoend-stack --resources-to-skip vf-uat-endtoend-stack-CommonTriggerStack-1RRB7KBDORC4E.LambdaFunction vf-uat-endtoend-stack-MergeTriggerStack-19PCO3O75K9L0-MergeTriggerLambda-5WKK0MCT774V.LambdaFunction vf-uat-endtoend-stack-RefineStack-13JN0I9F0UQZB.LambdaFunction --region us-east-1
