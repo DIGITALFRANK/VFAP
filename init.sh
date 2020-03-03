@@ -11,9 +11,9 @@
 #	10) 	transform-routine
 #	11)		glue-jobs
 
-# buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine,glue-jobs"
+buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine,glue-jobs"
 
-buildModules="config-files"
+#buildModules="config-files"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
