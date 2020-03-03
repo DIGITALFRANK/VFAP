@@ -111,7 +111,6 @@
 			},
 			"GlueVersion": "1.0",
 			"MaxRetries": { "Ref": "MaxRetries" },
-			"MaxCapacity": { "Ref": "MaxCapacity" },
 			"WorkerType": { "Ref": "WorkerType" },
 			"Timeout": { "Ref": "Timeout" },
 			"NumberOfWorkers": { "Ref": "NumberOfWorkers" },
