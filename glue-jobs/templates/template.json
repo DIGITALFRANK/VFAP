@@ -80,7 +80,7 @@
 				"Parameters": {
 				  "AllocatedCapacity": 10, 
 				  "ScriptName": "xref_main.py",
-				  "GlueJobName": "LoyaltyXRef",
+				  "GlueJobName": "loyalty-xref",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
