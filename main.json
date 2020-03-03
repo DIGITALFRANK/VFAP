@@ -43,6 +43,9 @@
 			"Default": "false"
 		}
   },
+  "Conditions" : {
+		"Deploy" : "Yes"
+  },
   "Mappings": {
 		"EnvironmentMap": {
             "dev": {
@@ -75,29 +78,6 @@
         }  
   },
   "Resources": {
-		"IngestionStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "State": { "Ref": "State" },
-				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/ingest-routine/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
 		"ParamStoreStack": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
@@ -119,183 +99,6 @@
 					  { "Key": "Application", "Value": "VFAP:DLMigration" }
                 ]
             }
-        },
-		"SecretsStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/secrets/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"DynamoDBStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/dynamoDB/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"GlueConnStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "GlueSecurityGroupList": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSecurityGroupList" ] },
-				  "GlueSubnetId": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSubnetId" ] },
-				  "RedshiftUser": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "RedshiftUser" ] },
-				  "JDBCConnURL": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "JDBCConnURL" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-conn/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"RefineStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/refine-routine/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"MergeTriggerStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "State": { "Ref": "State" },
-				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/merge-trigger/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"CommonTriggerStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "LambdaRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "LambdaRole" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-triggers/common-trigger/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"DLGlueJobsStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/transform-routine/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
-		"CLMGlueJobsStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole" ] },
-				  "StartOnCreation": { "Ref": "StartOnCreation" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:CLMMigration" }
-                ]
-            }
         }
-    }
+	}
 }
