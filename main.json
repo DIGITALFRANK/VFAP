@@ -41,7 +41,7 @@
 			"Description": "Glue workflow status (true or false)",
 			"Type": "String",
 			"Default": "false"
-		},
+		}
   },
   "Mappings": {
 		"EnvironmentMap": {
