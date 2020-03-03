@@ -28,7 +28,9 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
         job_id = utils.get_glue_job_run_id()
         redshift_details = self.redshift_details
         env_params = self.env_params
-        qdate = datetime.now()-timedelta(1).strftime('%Y-%m-%d')
+        qdate1 = self.date
+        qdate1 = datetime.strptime(qdate1, '%Y%m%d')
+        qdate = qdate1.strftime('%Y-%m-%d')
         delimiter = params["raw_source_file_delimiter"]
         query = "DELETE FROM vfap_retail.vfap_attribution WHERE day = '{}';".format(
             qdate)
@@ -67,8 +69,9 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
                               "df.Fiscal_Year, df.Brand, "
                               "df.Country, "
                               "df.Weekly_Unique_Visitors, df.Weekly_Visits, "
-                              "master.prev_weekly_visits, "
-                              "master.prev_weekly_unique_visitor, "
+                              "master.weekly_visits as prev_weekly_visits, "
+                              "master.weekly_unique_visitor as "
+                              "prev_weekly_unique_visitor, "
                               "df.Prev_Date, df.ETL_INSERT_TIME, "
                               "df.ETL_UPDATE_TIME, df.JOB_ID "
                               "from df df left join master master "

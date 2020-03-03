@@ -66,7 +66,7 @@ MOBILE_COLUMNS_FOR_CONDITION1 = ["Look and Feel - Appeal", "Look and Feel - Read
                                  "Navigation - Options", "Navigation - Organized", "Product Browsing - Narrow",
                                  "Product Browsing - Sort",
                                  "Sat - Ideal", "Sat - Overall", "Site Performance - Errors",
-                                 "Site Performance - Loading"
+                                 "Site Performance - Loading", "Sat - Expectations"
                                  ]
 BROWSER_COLUMNS_FOR_CONDITION1 = ["Brand Preference11", "Look and Feel - Readability", "Look and Feel - Appeal",
                                   "Look and Feel - Balance",
