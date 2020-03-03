@@ -11,12 +11,13 @@ artifacts_base_path="s3://vf-artifacts-bucket/vfap/$module_name"
 
 # Packing lambda with dependencies
 mkdir $src_base_path/site-packages/
+pip install -r $CODEBUILD_SRC_DIR/$module_name/requirements.txt --target $src_base_path/site-packages/
 cd $src_base_path/site-packages/
 zip -r site-packages.zip .
 cp site-packages.zip $src_base_path/
 
 cd $src_base_path/
-zip -r $module_name.zip .
+zip -r glue-etl.zip .
 
 # Upload templates to artifacts-bucket
 echo "Syncing the artifacts"
