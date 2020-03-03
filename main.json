@@ -42,10 +42,7 @@
 			"Type": "String",
 			"Default": "false"
 		}
-  },
-  "Conditions" : {
-		"Deploy" : "Yes"
-  },
+  }
   "Mappings": {
 		"EnvironmentMap": {
             "dev": {
