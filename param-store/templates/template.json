@@ -34,15 +34,9 @@
         }
     },
     "Mappings": { },
-	"Conditions" : {
-		"CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
-		"CreateQAResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "qa"]},
-		"CreateDevResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "dev"]}
-	},
     "Resources": {
-		"QADLParamStore": {
+		"DLParamStore": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "Condition" : "CreateQAResources",
 			  "Properties": {
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
@@ -52,7 +46,7 @@
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
 				  "KMSKeyID": { "Ref": "KMSKeyID" }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/param-store/templates/dl-qa-param-store.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/param-store/templates/dl-param-store.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -62,6 +56,28 @@
 					  { "Key": "Application", "Value": { "Ref": "Application" } }
                 ]
             }
-        }		
+        },
+		"CLMParamStore": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
+				  "KMSKeyID": { "Ref": "KMSKeyID" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/param-store/templates/clm-param-store.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        }
     }
 }

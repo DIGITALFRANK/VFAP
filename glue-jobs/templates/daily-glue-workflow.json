@@ -1,0 +1,80 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Refine routine lambda cloud formation stack",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"DailyETLJob": {
+            "Description": "DailyETL Job name",
+            "Type": "String"
+        },
+		"StartOnCreation": {
+            "Description": "Start On Creation (true or false)",
+            "Type": "String"
+        }
+    },
+    "Mappings": { },
+    "Resources": {
+		"GlueWorkFlow": {
+		  "Type" : "AWS::Glue::Workflow",
+		  "Properties" : {
+			  "Description" : "Glue daily workflow",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-workflow" ] ] },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  }
+			}
+		},
+		"WorkflowTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "DailyETLJob" } }
+			  ],
+			  "Description" : "Glue workflow daily trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-job-trigger" ] ] },
+			  "Schedule" : "cron(0 22 * * ? *)",
+			  "StartOnCreation" : { "Ref": "StartOnCreation" },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		}
+	}
+}

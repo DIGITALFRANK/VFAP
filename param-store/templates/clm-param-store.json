@@ -1,0 +1,102 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Creating parameter config in parameter store",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"KMSKeyID": {
+            "Description": "The KMS Key ID",
+            "Type": "String"
+        }		
+    },
+    "Mappings": {},
+	"Conditions" : {
+		"CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
+		"CreateQAResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "qa"]},
+		"CreateDevResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "dev"]}
+	},
+    "Resources": {
+        "DevParameterStore": {
+            "Type": "AWS::SSM::Parameter",
+			"Condition" : "CreateDevResources",
+            "Properties": {
+                "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "env-config" ] ] },				
+                "Description": "CLM Migration config file",
+                "Type": "String",
+                "Value": "{\"env_name\":\"development\", \"raw_bucket\":\"vf-datalake-dev-raw\", \"refined_bucket\":\"vf-datalake-dev-refined\", \"transformed_bucket\":\"vf-datalake-dev-transformed\", \"stage_bucket\":\"vf-datalake-dev-stage\", \"log_bucket\":\"vf-datalake-dev-logs\", \"config_table\":\"vf-dev-etl-file-broker\", \"status_table\":\"vf-dev-etl-file-status\",\"secret_manager_key\":\"vf-qa-env-secrets\",\"redshift_iam_role\":\"arn:aws:iam::198203393024:role/vf-uap-qa-iam-redshiftRole\" ,\"smtp_host\": \"email-smtp.us-east-1.amazonaws.com\", \"smtp port\": 587,\"job_status_email_recipient_address_list\": \"anchal_khare@vfc.com,Seethana_Viswanatha@vfc.com,Akash_Gandhi@vfc.com,Phani_Chakkerla@vfc.com,Ravi_Gadhave@vfc.com,Siddharth_Prasad@vfc.com,Harsh_Uniyal@vfc.com\",\"job_status_email_sender_address\": \"retail_analytics@mail.vfc.com\", \"job_status_email_sender_name\": \"test\", \"reporting_email_recipient_address_list\": \"anchal_khare@vfc.com\", \"reporting_email_sender_address\": \"retail_analytics@mail.vfc.com\", \"reporting_email_sender_name\": \"test\",\"glue_rs_conn\":\"reshift-conn\",\"temp_bucket\":\"vf-datalake-sandbox\"}",
+                "Tier": "Standard",
+                "Tags": {
+                    "CostCenter":"118204800",
+				    "TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+					"Environment":{ "Ref": "Environment" },
+					"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+					"ResourceGroup":{ "Ref": "ResourceGroup" },
+					"Application":{ "Ref": "Application" }
+				}
+            }
+        },
+		"QAParameterStore": {
+            "Type": "AWS::SSM::Parameter",
+			"Condition" : "CreateQAResources",
+            "Properties": {
+                "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "env-config" ] ] },				
+                "Description": "CLM Migration config file",
+                "Type": "String",
+                "Value": "{\"env_name\":\"qa\", \"raw_bucket\":\"vf-datalake-qa-raw\", \"refined_bucket\":\"vf-datalake-qa-refined\", \"transformed_bucket\":\"vf-datalake-qa-transformed\", \"stage_bucket\":\"vf-datalake-qa-stage\", \"log_bucket\":\"vf-datalake-qa-logs\", \"config_table\":\"vf-qa-etl-file-broker\", \"status_table\":\"vf-qa-etl-file-status\",\"secret_manager_key\":\"vf-qa-env-secrets\",\"redshift_iam_role\":\"arn:aws:iam::198203393024:role/vf-uap-qa-iam-redshiftRole\" ,\"smtp_host\": \"email-smtp.us-east-1.amazonaws.com\",\"smtp port\": 587,\"job_status_email_recipient_address_list\": \"anchal_khare@vfc.com,Seethana_Viswanatha@vfc.com,Akash_Gandhi@vfc.com\",\"job_status_email_sender_address\": \"retail_analytics@mail.vfc.com\",\"job_status_email_sender_name\": \"test\", \"reporting_email_recipient_address_list\": \"anchal_khare@vfc.com\", \"reporting_email_sender_address\": \"retail_analytics@mail.vfc.com\", \"reporting_email_sender_name\": \"test\",\"glue_rs_conn\":\"vf-qa-reshift-conn\",\"temp_bucket\":\"vf-datalake-sandbox\"}",
+                "Tier": "Standard",
+                "Tags": {
+                    "CostCenter":"118204800",
+				    "TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+					"Environment":{ "Ref": "Environment" },
+					"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+					"ResourceGroup":{ "Ref": "ResourceGroup" },
+					"Application":{ "Ref": "Application" }
+				}
+            }
+        },
+		"ProdParameterStore": {
+            "Type": "AWS::SSM::Parameter",
+			"Condition" : "CreateProdResources",
+            "Properties": {
+                "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "env-config" ] ] },				
+                "Description": "CLM Migration config file",
+                "Type": "String",
+                "Value": "{\"env_name\":\"production\", \"raw_bucket\":\"vf-datalake-prod-raw\", \"refined_bucket\":\"vf-datalake-prod-refined\", \"transformed_bucket\":\"vf-datalake-prod-transformed\", \"stage_bucket\":\"vf-datalake-prod-stage\", \"log_bucket\":\"vf-datalake-prod-logs\", \"config_table\":\"vf-prod-etl-file-broker\", \"status_table\":\"vf-prod-etl-file-status\",\"secret_manager_key\":\"vf-prod-env-secrets\",\"redshift_iam_role\":\"\" ,\"smtp_host\": \"email-smtp.us-east-1.amazonaws.com\", \"smtp port\": 587,\"job_status_email_recipient_address_list\": \"anchal_khare@vfc.com,Seethana_Viswanatha@vfc.com,Akash_Gandhi@vfc.com,Phani_Chakkerla@vfc.com,Ravi_Gadhave@vfc.com,Siddharth_Prasad@vfc.com,Harsh_Uniyal@vfc.com\",\"job_status_email_sender_address\": \"retail_analytics@mail.vfc.com\", \"job_status_email_sender_name\": \"test\", \"reporting_email_recipient_address_list\": \"anchal_khare@vfc.com\", \"reporting_email_sender_address\": \"retail_analytics@mail.vfc.com\", \"reporting_email_sender_name\": \"test\",\"glue_rs_conn\":\"\",\"temp_bucket\":\"\"}",
+                "Tier": "Standard",
+                "Tags": {
+                    "CostCenter":"118204800",
+				    "TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+					"Environment":{ "Ref": "Environment" },
+					"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+					"ResourceGroup":{ "Ref": "ResourceGroup" },
+					"Application":{ "Ref": "Application" }
+				}
+            }
+        }
+    },
+	"Outputs" : {}
+}

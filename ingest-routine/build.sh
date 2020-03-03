@@ -30,7 +30,7 @@ python $versioning_base_path/update-template.py $new_version $template_path
 
 # Install all dependencies in requirements.txt
 mkdir $src_base_path/external_lib
-pip install -r requirements.txt --target $CODEBUILD_SRC_DIR/ingest-routine/src/external_lib/
+pip install -r $CODEBUILD_SRC_DIR/requirements.txt --target $src_base_path/external_lib/
 
 # Copy all VFAP utils
 mkdir $src_base_path/utils

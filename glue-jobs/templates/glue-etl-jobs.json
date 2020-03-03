@@ -1,0 +1,137 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Glue jobs stack",
+  "Parameters": {
+		"Environment": {
+		  "Description": "The environment type",
+		  "Type": "String",
+		  "Default": "dev",
+		  "AllowedValues": [
+			"dev",
+			"prod",
+			"qa"
+		  ],
+		  "ConstraintDescription": "must be a dev, test or prod"
+		},
+		"ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"GlueRole": {
+            "Description": "Glue Role",
+            "Type": "String"
+        },
+		"AllocatedCapacity": {
+            "Description": "Allocated Capacity",
+            "Type": "Number"
+        },
+		"ScriptName": {
+            "Description": "Script Name",
+            "Type": "String"
+        },
+		"GlueJobName": {
+            "Description": "Glue Job Name",
+            "Type": "String"
+        },
+		"MaxConcurrentRuns": {
+            "Description": "Max Concurrent Runs",
+            "Type": "Number"
+        },
+		"MaxRetries": {
+            "Description": "Max Retries",
+            "Type": "Number"
+        },
+		"MaxCapacity": {
+            "Description": "Max Capacity",
+            "Type": "Number"
+        },
+		"WorkerType": {
+            "Description": "Worker Type",
+            "Type": "String"
+        },
+		"Timeout": {
+            "Description": "Timeout (min)",
+            "Type": "Number"
+        },
+		"NumberOfWorkers": {
+            "Description": "Number Of Workers",
+            "Type": "Number"
+        },
+		"FileNameArgument": {
+            "Description": "File name argument",
+            "Type": "Number"
+        },
+		"JobParamArgument": {
+            "Description": "Job param argument",
+            "Type": "Number"
+        },
+		"JobTypeArgument": {
+            "Description": "Job type argument",
+            "Type": "Number"
+        }
+	},
+	"Mappings": {},
+	"Resources": {
+		"GlueETLJob": {
+		  "Type": "AWS::Glue::Job",
+		  "Properties": {
+			"AllocatedCapacity": { "Ref": "AllocatedCapacity" },
+			"Command": {
+			  "Name": "glueetl",
+			  "PythonVersion": "3",
+			  "ScriptLocation": { "Fn::Join": [ "/", ["s3://vf-artifacts-bucket/vfap/glue-jobs/src", { "Ref": "ScriptName" } ] ] }
+			},
+			"Connections": {
+			  "Connections" : [ { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] } ]
+			},
+			"DefaultArguments": {
+			  "--FILE_NAME": { "Ref": "FileNameArgument" },
+			  "--JOB_PARAM": { "Ref": "JobParamArgument" },
+			  "--JOB_TYPE": { "Ref": "JobTypeArgument" },
+			  "--enable-metrics": "",
+			  "--enable-continuous-cloudwatch-log": "",
+			  "--TempDir": { "Fn::Join": [ "-", [ "s3://vf-datalake", { "Ref": "Environment" }, "refined/temp" ] ] },
+			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/glue-jobs/src/site-packages.zip,s3://vf-artifacts-bucket/vfap/glue-jobs/src/glue-etl.zip",
+			  "--extra-files": { "Fn::Join": [ "", [ "s3://vf-artifacts-bucket/vfap/config-files/", { "Ref": "Environment" }, "/clm/config_store.ini" ] ] }        
+			},
+			"Description": { "Fn::Join": [ " ", [ { "Ref": "GlueJobName" }, "Email xref glue etl job" ] ] },
+			"ExecutionProperty": {
+			  "MaxConcurrentRuns": { "Ref": "MaxConcurrentRuns" }
+			},
+			"GlueVersion": "1.0",
+			"MaxRetries": { "Ref": "MaxRetries" },
+			"MaxCapacity": { "Ref": "MaxCapacity" },
+			"WorkerType": { "Ref": "WorkerType" },
+			"Timeout": { "Ref": "Timeout" },
+			"NumberOfWorkers": { "Ref": "NumberOfWorkers" },
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] },
+			"Role": { "Ref": "GlueRole" },
+			"Tags": {
+			  "CostCenter": "118204800",
+			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+			  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+			  "Environment": { "Ref": "Environment" },
+			  "ResourceGroup": { "Ref": "ResourceGroup" },
+			  "Application": { "Ref": "Application" }
+			}
+		  }
+		}
+    },
+	"Outputs": {
+		"JobName": {
+			"Value": { "Fn::GetAtt": [ "GlueETLJob", "Name" ] }
+		}
+	}
+}

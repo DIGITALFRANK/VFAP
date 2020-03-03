@@ -77,7 +77,7 @@
 		"TransformGlueStack": {
 		  "Type": "AWS::Glue::Job",
 		  "Properties": {
-			"AllocatedCapacity": 15,
+			"AllocatedCapacity": 20,
 			"Command": {
 			  "Name": "glueetl",
 			  "PythonVersion": "3",

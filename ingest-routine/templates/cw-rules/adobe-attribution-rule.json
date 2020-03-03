@@ -32,7 +32,7 @@
 		  "Properties": {
 			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "adobe-attribution" ] ] },
 			"Description": "This rule triggers Ingest Module for adobe analytics(attribution) datasource",
-			"ScheduleExpression": "cron(20 13 * * ? *6)",
+			"ScheduleExpression": "cron(15 14 * * ? *6)",
 			"State": { "Ref": "State" },
 			"Targets": [{
 			  "Arn": { "Ref": "LambdaARN" },

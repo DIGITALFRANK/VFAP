@@ -55,7 +55,7 @@ def lambda_handler(event, context):
     #requestid = 12345
     source_id = event['source_id']
     print(source_id)
-    config_table_name = f'vf-{environment}-configtbl'
+    config_table_name = f'vf-{environment}-config-table'
 
     # Connect to DynamoDB table and assign parameters to variables
     table = dynamo_db.connect_to_table(config_table_name)
