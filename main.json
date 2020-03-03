@@ -75,7 +75,7 @@
         }  
   },
   "Resources": {
-		"ParamStoreStack": {
+		"ParamStack": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
