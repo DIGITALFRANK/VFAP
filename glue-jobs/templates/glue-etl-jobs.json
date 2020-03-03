@@ -131,7 +131,7 @@
     },
 	"Outputs": {
 		"JobName": {
-			"Value": { "Fn::GetAtt": [ "GlueETLJob", "Name" ] }
+			"Value": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] }
 		}
 	}
 }
