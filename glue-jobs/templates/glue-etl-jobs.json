@@ -87,7 +87,6 @@
 		"GlueETLJob": {
 		  "Type": "AWS::Glue::Job",
 		  "Properties": {
-			"AllocatedCapacity": { "Ref": "AllocatedCapacity" },
 			"Command": {
 			  "Name": "glueetl",
 			  "PythonVersion": "3",
