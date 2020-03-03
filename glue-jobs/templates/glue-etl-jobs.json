@@ -71,15 +71,15 @@
         },
 		"FileNameArgument": {
             "Description": "File name argument",
-            "Type": "Number"
+            "Type": "String"
         },
 		"JobParamArgument": {
             "Description": "Job param argument",
-            "Type": "Number"
+            "Type": "String"
         },
 		"JobTypeArgument": {
             "Description": "Job type argument",
-            "Type": "Number"
+            "Type": "String"
         }
 	},
 	"Mappings": {},
