@@ -144,7 +144,7 @@ class Core_Job:
             )
             df.show()
             control_file_row_count = df.count()
-            if control_file_row_count != 1:
+            if control_file_row_count > 1:
                 log.error(
                     "Control file has {0} rows - expecting only 1".format(
                         control_file_row_count
@@ -161,9 +161,17 @@ class Core_Job:
         log.info("Collecting stored row count from control file")
         # Subtract 1 if header row included in control count
         if is_header_included_in_count.lower() == "true":
-            row_count = df.select(df.Count).collect()[0][0] - 1
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
+                row_count = df.select(df.Count).collect()[0][0] - 1
         else:
-            row_count = df.select(df.Count).collect()[0][0]
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
+                row_count = df.select(df.Count).collect()[0][0]
         log.debug("Successfully collected row count - {0}".format(row_count))
         return row_count
 
