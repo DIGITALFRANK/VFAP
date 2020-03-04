@@ -34,14 +34,39 @@
         }		
     },
     "Mappings": {},
+	"Conditions" : {
+		"CreateProdResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "prod"]},
+		"CreateQAResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "qa"]},
+		"CreateDevResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "dev"]}
+	},
     "Resources": {
         "ParameterStore": {
-            "Type": "AWS::SSM::Parameter",
+            "Type": "AWS::SSM::Parameter",,
+			"Condition" : "CreateQAResources",
             "Properties": {
                 "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dl-config" ] ] },				
                 "Description": "Digital lab config file",
                 "Type": "String",
                 "Value": "{\"env\":\"qa\",\"raw_bucket\":\"vf-datalake-qa-raw\",\"refined_bucket\":\"vf-datalake-qa-refined\",\"transformed_bucket\":\"vf-datalake-qa-transformed\",\"stage_bucket\":\"vf-datalake-qa-stage\",\"log_bucket\":\"vf-datalake-qa-logs\",\"config_table\":\"vf-qa-etl-file-broker\",\"secret_manager_key\":\"vf-qa-dl-migration\",\"master_data_file\":\"digitallab/common_files/MasterData.csv\",\"fiscal_file\":\"digitallab/common_files/Fiscal_Calendar.csv\",\"profilel_file\":\"digitallab/common_files/Google_Master_Profile.csv\",\"currency_converter_file\":\"digitallab/common_files/Currency_Exchange.csv\",\"adobe_attribution_master_file\":\"digitallab/common_files/attribution_merge.csv\",\"adobe_source_dir\":\"digitallab/adobe_analytics\",\"google_source_dir\":\"digitallab/google_analytics\",\"coremetrics_source_dir\":\"digitallab/coremetrics\",\"brand_mapping\":\"digitallab/common_files/Dim_Brand.csv\",\"brand_adj_mapping\":\"digitallab/common_files/Brand_adj_mapper.csv\",\"redshift_iam_role\": \"arn:aws:iam::198203393024:role/vf-uap-qa-iam-redshiftRole\",\"youtube_lookup\":\"digitallab/common_files/youtube_sources.csv\", \"status_table\":\"vf-qa-etl-file-status\",\"fiscal_table\":\"dim_period\",\"ecomml_table\":\"vfap_ecomm_merge\",\"attribution_table\":\"vfap_attribution\"}",
+                "Tier": "Standard",
+                "Tags": {
+                    "CostCenter":"118204800",
+				    "TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+					"Environment":{ "Ref": "Environment" },
+					"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+					"ResourceGroup":{ "Ref": "ResourceGroup" },
+					"Application":{ "Ref": "Application" }
+				}
+            }
+        },
+		"ProdParameterStore": {
+            "Type": "AWS::SSM::Parameter",,
+			"Condition" : "CreateProdResources",
+            "Properties": {
+                "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dl-config" ] ] },				
+                "Description": "Digital lab config file",
+                "Type": "String",
+                "Value": "{\"env\":\"prod\",\"raw_bucket\":\"vf-datalake-prod-raw\",\"refined_bucket\":\"vf-datalake-prod-refined\",\"transformed_bucket\":\"vf-datalake-prod-transformed\",\"stage_bucket\":\"vf-datalake-prod-stage\",\"log_bucket\":\"vf-datalake-prod-logs\",\"config_table\":\"vf-prod-etl-file-broker\",\"secret_manager_key\":\"vf-prod-dl-migration\",\"fiscal_file\":\"digitallab/common_files/Fiscal_Calendar.csv\",\"profilel_file\":\"digitallab/common_files/Google_Master_Profile.csv\",\"currency_converter_file\":\"digitallab/common_files/Currency_Exchange.csv\",\"adobe_source_dir\":\"digitallab/adobe_analytics\",\"google_source_dir\":\"digitallab/google_analytics\",\"coremetrics_source_dir\":\"digitallab/coremetrics\",\"brand_mapping\":\"digitallab/common_files/Dim_Brand.csv\",\"brand_adj_mapping\":\"digitallab/common_files/Brand_adj_mapper.csv\",\"redshift_iam_role\":\"arn:aws:iam::776735242840:role/vf-uap-iam-redshiftRole\",\"youtube_lookup\":\"digitallab/common_files/youtube_sources.csv\",\"status_table\":\"vf-prod-etl-file-status\",\"fiscal_table\":\"dim_period\",\"ecomml_table\":\"vfap_ecomm_merge\",\"attribution_table\":\"vfap_attribution\"}",
                 "Tier": "Standard",
                 "Tags": {
                     "CostCenter":"118204800",

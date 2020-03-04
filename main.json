@@ -64,13 +64,13 @@
 				"LambdaRole": "arn:aws:iam::198203393024:role/vf-uap-qa-us-east-1-iam-pipelineActivationRole"
             },
             "prod": {
-                "GlueSecurityGroupList": "",
-				"GlueSubnetId": "",
-				"JDBCConnURL": "",
-				"RedshiftUser": "",
-				"GlueRole": "",
-				"KMSKeyID": "",
-				"LambdaRole": ""
+                "GlueSecurityGroupList": "sg-09cec04942d0ed1d8",
+				"GlueSubnetId": "subnet-0631970a1a0db93d9",
+				"JDBCConnURL": "jdbc:redshift://vf-uap-us-east-1-redshift.czqy5bqgnljf.us-east-1.redshift.amazonaws.com:5439/vfuap",
+				"RedshiftUser": "admin",
+				"GlueRole": "arn:aws:iam::776735242840:role/vf-prod-glueServiceRole",
+				"KMSKeyID": "e7c052bd-8ac0-4480-afa3-291342ea0585",
+				"LambdaRole": "arn:aws:iam::776735242840:role/vf-uap-us-east-1-iam-pipelineActivationRole"
             }
         }  
   },
@@ -81,7 +81,6 @@
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
@@ -93,7 +92,7 @@
 					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
 					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
 					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
+					  { "Key": "Application", "Value": "VFAP:MigrationStack" }
                 ]
             }
         },
@@ -126,7 +125,6 @@
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "KMSKeyID": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "KMSKeyID" ] }
@@ -138,7 +136,7 @@
 					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
 					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
 					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
+					  { "Key": "Application", "Value": "VFAP:MigrationStack" }
                 ]
             }
         },
@@ -280,7 +278,7 @@
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": "VFAP:DLMigration",
+				  "Application": "VFAP:CLMMigration",
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "GlueRole": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueRole" ] },

@@ -16,10 +16,6 @@
             "Description": "The ResourceGroup Name",
             "Type": "String"
         },
-        "Application": {
-            "Description": "The Application Name",
-            "Type": "String"
-        },
         "BusinessOwnerEmail": {
             "Description": "The Business Owner Email",
             "Type": "String"
@@ -41,7 +37,7 @@
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
+				  "Application": "VFAP:DLMigration",
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
 				  "KMSKeyID": { "Ref": "KMSKeyID" }
@@ -53,7 +49,7 @@
 					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
 					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
 					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
+					  { "Key": "Application", "Value": "VFAP:DLMigration" }
                 ]
             }
         },
@@ -63,7 +59,7 @@
 				"Parameters": {
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
+				  "Application": "VFAP:CLMMigration",
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },				  
 				  "KMSKeyID": { "Ref": "KMSKeyID" }
@@ -75,7 +71,7 @@
 					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
 					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
 					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
+					  { "Key": "Application", "Value": "VFAP:CLMMigration" }
                 ]
             }
         }

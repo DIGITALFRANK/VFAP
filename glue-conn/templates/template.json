@@ -59,6 +59,30 @@
                     }
                 }
             }
+        },
+		"QADbConnection": {
+            "Type": "AWS::Glue::Connection",
+			"Condition" : "CreateProdResources",
+            "Properties": {
+                "CatalogId": { "Ref": "AWS::AccountId" },
+                "ConnectionInput": {
+                    "Description": "JDBC Connection to Production Redshfit server",
+					"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] },
+                    "PhysicalConnectionRequirements": {
+                        "AvailabilityZone": "us-east-1a",
+                        "SecurityGroupIdList": [
+                            { "Ref": "GlueSecurityGroupList" }
+                        ],
+                        "SubnetId": { "Ref": "GlueSubnetId" }
+                    },
+                    "ConnectionType": "JDBC",
+                    "ConnectionProperties": {
+                        "JDBC_CONNECTION_URL": { "Ref": "JDBCConnURL" },
+                        "USERNAME": { "Ref": "RedshiftUser" },
+                        "PASSWORD": "updatemanually"
+                    }
+                }
+            }
         }
     }
 }
