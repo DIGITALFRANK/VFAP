@@ -79,13 +79,11 @@ from {custom_map_refined_source} src_tbl left join {custom_map_warehouse_source}
 )
 
 # ---------------------------------DYNAMODB_CONFIGURATIONS------------------------------------
-FILE_STATUS_TABLE = "vf_etl_file_status"
 FILE_STATUS_PRIMARY_KEY_ATTRIBUTE = "file_name"
 EVENT_STATUS_AFTER_TRANSFORM = "SEL"
 EVENT_AFTER_TRANSFORM = "TR"
 
 # FILE BROKER TABLE
-FILE_BROKER_TABLE = "vf-dev-etl-file-broker"  # "ETL_FILE_BROKER"
 FILE_BROKER_PARTITION_KEY = "feed_name"
 FILE_BROKER_SORT_KEY_ATTRIBUTE = "feed_name"
 FILE_BROKER_ATTRIBUTES_TO_BE_FETCHED = [
@@ -118,8 +116,6 @@ FILE_BROKER_ATTRIBUTES_TO_BE_FETCHED = [
     "tr_params",
     "tgt_dstn_tbl_name",
 ]
-FB_TRANSFORMED_BUCKET = "vf-datalake-dev-transformed"
-FB_REFINED_BUCKET = "vf-datalake-dev-refined"
 FB_RF_DESTINATION_FOLDER = "current"
 FB_TR_FOLDER = "external"
 

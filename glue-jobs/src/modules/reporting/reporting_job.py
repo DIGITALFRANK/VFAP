@@ -2106,6 +2106,10 @@ class Reporting_Job(Core_Job):
                             tables_list_to_call
                         )
                     )
+                    truncate_table_query1="truncate table {1}.{0}".format(missing_date_tbl,dbschema)
+                    utils.execute_query_in_redshift(truncate_table_query1, self.whouse_details, logger)
+                    truncate_table_query2="truncate table {1}.{0}".format(min_max_date_tbl,dbschema)
+                    utils.execute_query_in_redshift(truncate_table_query2, self.whouse_details, logger)
                     for tbl in tables_list_to_call:
                         tbl_nm = params["tr_params"]["table_list"][tbl]["table_name"]
                         br_id = params["tr_params"]["table_list"][tbl]["sas_brand_id"]
@@ -2222,6 +2226,10 @@ class Reporting_Job(Core_Job):
                             """drop table if exists {1}.{0}_date_stage"""
                         ).format(tbl_nm, dbschema)
                         utils.execute_query_in_redshift(drop_table_query4, self.whouse_details, logger)
+                    missing_date_stg_df = self.redshift_table_to_dataframe(redshift_table=missing_date_tbl)
+                    min_max_date_stg_df = self.redshift_table_to_dataframe(redshift_table=min_max_date_tbl)
+                    logger.info("count of missing date table {}".format(missing_date_stg_df.count()))
+                    logger.info("count of min max date table {}".format(min_max_date_stg_df.count()))
                 except Exception as error:
                     logger.info(
                         "Error Occurred While processing etl_rpt_missing_dates due to : {}".format(error)
@@ -2269,45 +2277,51 @@ class Reporting_Job(Core_Job):
         try:
 
             def util_read_etl_parm_table():
-                spark = self.spark
-                params = self.params
-                logger = self.logger
-                whouse_etl_parm = self.redshift_table_to_dataframe(
-                    redshift_table="etl_params_test"
-                )
-                logger.info("enter into util_read_etl_parm_table")
-                today = datetime.datetime.today()
-                calculated_date = today - datetime.timedelta(days=(today.weekday() - 1))
-                logger.info("the calculated date is {}".format(calculated_date))
-                _brand_name_prefix = params["brand"]
-                ##Uncomment this line to run the CSV on a day that is out of the week from where is supposed to run, comment the line above
-                # calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
-                whouse_etl_parm.createOrReplaceTempView("whouse_etl_parm_view")
-                df = spark.sql(
-                    """select 
-                        case when UPPER(TRIM(CHAR_VALUE))= "CURRENT" then date_format('{}',"yyyy-MM-dd")
-                        else date_format(CHAR_VALUE,"yyyy-MM-dd")
-                        end as cutoff_date
-                    from whouse_etl_parm_view
-                    where LOWER(KEY2)="cutoff_date"
-                    AND LOWER(KEY1) = LOWER('{}')
-                    AND CHAR_VALUE IS NOT NULL
-                    AND NUM_VALUE=1""".format(
-                        calculated_date, _brand_name_prefix
+                try:
+                    spark = self.spark
+                    params = self.params
+                    logger = self.logger
+                    whouse_etl_parm = self.redshift_table_to_dataframe(
+                        redshift_table="etl_params_test"
                     )
-                )
-                df.show()
-                logger.info("end of util_read_etl_parm_table")
-                df.createOrReplaceTempView("date_table")
+                    logger.info("enter into util_read_etl_parm_table")
+                    today = datetime.datetime.today()
+                    calculated_date = today - datetime.timedelta(days=(today.weekday() - 1))
+                    logger.info("the calculated date is {}".format(calculated_date))
+                    _brand_name_prefix = params["brand"]
+                    ##Uncomment this line to run the CSV on a day that is out of the week from where is supposed to run, comment the line above
+                    # calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
+                    whouse_etl_parm.createOrReplaceTempView("whouse_etl_parm_view")
+                    df = spark.sql(
+                        """select 
+                            case when UPPER(TRIM(CHAR_VALUE))= "CURRENT" then date_format('{}',"yyyy-MM-dd")
+                            else to_date(CHAR_VALUE , "ddMMMyyyy")
+                            end as cutoff_date
+                        from whouse_etl_parm_view
+                        where LOWER(KEY2)="cutoff_date"
+                        AND LOWER(KEY1) = LOWER('{}')
+                        AND CHAR_VALUE IS NOT NULL
+                        AND NUM_VALUE=1""".format(
+                            calculated_date, _brand_name_prefix
+                        )
+                    )
+                    df.show()
+                    logger.info("end of util_read_etl_parm_table")
+                    df.createOrReplaceTempView("date_table")
 
-                cutoff_date_df = spark.sql(
-                    """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
-                )
-                cutoff_date_df.show()
-                cut_off_list = cutoff_date_df.select("cutoff_date").collect()
-                _cutoff_date = cut_off_list[0].cutoff_date
-                logger.info("the cutoff date is {}".format(_cutoff_date))
-
+                    cutoff_date_df = spark.sql(
+                        """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
+                    )
+                    cutoff_date_df.show()
+                    cut_off_list = cutoff_date_df.select("cutoff_date").collect()
+                    _cutoff_date = cut_off_list[0].cutoff_date
+                    logger.info("the cutoff date is {}".format(_cutoff_date))
+                except Exception as error:
+                    logger.error("Unable to calculate the cutoff date")
+                    raise Exception(
+                        "Error occurred in util_read_etl_parm_table, unable to calculate the cutoff date : {}".format(
+                            error)
+                    )
                 return _cutoff_date
 
             def run_csv_tnf_build_email_inputs():
@@ -2321,851 +2335,843 @@ class Reporting_Job(Core_Job):
                     params = self.params
                     logger = self.logger
                     logger.info("enter into try block")
-                    _cutoff_date = util_read_etl_parm_table()
+                    cutoff_date = util_read_etl_parm_table()
+                    _cutoff_date = datetime.datetime.strptime(cutoff_date, '%d%b%Y').date()
+                    logger.info("cutoff date converted is {}".format(_cutoff_date))
 
-                    whouse_tnf_email_launch_view_df = self.redshift_table_to_dataframe(
-                        redshift_table="tnf_launch_view_test"
-                    )
-                    whouse_tnf_email_sent_view_1df = self.redshift_table_to_dataframe(
-                        redshift_table="tnf_sent_view_test"
-                    )
-                    whouse_tnf_email_open_view_1df = self.redshift_table_to_dataframe(
-                        redshift_table="tnf_open_view_test"
-                    )
-                    whouse_tnf_email_click_view_1df = self.redshift_table_to_dataframe(
-                        redshift_table="tnf_click_view_test"
-                    )
+                    tmp_tnf_email_launch_clean_csv_query_stage1 = """CREATE TABLE vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 
+                                            as SELECT *,
+                                            UPPER(campaign_name) AS campaign_name_tmp,
+                                            UPPER(subject) as subject_tmp
+                                            FROM vfapdsmigration.tnf_email_launch_view where UPPER(launch_type) in ('S', 'P', 'R') 
+                                            AND UPPER(launch_status)='C'"""
+                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage1,
+                                                    self.whouse_details, logger)
 
-                    whouse_tnf_email_sent_view_df = (
-                        whouse_tnf_email_sent_view_1df.withColumn(
-                            "event_captured_dt_con",
-                            F.concat(
-                                whouse_tnf_email_sent_view_1df[
-                                    "event_captured_dt"
-                                ].substr(0, 2),
-                                F.lit("-"),
-                                whouse_tnf_email_sent_view_1df[
-                                    "event_captured_dt"
-                                ].substr(3, 3),
-                                F.lit("-"),
-                                whouse_tnf_email_sent_view_1df[
-                                    "event_captured_dt"
-                                ].substr(6, 4),
-                            ),
-                        )
-                        .drop("event_captured_dt")
-                        .withColumnRenamed("event_captured_dt_con", "event_captured_dt")
-                    )
+                    alter_tmp_tnf_email_launch_query1 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 drop column campaign_name"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query1, self.whouse_details, logger)
 
-                    whouse_tnf_email_open_view_df = (
-                        whouse_tnf_email_open_view_1df.withColumn(
-                            "event_captured_dt_con",
-                            F.concat(
-                                whouse_tnf_email_open_view_1df[
-                                    "event_captured_dt"
-                                ].substr(0, 2),
-                                F.lit("-"),
-                                whouse_tnf_email_open_view_1df[
-                                    "event_captured_dt"
-                                ].substr(3, 3),
-                                F.lit("-"),
-                                whouse_tnf_email_open_view_1df[
-                                    "event_captured_dt"
-                                ].substr(6, 4),
-                            ),
-                        )
-                        .drop("event_captured_dt")
-                        .withColumnRenamed("event_captured_dt_con", "event_captured_dt")
-                    )
+                    alter_tmp_tnf_email_launch_query2 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 drop column subject"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query2, self.whouse_details, logger)
 
-                    whouse_tnf_email_click_view_df = (
-                        whouse_tnf_email_click_view_1df.withColumn(
-                            "event_captured_dt_con",
-                            F.concat(
-                                whouse_tnf_email_click_view_1df[
-                                    "event_captured_dt"
-                                ].substr(0, 2),
-                                F.lit("-"),
-                                whouse_tnf_email_click_view_1df[
-                                    "event_captured_dt"
-                                ].substr(3, 3),
-                                F.lit("-"),
-                                whouse_tnf_email_click_view_1df[
-                                    "event_captured_dt"
-                                ].substr(6, 4),
-                            ),
-                        )
-                        .drop("event_captured_dt")
-                        .withColumnRenamed("event_captured_dt_con", "event_captured_dt")
-                    )
+                    alter_tmp_tnf_email_launch_query3 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 rename column subject_tmp to subject"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query3, self.whouse_details, logger)
 
-                    logger.info("df's defined")
-                    whouse_tnf_email_launch_view_df.createOrReplaceTempView(
-                        "whouse_tnf_email_launch_view"
-                    )
-                    whouse_tnf_email_sent_view_df.createOrReplaceTempView(
-                        "whouse_tnf_email_sent_view"
-                    )
-                    whouse_tnf_email_open_view_df.createOrReplaceTempView(
-                        "whouse_tnf_email_open_view"
-                    )
-                    whouse_tnf_email_click_view_df.createOrReplaceTempView(
-                        "whouse_tnf_email_click_view"
-                    )
+                    alter_tmp_tnf_email_launch_query4 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 rename column campaign_name_tmp to campaign_name"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query4, self.whouse_details, logger)
 
-                    tmp_tnf_email_launch_clean_csv_df1 = (
-                        spark.sql(
-                            """ 
-                                            SELECT *,
-                                                CASE WHEN UPPER(launch_type) in ('S', 'P', 'R') AND UPPER(launch_status)=='C'
-                                                    THEN UPPER(campaign_name) 
-                                                    ELSE campaign_name
-                                               END AS campaign_name_tmp,
-                                               CASE WHEN UPPER(launch_type) in ('S', 'P', 'R') AND UPPER(launch_status)=='C'
-                                                    THEN UPPER(subject) 
-                                                    ELSE subject
-                                               END AS  subject_tmp
-                                            FROM whouse_tnf_email_launch_view """
-                        )
-                        .drop("campaign_name", "subject")
-                        .withColumnRenamed("campaign_name_tmp", "CAMPAIGN_NAME")
-                        .withColumnRenamed("subject_tmp", "SUBJECT")
-                    )
+                    tmp_tnf_email_launch_clean_csv_query_stage2 = """create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage2 
+                           as 
+                           SELECT * FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1
+                           where CHARINDEX('UNSUB',campaign_name) <= 0 AND
+                           CHARINDEX('SHIPPING',campaign_name) <= 0 AND
+                           CHARINDEX('SHIP_',campaign_name) <= 0 AND
+                           CHARINDEX('PARTIALSHIP',campaign_name) <= 0 AND
+                           CHARINDEX('PARTIAL_SHIP',campaign_name) <= 0 AND
+                           CHARINDEX('REVIEW',campaign_name) <= 0 AND
+                           CHARINDEX('RETURN',campaign_name) <= 0 AND
+                           CHARINDEX('EXCHANGE',campaign_name) <= 0 AND
+                           CHARINDEX('CANCEL',campaign_name) <= 0 AND
+                           CHARINDEX('CONFIRM',campaign_name) <= 0 AND
+                           CHARINDEX('PREFERENCECENTER',campaign_name) <= 0 AND
+                           CHARINDEX('TEST',campaign_name) <= 0 AND
+                           CHARINDEX('SHIP-ACCOM',campaign_name) <= 0 AND
+                           CHARINDEX('OUTOFSTOCK',campaign_name) <= 0 AND
+                           CHARINDEX('USSHIPTOSTORE',campaign_name) <= 0 AND
+                           CHARINDEX('TEST',subject) <= 0 AND
+                           CHARINDEX('TRIGGERED',subject) <= 0"""
 
-                    tmp_tnf_email_launch_clean_csv_df1.createOrReplaceTempView(
-                        "tmp_tnf_email_launch_clean_csv_1"
-                    )
+                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage2,
+                                                    self.whouse_details, logger)
 
-                    logger.info(
-                        "count of records in tmp_tnf_email_launch_clean_csv_df1 {}".format(
-                            tmp_tnf_email_launch_clean_csv_df1.count()
-                        )
-                    )
-
-                    tmp_tnf_email_launch_clean_csv_df11 = spark.sql(
-                        """
-                                            SELECT * FROM tmp_tnf_email_launch_clean_csv_1
-                                            where INSTR(campaign_name,"UNSUB") <= 0 AND
-                                            INSTR(campaign_name,"SHIPPING") <= 0 AND
-                                            INSTR(campaign_name,"SHIP_") <= 0 AND
-                                            INSTR(campaign_name,"PARTIALSHIP") <= 0 AND
-                                            INSTR(campaign_name,"PARTIAL_SHIP") <= 0 AND
-                                            INSTR(campaign_name,"REVIEW") <= 0 AND
-                                            INSTR(campaign_name,"RETURN") <= 0 AND
-                                            INSTR(campaign_name,"EXCHANGE") <= 0 AND
-                                            INSTR(campaign_name,"CANCEL") <= 0 AND
-                                            INSTR(campaign_name,"CONFIRM") <= 0 AND
-                                            INSTR(campaign_name,"PREFERENCECENTER") <= 0 AND
-                                            INSTR(campaign_name,"TEST") <= 0 AND
-                                            INSTR(campaign_name,"SHIP-ACCOM") <= 0 AND
-                                            INSTR(campaign_name,"OUTOFSTOCK") <= 0 AND
-                                            INSTR(campaign_name,"USSHIPTOSTORE") <= 0 AND
-                                            INSTR(subject,"TEST") <= 0 AND
-                                            INSTR(subject,"TRIGGERED") <= 0"""
-                    )
-
-                    tmp_tnf_email_launch_clean_csv_df11.createOrReplaceTempView(
-                        "tmp_tnf_email_launch_clean_csv_11"
-                    )
-
-                    tmp_tnf_email_launch_clean_csv_df2 = (
-                        spark.sql(
-                            """ SELECT *,
-                                    CASE WHEN INSTR(campaign_name,"FALL") > 0 OR 
-                                                INSTR(subject,"FALL") > 0 OR 
-                                                INSTR(subject,"OCTOBER") > 0 OR
-                                                INSTR(subject,"ROCK FEST") > 0 
-                                            THEN "F"
-                                        WHEN INSTR(campaign_name,"SPRING") > 0 
-                                            THEN "P"
-                                        WHEN INSTR(campaign_name,"WINTER SALE") > 0 OR
-                                                INSTR(campaign_name,"FEB-") > 0 OR 
-                                                INSTR(subject,"OMNI_SALE") > 0 
-                                            THEN "WS"
-                                        WHEN INSTR(campaign_name,"WINTER") > 0 OR  
-                                                INSTR(subject,"WINTER") > 0 OR 
-                                                INSTR(campaign_name,"NEWYEAR") > 0 OR 
-                                                INSTR(subject,"NEW YEAR") > 0 OR 
-                                                INSTR(subject,"NEW_YEAR") > 0 
-                                            THEN "W"
-                                        WHEN INSTR(campaign_name,"SS-") > 0 
-                                            THEN "SS"
-                                        WHEN INSTR(campaign_name,"HOLIDAY") > 0 OR 
-                                                INSTR(campaign_name,"GIFT") > 0 OR 
-                                                INSTR(subject,"GIFT") > 0 OR 
-                                                INSTR(campaign_name,"DECEMBER") > 0 OR 
-                                                INSTR(campaign_name,"BLACKFRIDAY") > 0  OR 
-                                                INSTR(subject,"UNDER_100") > 0 OR 
-                                                INSTR(subject,"BLACK FRI") > 0  OR 
-                                                INSTR(campaign_name,"BLACK-FRI") > 0 OR 
-                                                INSTR(campaign_name,"CYBER_MONDAY") > 0 OR 
-                                                INSTR(campaign_name,"CYBER-MONDAY") > 0 OR 
-                                                INSTR(campaign_name,"CYBERMONDAY") > 0 OR 
-                                                INSTR(subject,"CYBER MONDAY") > 0 OR 
-                                                INSTR(subject,"CYBER_MONDAY") > 0 OR 
-                                                INSTR(subject,"TAX FREE") > 0 
-                                            THEN "H"
-                                        WHEN INSTR(campaign_name,"BTS") > 0 OR
-                                                INSTR(campaign_name,"SUMMER") > 0 OR 
-                                                INSTR(subject,"SUMMER") > 0 OR
-                                                INSTR(subject,"FATHERSDAY") > 0 OR
-                                                INSTR(campaign_name,"FATHERSDAY") > 0 
-                                            THEN "B"
-                                    ELSE ""
+                    tmp_tnf_email_launch_clean_csv_query_stage3 = """ create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 
+                                    as SELECT *,
+                                    CASE WHEN CHARINDEX('FALL',campaign_name) > 0 OR 
+                                                CHARINDEX('FALL',subject) > 0 OR 
+                                                CHARINDEX('OCTOBER',subject) > 0 OR
+                                                CHARINDEX('ROCK FEST',subject) > 0 
+                                            THEN 'F'
+                                        WHEN CHARINDEX('SPRING',campaign_name) > 0 
+                                            THEN 'P'
+                                        WHEN CHARINDEX('WINTER SALE',campaign_name) > 0 OR
+                                                CHARINDEX('FEB-',campaign_name) > 0 OR 
+                                                CHARINDEX('OMNI_SALE',subject) > 0 
+                                            THEN 'WS'
+                                        WHEN CHARINDEX('WINTER',campaign_name) > 0 OR  
+                                                CHARINDEX('WINTER',subject) > 0 OR 
+                                                CHARINDEX('NEWYEAR',campaign_name) > 0 OR 
+                                                CHARINDEX('NEW YEAR',subject) > 0 OR 
+                                                CHARINDEX('NEW_YEAR',subject) > 0 
+                                            THEN 'W'
+                                        WHEN CHARINDEX('SS-',campaign_name) > 0 
+                                            THEN 'SS'
+                                        WHEN CHARINDEX('HOLIDAY',campaign_name) > 0 OR 
+                                                CHARINDEX('GIFT',campaign_name) > 0 OR 
+                                                CHARINDEX('GIFT',subject) > 0 OR 
+                                                CHARINDEX('DECEMBER',campaign_name) > 0 OR 
+                                                CHARINDEX('BLACKFRIDAY',campaign_name) > 0  OR 
+                                                CHARINDEX('UNDER_100',subject) > 0 OR 
+                                                CHARINDEX('BLACK FRI',subject) > 0  OR 
+                                                CHARINDEX('BLACK-FRI',campaign_name) > 0 OR 
+                                                CHARINDEX('CYBER_MONDAY',campaign_name) > 0 OR 
+                                                CHARINDEX('CYBER-MONDAY',campaign_name) > 0 OR 
+                                                CHARINDEX('CYBERMONDAY',campaign_name) > 0 OR 
+                                                CHARINDEX('CYBER MONDAY',subject) > 0 OR 
+                                                CHARINDEX('CYBER_MONDAY',subject) > 0 OR 
+                                                CHARINDEX('TAX FREE',subject) > 0 
+                                            THEN 'H'
+                                        WHEN CHARINDEX('BTS',campaign_name) > 0 OR
+                                                CHARINDEX('SUMMER',campaign_name) > 0 OR 
+                                                CHARINDEX('SUMMER',subject) > 0 OR
+                                                CHARINDEX('FATHERSDAY',subject) > 0 OR
+                                                CHARINDEX('FATHERSDAY',campaign_name) > 0 
+                                            THEN 'B'
+                                    ELSE null
                                     END AS email_ssn,
 
-                                    CASE WHEN INSTR(campaign_name,"GO-VACA") > 0 OR 
-                                                INSTR(campaign_name,"_NATL_PARKS") > 0 OR 
-                                                INSTR(subject,"EXPLORE IN") > 0 OR 
-                                                INSTR(campaign_name,"NATIONALPARK") > 0 OR 
-                                                INSTR(campaign_name,"BEST-OF-THE-BAY") > 0 
-                                            THEN  "TRAVEL"
-                                        WHEN INSTR(campaign_name,"RUN") > 0 OR  
-                                                INSTR(campaign_name,"_ECS_") > 0 OR 
-                                                INSTR(campaign_name,"GOLIATHON") > 0 OR 
-                                                INSTR(subject,"MARATHON") > 0 OR 
-                                                INSTR(subject,"RUN") > 0 OR 
-                                                INSTR(campaign_name,"OE_FUND") > 0 OR 
-                                                INSTR(subject,"ENDURAN") > 0 OR 
-                                                INSTR(subject,"LACE UP FOR") > 0 
-                                            THEN  "RUN"
-                                        WHEN INSTR(campaign_name,"TRAIN") > 0 OR 
-                                                INSTR(subject,"GYM") > 0 OR 
-                                                INSTR(subject,"EQUIPPED") > 0 OR 
-                                                INSTR(campaign_name,"WORKOUT") > 0 OR 
-                                                INSTR(subject,"CROSS FIT")  > 0 OR 
-                                                INSTR(subject,"XFITMN") > 0 
-                                            THEN  "TRN"
-                                        WHEN INSTR(campaign_name,"HIK") > 0 OR 
-                                                INSTR(subject,"HIK") > 0 OR 
-                                                INSTR(subject,"TRAIL") > 0 
-                                            THEN  "HIK"
-                                        WHEN INSTR(campaign_name,"WATER") > 0 OR 
-                                                INSTR(campaign_name,"GO-SF") > 0 
-                                            THEN "SURF"
-                                        WHEN INSTR(campaign_name,"CLIMB") > 0 OR 
-                                                INSTR(subject,"PREPARED FOR THE MOUNTAIN") > 0 OR 
-                                                INSTR(campaign_name,"SUMMIT") > 0 OR 
-                                                INSTR(campaign_name,"NEPAL")> 0 OR 
-                                                INSTR(campaign_name,"MERU") > 0    OR 
-                                                INSTR(campaign_name,"BANFF") > 0 OR 
-                                                INSTR(campaign_name,"MTN-D-DOW") > 0 OR 
-                                                INSTR(campaign_name,"ANGOLA") > 0 OR  
-                                                INSTR(campaign_name,"ALPINE") > 0 OR 
-                                                INSTR(subject,"ALPINE") > 0 OR 
-                                                INSTR(subject,"CLIMB") > 0 OR 
-                                                INSTR(subject,"CONRAD ANKER") > 0 OR 
-                                                INSTR(subject,"ALEX HONNOLD") > 0 
-                                            THEN  "MTNCLM"
-                                        WHEN INSTR(campaign_name,"HIPCAMP") > 0 OR 
-                                                INSTR(campaign_name,"CAMPING") > 0 OR 
-                                                INSTR(campaign_name,"BACKPACK") > 0 OR 
-                                                INSTR(subject,"BACKPACK") > 0 OR 
-                                                INSTR(subject,"TENT") > 0 OR 
-                                                INSTR(subject,"HOMESTEAD") > 0 OR 
-                                                INSTR(campaign_name,"HOMESTEAD") > 0 OR 
-                                                INSTR(subject,"CAMP") > 0 
-                                            THEN  "BCPKCAMP"
-                                        WHEN INSTR(campaign_name,"SKI") > 0 OR  
-                                                INSTR(campaign_name,"ALL-MTN") > 0 OR 
-                                                INSTR(subject,"MEET INGRID") > 0 OR 
-                                                INSTR(subject,"DESLAURIERS") > 0 OR 
-                                                INSTR(subject,"SKI") > 0 OR 
-                                                INSTR(campaign_name,"SNOWSPORTS") > 0 OR 
-                                                INSTR(SUBJECT,"SLOPE") > 0 OR
-                                                INSTR(SUBJECT,"STEEP") > 0 
-                                            THEN  "SKI"
-                                        WHEN INSTR(campaign_name,"SNOW") > 0 OR 
-                                                INSTR(campaign_name,"SNOWSPORTS") > 0 OR 
-                                                INSTR(subject,"KAITLYN FARRINGTON") > 0 
-                                            THEN  "SNWB"
-                                        WHEN INSTR(campaign_name,"YOGA") > 0 OR 
-                                                INSTR(subject,"YOGA") > 0 
-                                            THEN  "YOGA"
-                                        WHEN INSTR(campaign_name,"BOXING") > 0 OR 
-                                                INSTR(SUBJECT,"BOXING") > 0 
-                                        THEN  "BOXING"
-                                        WHEN INSTR(subject,"HUNT-SEA") > 0 OR 
-                                                INSTR(campaign_name,"HUNT-SEA") > 0 
-                                        THEN  "WATER"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('GO-VACA',campaign_name) > 0 OR 
+                                                CHARINDEX('_NATL_PARKS',campaign_name) > 0 OR 
+                                                CHARINDEX('EXPLORE IN',subject) > 0 OR 
+                                                CHARINDEX('NATIONALPARK',campaign_name) > 0 OR 
+                                                CHARINDEX('BEST-OF-THE-BAY',campaign_name) > 0 
+                                            THEN  'TRAVEL'
+                                        WHEN CHARINDEX('RUN',campaign_name) > 0 OR  
+                                                CHARINDEX('_ECS_',campaign_name) > 0 OR 
+                                                CHARINDEX('GOLIATHON',campaign_name) > 0 OR 
+                                                CHARINDEX('MARATHON',subject) > 0 OR 
+                                                CHARINDEX('RUN',subject) > 0 OR 
+                                                CHARINDEX('OE_FUND',campaign_name) > 0 OR 
+                                                CHARINDEX('ENDURAN',subject) > 0 OR 
+                                                CHARINDEX('LACE UP FOR',subject) > 0 
+                                            THEN  'RUN'
+                                        WHEN CHARINDEX('TRAIN',campaign_name) > 0 OR 
+                                                CHARINDEX('GYM',subject) > 0 OR 
+                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                                CHARINDEX('WORKOUT',campaign_name) > 0 OR 
+                                                CHARINDEX('CROSS FIT',subject)  > 0 OR 
+                                                CHARINDEX('XFITMN',subject) > 0 
+                                            THEN  'TRN'
+                                        WHEN CHARINDEX('HIK',campaign_name) > 0 OR 
+                                                CHARINDEX('HIK',subject) > 0 OR 
+                                                CHARINDEX('TRAIL',subject) > 0 
+                                            THEN  'HIK'
+                                        WHEN CHARINDEX('WATER',campaign_name) > 0 OR 
+                                                CHARINDEX('GO-SF',campaign_name) > 0 
+                                            THEN 'SURF'
+                                        WHEN CHARINDEX('CLIMB',campaign_name) > 0 OR 
+                                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0 OR 
+                                                CHARINDEX('SUMMIT',campaign_name) > 0 OR 
+                                                CHARINDEX('NEPAL',campaign_name)> 0 OR 
+                                                CHARINDEX('MERU',campaign_name) > 0    OR 
+                                                CHARINDEX('BANFF',campaign_name) > 0 OR 
+                                                CHARINDEX('MTN-D-DOW',campaign_name) > 0 OR 
+                                                CHARINDEX('ANGOLA',campaign_name) > 0 OR  
+                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                                CHARINDEX('ALPINE',subject) > 0 OR 
+                                                CHARINDEX('CLIMB',subject) > 0 OR 
+                                                CHARINDEX('CONRAD ANKER',subject) > 0 OR 
+                                                CHARINDEX('ALEX HONNOLD',subject) > 0 
+                                            THEN  'MTNCLM'
+                                        WHEN CHARINDEX('HIPCAMP',campaign_name) > 0 OR 
+                                                CHARINDEX('CAMPING',campaign_name) > 0 OR 
+                                                CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                CHARINDEX('BACKPACK',subject) > 0 OR 
+                                                CHARINDEX('TENT',subject) > 0 OR 
+                                                CHARINDEX('HOMESTEAD',subject) > 0 OR 
+                                                CHARINDEX('HOMESTEAD',campaign_name) > 0 OR 
+                                                CHARINDEX('CAMP',subject) > 0 
+                                            THEN  'BCPKCAMP'
+                                        WHEN CHARINDEX('SKI',campaign_name) > 0 OR  
+                                                CHARINDEX('ALL-MTN',campaign_name) > 0 OR 
+                                                CHARINDEX('MEET INGRID',subject) > 0 OR 
+                                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
+                                                CHARINDEX('SKI',subject) > 0 OR 
+                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                                CHARINDEX('SLOPE',SUBJECT) > 0 OR
+                                                CHARINDEX('STEEP',SUBJECT) > 0 
+                                            THEN  'SKI'
+                                        WHEN CHARINDEX('SNOW',campaign_name) > 0 OR 
+                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                                CHARINDEX('KAITLYN FARRINGTON',subject) > 0 
+                                            THEN  'SNWB'
+                                        WHEN CHARINDEX('YOGA',campaign_name) > 0 OR 
+                                                CHARINDEX('YOGA',subject) > 0 
+                                            THEN  'YOGA'
+                                        WHEN CHARINDEX('BOXING',campaign_name) > 0 OR 
+                                                CHARINDEX('BOXING',SUBJECT) > 0 
+                                        THEN  'BOXING'
+                                        WHEN CHARINDEX('HUNT-SEA',subject) > 0 OR 
+                                                CHARINDEX('HUNT-SEA',campaign_name) > 0 
+                                        THEN  'WATER'
+                                    ELSE null
                                     END AS email_activity,
 
-                                    CASE WHEN INSTR(campaign_name,"-MEN") > 0 THEN "M"
-                                        WHEN INSTR(campaign_name,"-WOMEN") > 0 THEN "F"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'
+                                        WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'
+                                    ELSE null
                                     END AS email_gender,
 
-                                    CASE WHEN INSTR(campaign_name,"RETAIL") > 0 OR  
-                                                INSTR(subject,"RETAIL") > 0 
-                                            THEN  "RETAIL"
-                                            WHEN INSTR(campaign_name,"ECOM") > 0 OR 
-                                                    INSTR(subject,"ECOM") > 0 OR  
-                                                    INSTR(campaign_name,"NEW_SITE") > 0 
-                                                THEN "ECOM"					
-                                            WHEN INSTR(campaign_name,"OUTLET") > 0 OR  
-                                                    INSTR(subject,"OUTLET") > 0  
-                                                THEN "OUTLET"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+                                                CHARINDEX('RETAIL',subject) > 0 
+                                            THEN  'RETAIL'
+                                            WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                                                    CHARINDEX('ECOM',subject) > 0 OR  
+                                                    CHARINDEX('NEW_SITE',campaign_name) > 0 
+                                                THEN 'ECOM'					
+                                            WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                                                    CHARINDEX('OUTLET',subject) > 0  
+                                                THEN 'OUTLET'
+                                    ELSE null
                                     END AS email_channel,
 
-                                    CASE WHEN  INSTR(campaign_name,"EQUIPMENT") > 0 OR 
-                                                INSTR(subject,"EQUIPPED") > 0 OR 
-                                                INSTR(subject,"GEAR") > 0 
-                                            THEN  "EQUIP"
-                                        WHEN INSTR(campaign_name,"JACKET") > 0 OR 
-                                                INSTR(subject,"JACKET") > 0 OR 
-                                                INSTR(campaign_name,"WATSON") > 0 
-                                            THEN  "JKT"
-                                        WHEN INSTR(campaign_name,"BOOT") > 0 OR 
-                                                INSTR(campaign_name,"XTRAFOAM") > 0 OR 
-                                                INSTR(subject,"FOOTWEAR") > 0 
-                                            THEN  "FW"
-                                        WHEN INSTR(campaign_name,"BACKPACK") > 0 OR 
-                                                INSTR(campaign_name,"DAY-PACK") > 0 OR 
-                                                INSTR(subject,"DAY-PACK") > 0 OR 
-                                                INSTR(subject,"BACKPACK") > 0 
-                                            THEN  "BCPK"
-                                        WHEN INSTR(campaign_name,"ASCENTIAL") > 0 THEN "ASCNTL"		
-                                        WHEN INSTR(campaign_name,"THERM") > 0 OR  
-                                                INSTR(subject,"3 WAYS") > 0 OR  
-                                                INSTR(subject,"COLD") > 0 OR 
-                                                INSTR(campaign_name,"COLD") > 0 OR 
-                                                INSTR(campaign_name,"WINTERJACKET") > 0 OR 
-                                                INSTR(campaign_name,"DOWN_JACKET") > 0 OR 
-                                                INSTR(campaign_name,"SUMMIT") > 0	OR 
-                                                INSTR(campaign_name,"_FUSE_CHI_") > 0 OR 
-                                                INSTR(campaign_name,"_FUSE_SEATTLE") > 0 OR 
-                                                INSTR(campaign_name,"_FUSE_BOSTON_") > 0 OR 
-                                                INSTR(campaign_name,"APEX-FLEX") > 0 OR 
-                                                INSTR(SUBJECT,"FAR-NORTH") > 0 OR 
-                                                INSTR(SUBJECT,"FAR NORTH") > 0 OR 
-                                                INSTR(campaign_name,"FARNORTHERN") > 0 OR 
-                                                INSTR(campaign_name,"INSULATED") > 0 OR 
-                                                INSTR(campaign_name,"URBAN_INS") > 0 OR  
-                                                INSTR(campaign_name,"ALPINE") > 0 OR 
-                                                INSTR(campaign_name,"_SOFT_") > 0 OR 
-                                                INSTR(campaign_name,"URBAN-INS") > 0 OR 
-                                                INSTR(campaign_name,"CORE") > 0 OR 
-                                                INSTR(campaign_name,"TBALL") > 0 OR 
-                                                INSTR(subject,"TBALL") > 0 OR 
-                                                INSTR(subject,"THERMOBALL") > 0 OR 
-                                                INSTR(campaign_name,"ARCTIC") > 0 OR 
-                                                INSTR(subject,"ARCTIC") > 0 OR  
-                                                INSTR(subject,"NEW DIMENSION TO WARMTH") > 0 OR  
-                                                INSTR(subject,"NEW DIMENSION OF WARMTH") > 0 
-                                            THEN "INS"
-                                        WHEN INSTR(campaign_name,"FLEECE") > 0 OR 
-                                                INSTR(campaign_name,"URBAN_EXP") > 0 OR 
-                                                INSTR(campaign_name,"TRICLIM") > 0 OR 
-                                                INSTR(campaign_name,"VILLAGEWEAR") > 0 OR 
-                                                INSTR(campaign_name,"OSITO") > 0 OR 
-                                                INSTR(campaign_name,"WARMTH") > 0 OR 
-                                                INSTR(campaign_name,"FAVES") > 0 OR 
-                                                INSTR(subject,"FLEECE PONCHO") > 0 OR 
-                                                INSTR(subject,"LIGHTER JACKET") > 0 OR 
-                                                INSTR(campaign_name,"DENALI") > 0 
-                                            THEN  "MILDJKT"
-                                        WHEN INSTR(campaign_name,"_FUSEFORM_") > 0 OR 
-                                                INSTR(campaign_name,"_VENTURE_") > 0 OR 
-                                                (INSTR(campaign_name,"RAIN") > 0 AND INSTR(campaign_name,"TRAIN") <= 0) OR
-                                                (INSTR(subject,"RAIN") > 0 AND INSTR(subject,"TRAIN") <= 0) 
-                                            THEN "RAIN_WR"
-                                        WHEN INSTR(subject,"HAT") > 0 OR 
-                                                INSTR(subject,"BEANIE") > 0 OR 
-                                                INSTR(subject,"EAR GEAR") > 0 OR 
-                                                INSTR(subject,"MITTEN") > 0 OR 
-                                                INSTR(subject,"SCARF") > 0 OR 
-                                                INSTR(subject,"VISOR") > 0 OR 
-                                                INSTR(subject," CAP ") > 0  OR 
-                                                INSTR(subject,"GLOVES") > 0   OR 
-                                                INSTR(subject,"SOCKS") > 0 OR 
-                                                (INSTR(subject,"PACK") > 0 AND INSTR(subject,"BACKPACK") <= 0 ) OR 
-                                                INSTR(subject," BAG") > 0 OR 
-                                                INSTR(subject,"BOTTLE") > 0 
-                                            THEN "ACCSR"			
-                                    ELSE ""
+                                    CASE WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                                CHARINDEX('GEAR',subject) > 0 
+                                            THEN  'EQUIP'
+                                        WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('JACKET',subject) > 0 OR 
+                                                CHARINDEX('WATSON',campaign_name) > 0 
+                                            THEN  'JKT'
+                                        WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
+                                                CHARINDEX('XTRAFOAM',campaign_name) > 0 OR 
+                                                CHARINDEX('FOOTWEAR',subject) > 0 
+                                            THEN  'FW'
+                                        WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                CHARINDEX('DAY-PACK',campaign_name) > 0 OR 
+                                                CHARINDEX('DAY-PACK',subject) > 0 OR 
+                                                CHARINDEX('BACKPACK',subject) > 0 
+                                            THEN  'BCPK'
+                                        WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'		
+                                        WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
+                                                CHARINDEX('3 WAYS',subject) > 0 OR  
+                                                CHARINDEX('COLD',subject) > 0 OR 
+                                                CHARINDEX('COLD',campaign_name) > 0 OR 
+                                                CHARINDEX('WINTERJACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('DOWN_JACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('SUMMIT',campaign_name) > 0	OR 
+                                                CHARINDEX('_FUSE_CHI_',campaign_name) > 0 OR 
+                                                CHARINDEX('_FUSE_SEATTLE',campaign_name) > 0 OR 
+                                                CHARINDEX('_FUSE_BOSTON_',campaign_name) > 0 OR 
+                                                CHARINDEX('APEX-FLEX',campaign_name) > 0 OR 
+                                                CHARINDEX('FAR-NORTH',SUBJECT) > 0 OR 
+                                                CHARINDEX('FAR NORTH',SUBJECT) > 0 OR 
+                                                CHARINDEX('FARNORTHERN',campaign_name) > 0 OR 
+                                                CHARINDEX('INSULATED',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN_INS',campaign_name) > 0 OR  
+                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                                CHARINDEX('_SOFT_',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN-INS',campaign_name) > 0 OR 
+                                                CHARINDEX('CORE',campaign_name) > 0 OR 
+                                                CHARINDEX('TBALL',campaign_name) > 0 OR 
+                                                CHARINDEX('TBALL',subject) > 0 OR 
+                                                CHARINDEX('THERMOBALL',subject) > 0 OR 
+                                                CHARINDEX('ARCTIC',campaign_name) > 0 OR 
+                                                CHARINDEX('ARCTIC',subject) > 0 OR  
+                                                CHARINDEX('NEW DIMENSION TO WARMTH',subject) > 0 OR  
+                                                CHARINDEX('NEW DIMENSION OF WARMTH',subject) > 0 
+                                            THEN 'INS'
+                                        WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN_EXP',campaign_name) > 0 OR 
+                                                CHARINDEX('TRICLIM',campaign_name) > 0 OR 
+                                                CHARINDEX('VILLAGEWEAR',campaign_name) > 0 OR 
+                                                CHARINDEX('OSITO',campaign_name) > 0 OR 
+                                                CHARINDEX('WARMTH',campaign_name) > 0 OR 
+                                                CHARINDEX('FAVES',campaign_name) > 0 OR 
+                                                CHARINDEX('FLEECE PONCHO',subject) > 0 OR 
+                                                CHARINDEX('LIGHTER JACKET',subject) > 0 OR 
+                                                CHARINDEX('DENALI',campaign_name) > 0 
+                                            THEN  'MILDJKT'
+                                        WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
+                                                CHARINDEX('_VENTURE_',campaign_name) > 0 OR 
+                                                (CHARINDEX('RAIN',campaign_name) > 0 AND CHARINDEX('TRAIN',campaign_name) <= 0) OR
+                                                (CHARINDEX('RAIN',subject) > 0 AND CHARINDEX('TRAIN',subject) <= 0) 
+                                            THEN 'RAIN_WR'
+                                        WHEN CHARINDEX('HAT',subject) > 0 OR 
+                                                CHARINDEX('BEANIE',subject) > 0 OR 
+                                                CHARINDEX('EAR GEAR',subject) > 0 OR 
+                                                CHARINDEX('MITTEN',subject) > 0 OR 
+                                                CHARINDEX('SCARF',subject) > 0 OR 
+                                                CHARINDEX('VISOR',subject) > 0 OR 
+                                                CHARINDEX(' CAP ',subject) > 0  OR 
+                                                CHARINDEX('GLOVES',subject) > 0   OR 
+                                                CHARINDEX('SOCKS',subject) > 0 OR 
+                                                (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
+                                                CHARINDEX(' BAG',subject) > 0 OR 
+                                                CHARINDEX('BOTTLE',subject) > 0 
+                                            THEN 'ACCSR'
+                                    ELSE null
                                     END AS Product_category_tmp
-                                FROM tmp_tnf_email_launch_clean_csv_11
+                                FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage2
                                     """
-                        )
-                        .drop("Product_category")
-                        .withColumnRenamed("Product_category_tmp", "Product_category")
-                    )
+                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage3,
+                                                    self.whouse_details, logger)
 
-                    tmp_tnf_email_launch_clean_csv_df2.createOrReplaceTempView(
-                        "tmp_tnf_email_launch_clean_csv_2"
-                    )
-                    logger.info(
-                        "count of records in tmp_tnf_email_launch_clean_csv_df2 {}".format(
-                            tmp_tnf_email_launch_clean_csv_df2.count()
-                        )
-                    )
+                    alter_tmp_tnf_email_launch_query5 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query5, self.whouse_details, logger)
 
-                    tmp_tnf_email_launch_clean_csv_df3 = spark.sql(
-                        """ SELECT *,
-                                            CASE WHEN INSTR(campaign_name,"OUTDOOR") > 0 OR 
-                                                INSTR(subject,"OUTDOOR") > 0  OR 
-                                                INSTR(campaign_name,"OUTERWEAR") > 0 OR  
-                                                INSTR(subject,"EXPLORATION") > 0 OR  
-                                                INSTR(subject,"GO OUTSIDE") > 0 OR  
-                                                INSTR(subject,"GET OUTSIDE") > 0 OR 
-                                                INSTR(subject,"OUTERWEAR") > 0 OR 
-                                                INSTR(subject,"SEEFORYOURSELF") > 0 OR 
-                                                INSTR(campaign_name,"SEEFORYOURSELF") > 0 
-                                            THEN  "OUTDOOR"
-                                        WHEN INSTR(campaign_name,"ADVENTUR") > 0 OR 
-                                                INSTR(subject,"ADVENTUR") > 0 OR 
-                                                INSTR(subject,"SUPERHERO") > 0 OR 
-                                                INSTR(subject,"SPEAKER") > 0 OR 
-                                                INSTR(subject,"CROWN") > 0 OR 
-                                                INSTR(campaign_name,"CROWN") > 0 OR 
-                                                INSTR(subject,"ULTIMATE EXPLORATION")  > 0 OR 
-                                                INSTR(campaign_name,"FILM")> 0 OR 
-                                                INSTR(campaign_name,"VALLEY")> 0 OR 
-                                                INSTR(subject,"FACE SPEAK") > 0 OR 
-                                                INSTR(subject,"FILM") > 0 OR 
-                                                INSTR(subject,"PROGRES") > 0 OR 
-                                                INSTR(campaign_name,"-FLIP-") > 0  OR 
-                                                INSTR(subject,"MADNESS") > 0 OR 
-                                                INSTR(CAMPAIGN_NAME,"EXPLORE-FUND") > 0 OR 
-                                                INSTR(subject,"EXPLORE-FUND") > 0 	OR 
-                                                INSTR(subject,"EXPLORE FUND") > 0 	OR 
-                                                TRIM(email_activity) in ("TRAVEL", "RUN", "HIK", 
-                                                "TRAIN", "SURF", "MTNCLM", "BCPK_CAMP", "SKI","SNWB")	OR 
-                                                INSTR(subject,"TUNE IN LIVE") > 0 OR 
-                                                INSTR(subject,"PREPARED FOR THE MOUNTAIN") > 0	OR 
-                                                INSTR(subject,"DESLAURIERS") > 0 OR 
-                                                INSTR(campaign_name,"_SS_") > 0 OR 
-                                                INSTR(subject,"SS_LIVE") > 0 OR 
-                                                INSTR(campaign_name,"SS_LIVE") > 0 
-                                            THEN  "PE"
-                                        WHEN (INSTR(campaign_name,"MA") > 0 
-                                                AND INSTR(campaign_name,"MAIL") <= 0 )	OR 
-                                                INSTR(campaign_name,"MTATHLETICS") > 0 OR 
-                                                INSTR(subject,"MOUNTAIN ATHLETICS") > 0 
-                                            THEN  "MA"
-                                        WHEN INSTR(subject,"RECYCLE") > 0 OR 
-                                                INSTR(campaign_name,"BACKYARD") > 0 OR 
-                                                INSTR(campaign_name,"EARTH_DAY") > 0 OR 
-                                                INSTR(subject,"EARTH DAY") > 0
-                                            THEN "NL"
-                                        WHEN INSTR(campaign_name,"YOUTH") > 0 OR 
-                                                INSTR(campaign_name,"KID") > 0 OR 
-                                                INSTR(subject,"KID") > 0 OR 
-                                                INSTR(campaign_name,"INFANT") > 0 OR 
-                                                INSTR(campaign_name,"TODDLER") > 0 
-                                            THEN  "FAMILY"
-                                        WHEN INSTR(campaign_name,"REWARD") > 0 OR 
-                                                INSTR(campaign_name,"SOCHI_PROMO") > 0 OR 
-                                                INSTR(subject,"VIPEAK") > 0 OR 
-                                                INSTR(subject,"FREE T") > 0 OR 
-                                                INSTR(subject,"GET A FREE") > 0 OR 
-                                                INSTR(campaign_name,"VIPEAK") > 0 OR 
-                                                INSTR(campaign_name,"BONUS") > 0 OR 
-                                                INSTR(campaign_name,"VIPEAK_REMINDER") > 0 OR 
-                                                INSTR(subject,"EARN MORE POINTS") > 0 OR 
-                                                INSTR(subject,"CLAIM YOUR REWARD") > 0 OR 
-                                                INSTR(subject,"YOUR VIP") > 0 OR 
-                                                INSTR(subject,"VIP TICKET") > 0 
-                                            THEN  "VIPRWRD"
-                                        WHEN INSTR(campaign_name,"WELCOME EMAIL") > 0 OR 
-                                                INSTR(campaign_name,"WELCOME_SIGNUP") > 0 OR 
-                                                INSTR(campaign_name,"WELCOMEEMAIL") > 0 OR 
-                                                INSTR(campaign_name,"WELCOME_SERIES") > 0 OR 
-                                                INSTR(subject,"WELCOME TO") > 0 OR 
-                                                INSTR(subject,"THANKS FOR JOINING") > 0 OR  
-                                                INSTR(subject,"BEGINNER") > 0 
-                                            THEN  "NEW_CUST"
-                                        WHEN INSTR(campaign_name,"LOYALTY WELCOME") > 0 OR 
-                                                INSTR(campaign_name,"LOYALTYWELCOME") > 0 OR 
-                                                INSTR(subject,"PEAKPOINT") > 0 
-                                            THEN  "NEW_VIPK"
-                                        WHEN INSTR(campaign_name,"ABANDON") > 0 
-                                            THEN  "ABNCART"
-                                        WHEN INSTR(campaign_name,"WISH LIST") > 0 OR 
-                                                INSTR(campaign_name,"WISHLIST") > 0 OR 
-                                                INSTR(campaign_name,"WISH_LIST") > 0 
-                                            THEN  "WISHLIST"
-                                        WHEN INSTR(campaign_name,"BACK IN STOCK") > 0 OR 
-                                                INSTR(campaign_name,"BACK_IN_STOCK") > 0 OR 
-                                                INSTR(campaign_name,"BACKINSTOCK") > 0 OR 
-                                                INSTR(campaign_name,"NEW_ARRIVAL") > 0 OR 
-                                                INSTR(subject,"NEW ARRIVAL") > 0 OR 
-                                                INSTR(subject,"NEW_ARRIVAL") > 0 OR 
-                                                INSTR(subject,"CATALOG") > 0 OR 
-                                                INSTR(subject,"BOUNCE_BACK") > 0 OR 
-                                                INSTR(campaign_name,"BOUNCE_BACK") > 0 OR  
-                                                INSTR(subject,"INVITE") > 0 OR  
-                                                INSTR(subject,"CONVIE") > 0 
-                                            THEN  "REP_CUST"
-                                        WHEN INSTR(campaign_name,"SURVEY") > 0 OR  
-                                                INSTR(subject,"SURVEY") > 0 
-                                            THEN "SURVEY"
-                                    ELSE ""
+                    alter_tmp_tnf_email_launch_query6 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category"
+                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query6, self.whouse_details, logger)
+
+                    tmp_tnf_email_launch_clean_csv_query_stage4 = """ create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage4
+                            AS 
+                            SELECT *,
+                                            CASE WHEN CHARINDEX('OUTDOOR',campaign_name) > 0 OR 
+                                                CHARINDEX('OUTDOOR',subject) > 0  OR 
+                                                CHARINDEX('OUTERWEAR',campaign_name) > 0 OR  
+                                                CHARINDEX('EXPLORATION',subject) > 0 OR  
+                                                CHARINDEX('GO OUTSIDE',subject) > 0 OR  
+                                                CHARINDEX('GET OUTSIDE',subject) > 0 OR 
+                                                CHARINDEX('OUTERWEAR',subject) > 0 OR 
+                                                CHARINDEX('SEEFORYOURSELF',subject) > 0 OR 
+                                                CHARINDEX('SEEFORYOURSELF',campaign_name) > 0 
+                                            THEN  'OUTDOOR'
+                                        WHEN CHARINDEX('ADVENTUR',campaign_name) > 0 OR 
+                                                CHARINDEX('ADVENTUR',subject) > 0 OR 
+                                                CHARINDEX('SUPERHERO',subject) > 0 OR 
+                                                CHARINDEX('SPEAKER',subject) > 0 OR 
+                                                CHARINDEX('CROWN',subject) > 0 OR 
+                                                CHARINDEX('CROWN',campaign_name) > 0 OR 
+                                                CHARINDEX('ULTIMATE EXPLORATION',subject)  > 0 OR 
+                                                CHARINDEX('FILM',campaign_name)> 0 OR 
+                                                CHARINDEX('VALLEY',campaign_name)> 0 OR 
+                                                CHARINDEX('FACE SPEAK',subject) > 0 OR 
+                                                CHARINDEX('FILM',subject) > 0 OR 
+                                                CHARINDEX('PROGRES',subject) > 0 OR 
+                                                CHARINDEX('-FLIP-',campaign_name) > 0  OR 
+                                                CHARINDEX('MADNESS',subject) > 0 OR 
+                                                CHARINDEX('EXPLORE-FUND',CAMPAIGN_NAME) > 0 OR 
+                                                CHARINDEX('EXPLORE-FUND',subject) > 0 	OR 
+                                                CHARINDEX('EXPLORE FUND',subject) > 0 	OR 
+                                                TRIM(email_activity) in ('TRAVEL', 'RUN', 'HIK', 
+                                                'TRAIN', 'SURF', 'MTNCLM', 'BCPK_CAMP', 'SKI','SNWB')	OR 
+                                                CHARINDEX('TUNE IN LIVE',subject) > 0 OR 
+                                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0	OR 
+                                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
+                                                CHARINDEX('_SS_',campaign_name) > 0 OR 
+                                                CHARINDEX('SS_LIVE',subject) > 0 OR 
+                                                CHARINDEX('SS_LIVE',campaign_name) > 0 
+                                            THEN  'PE'
+                                        WHEN (CHARINDEX('MA',campaign_name) > 0 
+                                                AND CHARINDEX('MAIL',campaign_name) <= 0 )	OR 
+                                                CHARINDEX('MTATHLETICS',campaign_name) > 0 OR 
+                                                CHARINDEX('MOUNTAIN ATHLETICS',subject) > 0 
+                                            THEN  'MA'
+                                        WHEN CHARINDEX('RECYCLE',subject) > 0 OR 
+                                                CHARINDEX('BACKYARD',campaign_name) > 0 OR 
+                                                CHARINDEX('EARTH_DAY',campaign_name) > 0 OR 
+                                                CHARINDEX('EARTH DAY',subject) > 0
+                                            THEN 'NL'
+                                        WHEN CHARINDEX('YOUTH',campaign_name) > 0 OR 
+                                                CHARINDEX('KID',campaign_name) > 0 OR 
+                                                CHARINDEX('KID',subject) > 0 OR 
+                                                CHARINDEX('INFANT',campaign_name) > 0 OR 
+                                                CHARINDEX('TODDLER',campaign_name) > 0 
+                                            THEN  'FAMILY'
+                                        WHEN CHARINDEX('REWARD',campaign_name) > 0 OR 
+                                                CHARINDEX('SOCHI_PROMO',campaign_name) > 0 OR 
+                                                CHARINDEX('VIPEAK',subject) > 0 OR 
+                                                CHARINDEX('FREE T',subject) > 0 OR 
+                                                CHARINDEX('GET A FREE',subject) > 0 OR 
+                                                CHARINDEX('VIPEAK',campaign_name) > 0 OR 
+                                                CHARINDEX('BONUS',campaign_name) > 0 OR 
+                                                CHARINDEX('VIPEAK_REMINDER',campaign_name) > 0 OR 
+                                                CHARINDEX('EARN MORE POINTS',subject) > 0 OR 
+                                                CHARINDEX('CLAIM YOUR REWARD',subject) > 0 OR 
+                                                CHARINDEX('YOUR VIP',subject) > 0 OR 
+                                                CHARINDEX('VIP TICKET',subject) > 0 
+                                            THEN  'VIPRWRD'
+                                        WHEN CHARINDEX('WELCOME EMAIL',campaign_name) > 0 OR 
+                                                CHARINDEX('WELCOME_SIGNUP',campaign_name) > 0 OR 
+                                                CHARINDEX('WELCOMEEMAIL',campaign_name) > 0 OR 
+                                                CHARINDEX('WELCOME_SERIES',campaign_name) > 0 OR 
+                                                CHARINDEX('WELCOME TO',subject) > 0 OR 
+                                                CHARINDEX('THANKS FOR JOINING',subject) > 0 OR  
+                                                CHARINDEX('BEGINNER',subject) > 0 
+                                            THEN  'NEW_CUST'
+                                        WHEN CHARINDEX('LOYALTY WELCOME',campaign_name) > 0 OR 
+                                                CHARINDEX('LOYALTYWELCOME',campaign_name) > 0 OR 
+                                                CHARINDEX('PEAKPOINT',subject) > 0 
+                                            THEN  'NEW_VIPK'
+                                        WHEN CHARINDEX('ABANDON',campaign_name) > 0 
+                                            THEN  'ABNCART'
+                                        WHEN CHARINDEX('WISH LIST',campaign_name) > 0 OR 
+                                                CHARINDEX('WISHLIST',campaign_name) > 0 OR 
+                                                CHARINDEX('WISH_LIST',campaign_name) > 0 
+                                            THEN  'WISHLIST'
+                                        WHEN CHARINDEX('BACK IN STOCK',campaign_name) > 0 OR 
+                                                CHARINDEX('BACK_IN_STOCK',campaign_name) > 0 OR 
+                                                CHARINDEX('BACKINSTOCK',campaign_name) > 0 OR 
+                                                CHARINDEX('NEW_ARRIVAL',campaign_name) > 0 OR 
+                                                CHARINDEX('NEW ARRIVAL',subject) > 0 OR 
+                                                CHARINDEX('NEW_ARRIVAL',subject) > 0 OR 
+                                                CHARINDEX('CATALOG',subject) > 0 OR 
+                                                CHARINDEX('BOUNCE_BACK',subject) > 0 OR 
+                                                CHARINDEX('BOUNCE_BACK',campaign_name) > 0 OR  
+                                                CHARINDEX('INVITE',subject) > 0 OR  
+                                                CHARINDEX('CONVIE',subject) > 0 
+                                            THEN  'REP_CUST'
+                                        WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
+                                                CHARINDEX('SURVEY',subject) > 0 
+                                            THEN 'SURVEY'
+                                    ELSE null
                                     END AS email_persona
-                                FROM tmp_tnf_email_launch_clean_csv_2 """
-                    )
+                                FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3"""
+                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage4,
+                                                    self.whouse_details, logger)
 
-                    tmp_tnf_email_launch_clean_csv_df3.createOrReplaceTempView(
-                        "tmp_tnf_email_launch_clean_csv"
-                    )
-                    logger.info(
-                        "count of records in tmp_tnf_email_launch_clean_csv_df3 {}".format(
-                            tmp_tnf_email_launch_clean_csv_df3.count()
-                        )
-                    )
-                    tmp_tnf_email_launch_clean_csv_df3.show()
+                    drop_temp_table_query = "drop table if exists vfapdsmigration.x_tmp_tnf_email_launch_clean"
+                    utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
+                    create_x_tmp_tnf_email_launch_clean_table_query = (
+                        """             Create Table vfapdsmigration.x_tmp_tnf_email_launch_clean As
+                                    SELECT sub.* FROM  
+                                            ( SELECT *, 
+                                                ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage4 
+                                            ) sub 
+                                    WHERE row_num = 1""")
+                    utils.execute_query_in_redshift(create_x_tmp_tnf_email_launch_clean_table_query,
+                                                    self.whouse_details, logger)
+                    drop_column_rownum_query = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean drop column row_num"
+                    utils.execute_query_in_redshift(drop_column_rownum_query, self.whouse_details, logger)
 
-                    x_tmp_tnf_email_launch_clean_tmp_df = spark.sql(
-                        """ 
-                                SELECT sub.* FROM  
-                                        ( SELECT *, 
-                                            ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM tmp_tnf_email_launch_clean_csv 
-                                        ) sub 
-                                WHERE row_num = 1
-                            """
-                    ).drop("row_num")
-
-                    x_tmp_tnf_email_launch_clean_df = (
-                        x_tmp_tnf_email_launch_clean_tmp_df.withColumn(
-                            "event_captured_dt_con",
-                            F.concat(
-                                x_tmp_tnf_email_launch_clean_tmp_df[
-                                    "event_captured_dt"
-                                ].substr(0, 2),
-                                F.lit("-"),
-                                x_tmp_tnf_email_launch_clean_tmp_df[
-                                    "event_captured_dt"
-                                ].substr(3, 3),
-                                F.lit("-"),
-                                x_tmp_tnf_email_launch_clean_tmp_df[
-                                    "event_captured_dt"
-                                ].substr(6, 4),
-                            ),
-                        )
-                        .drop("row_num", "event_captured_dt")
-                        .withColumnRenamed("event_captured_dt_con", "event_captured_dt")
-                    )
-                    x_tmp_tnf_email_launch_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_launch_clean"
-                    )
-                    logger.info(
-                        "count of records in x_tmp_tnf_email_launch_clean_df {}".format(
-                            x_tmp_tnf_email_launch_clean_df.count()
-                        )
-                    )
-
-                    whouse_x_tmp_tnf_email_sent_clean_df = spark.sql(
-                        """
-                                    SELECT 
-                                        distinct
-                                        st.campaign_id,
-                                        st.launch_id,
-                                        st.list_id,
-                                        st.riid,
-                                        to_date(st.event_captured_dt , "dd-MMM-yyyy") as sent_date,
-                                        st.customer_id,
-                                        lh.email_gender     AS gen,
-                                        lh.email_activity   AS act,
-                                        lh.email_ssn        AS ssn,
-                                        lh.email_persona    AS prs,
-                                        lh.email_channel    AS chnl,
-                                        lh.product_category AS pcat
-                                    FROM whouse_tnf_email_sent_view st
-                                    INNER JOIN whouse_x_tmp_tnf_email_launch_clean lh
-                                    ON st.campaign_id = lh.campaign_id
-                                        AND st.launch_id = lh.launch_id
-                                        AND st.list_id = lh.list_id
-                                    WHERE 
-                                        LOWER(TRIM(st.email_ISP))  <> 'vfc.com' 
-                                        AND to_date(st.event_captured_dt , 'dd-MMM-yyyy') <= to_date('{}', 'ddMMMyyyy')
-                                """.format(
-                            _cutoff_date
-                        )
-                    )
-
-                    whouse_x_tmp_tnf_email_sent_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_sent_clean"
-                    )
-                    logger.info(
-                        "count of records in whouse_x_tmp_tnf_email_sent_clean_df {}".format(
-                            whouse_x_tmp_tnf_email_sent_clean_df.count()
-                        )
-                    )
-
-                    x_tmp_tnf_email_open_clean_df = spark.sql(
-                        """
-                                    SELECT distinct
-                                            op.campaign_id,
-                                            op.launch_id,
-                                            op.list_id,
-                                            op.riid,
-                                            MIN (to_date(op.event_captured_dt , 'dd-MMM-yyyy')) AS open_date,
-                                            MAX (to_date(op.event_captured_dt , 'dd-MMM-yyyy')) AS most_recent_o
-                                        FROM whouse_tnf_email_open_view op
-                                        INNER JOIN whouse_x_tmp_tnf_email_launch_clean lh
-                                                ON op.campaign_id = lh.campaign_id
-                                                AND op.launch_id  = lh.launch_id
-                                                AND op.list_id    = lh.list_id
+                    drop_temp_table_query1 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_sent_clean"
+                    utils.execute_query_in_redshift(drop_temp_table_query1, self.whouse_details, logger)
+                    create_x_tmp_tnf_email_sent_clean_table_query = (
+                        """             Create Table vfapdsmigration.x_tmp_tnf_email_sent_clean As
+                                        SELECT 
+                                            distinct
+                                            st.campaign_id,
+                                            st.launch_id,
+                                            st.list_id,
+                                            st.riid,
+                                            st.event_captured_dt::date as sent_date,
+                                            st.customer_id,
+                                            lh.email_gender     AS gen,
+                                            lh.email_activity   AS act,
+                                            lh.email_ssn        AS ssn,
+                                            lh.email_persona    AS prs,
+                                            lh.email_channel    AS chnl,
+                                            lh.product_category AS pcat
+                                        FROM vfapdsmigration.tnf_email_sent_view st
+                                        INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                        ON st.campaign_id = lh.campaign_id
+                                            AND st.launch_id = lh.launch_id
+                                            AND st.list_id = lh.list_id
                                         WHERE 
-                                                op.event_captured_dt IS NOT NULL
-                                                AND to_date(op.event_captured_dt , 'dd-MMM-yyyy') <= to_date('{}', 'ddMMMyyyy')
-                                        GROUP BY 
-                                                op.campaign_id,
-                                                op.launch_id,
-                                                op.list_id,
-                                                op.riid
-                                        """.format(
-                            _cutoff_date
-                        )
-                    )
-                    x_tmp_tnf_email_open_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_open_clean"
-                    )
-                    logger.info(
-                        "count of records in x_tmp_tnf_email_open_clean_df {}".format(
-                            x_tmp_tnf_email_open_clean_df.count()
-                        )
-                    )
-
-                    x_tmp_tnf_email_click_clean_df = spark.sql(
-                        """
-                                    SELECT 
-                                        distinct
-                                            cl.campaign_id,
-                                            cl.launch_id,
-                                            cl.list_id,
-                                            cl.riid,
-                                            MIN (to_date(cl.event_captured_dt , 'dd-MMM-yyyy')) AS click_date
-                                        FROM whouse_tnf_email_click_view cl
-                                            INNER JOIN whouse_x_tmp_tnf_email_launch_clean lh
-                                                ON cl.campaign_id = lh.campaign_id
-                                                AND cl.launch_id  = lh.launch_id
-                                                AND cl.list_id = lh.list_id
-                                        WHERE 
-                                                LOWER(trim(cl.offer_name)) <> 'unsubscribe_footer'
-                                                AND to_date(cl.event_captured_dt , 'dd-MMM-yyyy') <= to_date('{}', 'ddMMMyyyy')
-                                        GROUP BY cl.campaign_id,
-                                                cl.launch_id,
-                                                cl.list_id,
-                                                cl.riid
+                                            LOWER(TRIM(st.email_ISP))  <> 'vfc.com' 
+                                            AND st.event_captured_dt::date <= '{}'
                                     """.format(
                             _cutoff_date
                         )
                     )
-                    x_tmp_tnf_email_click_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_click_clean"
-                    )
-                    logger.info(
-                        "count of records in x_tmp_tnf_email_click_clean_df {}".format(
-                            x_tmp_tnf_email_click_clean_df.count()
+                    logger.info("generic query to create stage table: {}".format(
+                        create_x_tmp_tnf_email_sent_clean_table_query))
+                    query_status_create = utils.execute_query_in_redshift(
+                        create_x_tmp_tnf_email_sent_clean_table_query, self.whouse_details, logger)
+
+                    drop_temp_table_query2 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_open_clean"
+                    utils.execute_query_in_redshift(drop_temp_table_query2, self.whouse_details, logger)
+                    create_x_tmp_tnf_email_open_clean_table_query = (
+                        """            Create Table vfapdsmigration.x_tmp_tnf_email_open_clean As
+                                       SELECT distinct
+                                                op.campaign_id,
+                                                op.launch_id,
+                                                op.list_id,
+                                                op.riid,
+                                                MIN (op.event_captured_dt::date) AS open_date,
+                                                MAX (op.event_captured_dt::date) AS most_recent_o
+                                            FROM vfapdsmigration.tnf_email_open_view op
+                                            INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                                    ON op.campaign_id = lh.campaign_id
+                                                    AND op.launch_id  = lh.launch_id
+                                                    AND op.list_id    = lh.list_id
+                                            WHERE 
+                                                    op.event_captured_dt IS NOT NULL
+                                                    AND op.event_captured_dt::date <= '{}'
+                                            GROUP BY 
+                                                    op.campaign_id,
+                                                    op.launch_id,
+                                                    op.list_id,
+                                                    op.riid
+                                            """.format(
+                            _cutoff_date
+                        ))
+                    logger.info("generic query to create stage table: {}".format(
+                        create_x_tmp_tnf_email_open_clean_table_query))
+                    query_status_create1 = utils.execute_query_in_redshift(
+                        create_x_tmp_tnf_email_open_clean_table_query, self.whouse_details, logger)
+
+                    drop_temp_table_query3 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_click_clean"
+                    utils.execute_query_in_redshift(drop_temp_table_query3, self.whouse_details, logger)
+                    create_x_tmp_tnf_email_click_clean_table_query = (
+                        """            Create Table vfapdsmigration.x_tmp_tnf_email_click_clean As
+                                        SELECT 
+                                            distinct
+                                                cl.campaign_id,
+                                                cl.launch_id,
+                                                cl.list_id,
+                                                cl.riid,
+                                                MIN (cl.event_captured_dt::date) AS click_date
+                                            FROM vfapdsmigration.tnf_email_click_view cl
+                                                INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                                    ON cl.campaign_id = lh.campaign_id
+                                                    AND cl.launch_id  = lh.launch_id
+                                                    AND cl.list_id = lh.list_id
+                                            WHERE 
+                                                    LOWER(trim(cl.offer_name)) <> 'unsubscribe_footer'
+                                                    AND cl.event_captured_dt::date <= '{}'
+                                            GROUP BY cl.campaign_id,
+                                                    cl.launch_id,
+                                                    cl.list_id,
+                                                    cl.riid
+                                        """.format(
+                            _cutoff_date
                         )
                     )
-                    x_tmp_tnf_email_click_clean_df.show()
+                    logger.info("generic query to create stage table: {}".format(
+                        create_x_tmp_tnf_email_click_clean_table_query))
+                    query_status_create2 = utils.execute_query_in_redshift(
+                        create_x_tmp_tnf_email_click_clean_table_query, self.whouse_details, logger)
 
-                    whouse_x_tmp_tnf_email_inputs_df = spark.sql(
-                        """ 
-                                    SELECT 	t3.CUSTOMER_ID,
-                                        t3.ACT,						
-                                        t3.CHNL,					
-                                        t3.GEN,		
-                                        t3.PCAT,
-                                        t3.PRS,						
-                                        t3.SENT_DATE,
-                                        t3.SSN,
-                                        t3.open_date,
-                                        t3.days_to_open ,
-                                        t3.most_recent_o,
-                                        t3.open_ind,
-                                        CAST(t4.click_date as date) as click_date,
-                                        datediff(CAST(t4.click_date as date),CAST(t3.open_date as date)) AS days_to_click ,
-                                        CASE
-                                            WHEN t4.click_date IS NOT NULL THEN 1
-                                        ELSE 0
-                                        END AS click_ind
-                                    FROM
-                                        (SELECT t1.ACT,
-                                            t1.CAMPAIGN_ID,
-                                            t1.CHNL,
-                                            t1.CUSTOMER_ID,											
-                                            t1.GEN,
-                                            t1.LAUNCH_ID,
-                                            t1.LIST_ID,
-                                            t1.PCAT,
-                                            t1.PRS,
-                                            t1.RIID,
-                                            CAST(t1.SENT_DATE as date) as SENT_DATE,
-                                            t1.SSN,
-                                            CAST(t2.open_date as date) as open_date,
-                                            datediff(cast(t2.open_date as date),cast(t1.sent_date as date)) AS days_to_open ,
-                                            CAST(t2.most_recent_o as date) as most_recent_o,
+                    drop_temp_table_query4 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_inputs"
+                    utils.execute_query_in_redshift(drop_temp_table_query4, self.whouse_details, logger)
+                    create_x_tmp_tnf_email_inputs_table_query = (
+                        """            Create Table vfapdsmigration.x_tmp_tnf_email_inputs As
+                                        SELECT 	t3.CUSTOMER_ID,
+                                            t3.ACT,
+                                            t3.CHNL,
+                                            t3.GEN,
+                                            t3.PCAT,
+                                            t3.PRS,
+                                            t3.SENT_DATE,
+                                            t3.SSN,
+                                            t3.open_date,
+                                            t3.days_to_open ,
+                                            t3.most_recent_o,
+                                            t3.open_ind,
+                                            t4.click_date::date as click_date,
+                                            t4.click_date::date - t3.open_date::date AS days_to_click ,
                                             CASE
-                                                WHEN t2.open_date IS NOT NULL THEN 1
+                                                WHEN t4.click_date IS NOT NULL THEN 1
                                             ELSE 0
-                                            END AS open_ind
-                                        FROM whouse_x_tmp_tnf_email_sent_clean t1
-                                        LEFT JOIN whouse_x_tmp_tnf_email_open_clean t2
-                                                ON t1.campaign_id = t2.campaign_id
-                                                AND t1.list_id = t2.list_id
-                                                AND t1.launch_id = t2.launch_id
-                                                AND t1.riid = t2.riid 
-                                        ) t3
-                                    LEFT JOIN whouse_x_tmp_tnf_email_click_clean t4
-                                    ON t4.campaign_id = t3.campaign_id
-                                        AND t4.list_id = t3.list_id
-                                        AND t4.launch_id = t3.launch_id
-                                        AND t4.riid = t3.riid 
-                                    """
-                    )
-                    whouse_x_tmp_tnf_email_inputs_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_inputs"
+                                            END AS click_ind
+                                        FROM
+                                            (SELECT t1.ACT,
+                                                t1.CAMPAIGN_ID,
+                                                t1.CHNL,
+                                                t1.CUSTOMER_ID,
+                                                t1.GEN,
+                                                t1.LAUNCH_ID,
+                                                t1.LIST_ID,
+                                                t1.PCAT,
+                                                t1.PRS,
+                                                t1.RIID,
+                                                t1.SENT_DATE::date as SENT_DATE,
+                                                t1.SSN,
+                                                t2.open_date::date as open_date,
+                                                t2.open_date::date - t1.sent_date::date AS days_to_open ,
+                                                t2.most_recent_o::date as most_recent_o,
+                                                CASE
+                                                    WHEN t2.open_date IS NOT NULL THEN 1
+                                                ELSE 0
+                                                END AS open_ind
+                                            FROM vfapdsmigration.x_tmp_tnf_email_sent_clean t1
+                                            LEFT JOIN vfapdsmigration.x_tmp_tnf_email_open_clean t2
+                                                    ON t1.campaign_id = t2.campaign_id
+                                                    AND t1.list_id = t2.list_id
+                                                    AND t1.launch_id = t2.launch_id
+                                                    AND t1.riid = t2.riid 
+                                            ) t3
+                                        LEFT JOIN vfapdsmigration.x_tmp_tnf_email_click_clean t4
+                                        ON t4.campaign_id = t3.campaign_id
+                                            AND t4.list_id = t3.list_id
+                                            AND t4.launch_id = t3.launch_id
+                                            AND t4.riid = t3.riid 
+                                        """
                     )
                     logger.info(
-                        "count number of records in whouse_x_tmp_tnf_email_inputs_df {}".format(
-                            whouse_x_tmp_tnf_email_inputs_df.count()
-                        )
-                    )
+                        "generic query to create stage table: {}".format(create_x_tmp_tnf_email_inputs_table_query))
+                    query_status_create3 = utils.execute_query_in_redshift(
+                        create_x_tmp_tnf_email_inputs_table_query, self.whouse_details, logger)
 
-                    # cat_list = ["ssn","act"]
                     cat_list = ["ssn", "gen", "act", "prs", "chnl", "pcat"]
+                    var_list = ["md2o", "md2c", "dsince_o", "freq_s", "freq_o", "freq_c", "pct_o", "pct_c"]
+                    logger.info("entering outer loop")
                     # loops through all category and var lists to create median days to open, median days to click, #sent, #open, #click, %open and %click
                     for i in cat_list:
-                        df_list = spark.sql(
-                            """
-                                    select tmp.*,
-                                    datediff(to_date('{}', 'ddMMMyyyy'), dsince_o_tmp) as dsince_o,
-                                        ROUND((freq_o * 100 / freq_s),1) as pct_o,
-                                        ROUND((freq_c * 100 / freq_o),1) as pct_c
-                                    FROM 
-                                        (SELECT  customer_id, %s, 
-                                            percentile_approx(days_to_open,0.5) as md2o,
-                                            percentile_approx(days_to_click,0.5) as md2c,
-                                            max(most_recent_o)as dsince_o_tmp,
-                                            count(*) as freq_s,
-                                            sum(open_ind) as freq_o,
-                                            sum(click_ind) as freq_c					
-                                        FROM whouse_x_tmp_tnf_email_inputs
-                                        WHERE %s is not null
-                                        GROUP BY customer_id, %s ) tmp """.format(
-                                _cutoff_date
-                            )
-                            % (i, i, i)
-                        )
-                        table_nm = "temp_tnf_" + i + "_metrics"
-                        df_list.createOrReplaceTempView(table_nm)
+                        logger.info("the value of i is :{}".format(i))
+                        create_x_tmp_tnf_metrics = (
+                            """Create Table vfapdsmigration.temp_tnf_{0}_metrics As
+                                select tmp.*,
+                                  '{1}'::date - dsince_o_tmp as dsince_o,
+                                   ROUND((freq_o * 100 / freq_s),1) as pct_o,
+                                   1 as pct_c
+                               FROM 
+                                   (select a.*, b.md2c from
 
-                        logger.info("count is {}".format(df_list.count()))
+                                     (SELECT  customer_id, {0},MEDIAN(days_to_open)  as md2o,
+                                       max(most_recent_o)as dsince_o_tmp,
+                                       count(*) as freq_s,
+                                       sum(open_ind) as freq_o,
+                                       sum(click_ind) as freq_c
+                                   FROM vfapdsmigration.x_tmp_tnf_email_inputs
+                                   WHERE {0} is not null
+                                   GROUP BY customer_id, {0} ) a
 
-                        var_list = [
-                            "md2o",
-                            "md2c",
-                            "dsince_o",
-                            "freq_s",
-                            "freq_o",
-                            "freq_c",
-                            "pct_o",
-                            "pct_c",
-                        ]
+                                   left join 
+                                   (SELECT  customer_id, {0},                                                                            
+
+                                      MEDIAN(days_to_click)  as md2c
+
+                                   FROM vfapdsmigration.x_tmp_tnf_email_inputs
+                                   WHERE {0} is not null
+                                   GROUP BY customer_id, {0} 
+
+                                   ) b
+                                   on a.customer_id = b.customer_id and a.{0} = b.{0}
+                                   ) tmp""".format(i, _cutoff_date))
+
+                        utils.execute_query_in_redshift(create_x_tmp_tnf_metrics, self.whouse_details, logger)
+                        #                                    select tmp.*,
+                        #                                    datediff('{}', dsince_o_tmp) as dsince_o,
+                        #                                        ROUND((freq_o * 100 / freq_s),1) as pct_o,
+                        #                                        ROUND((freq_c * 100 / freq_o),1) as pct_c
+                        #                                    FROM
+                        #                                        (SELECT  customer_id, %s,
+                        #                                            percentile_approx(days_to_open,0.5) as md2o,
+                        #                                            percentile_approx(days_to_click,0.5) as md2c,
+                        #                                            max(most_recent_o)as dsince_o_tmp,
+                        #                                            count(*) as freq_s,
+                        #                                            sum(open_ind) as freq_o,
+                        #                                            sum(click_ind) as freq_c
+                        #                                        FROM whouse_x_tmp_tnf_email_inputs
+                        #                                        WHERE %s is not null
+                        #                                        GROUP BY customer_id, %s ) tmp """.format(
+                        #                                _cutoff_date
+                        #                            )
+                        #                            % (i, i, i)
+                        #                        )
+                        #                        table_nm = "temp_tnf_" + i + "_metrics"
+                        #                        df_list.createOrReplaceTempView(table_nm)
+
                         for j in var_list:
-                            pivotDF = df_list.groupBy(["customer_id"]).pivot(i).max(j)
-                            df_pivot = pivotDF.select(
-                                [
-                                    F.col(c).alias(i + "_" + j + "_" + c)
-                                    for c in pivotDF.columns
-                                ]
-                            ).withColumnRenamed(
-                                i + "_" + j + "_" + "customer_id", "customer_id"
-                            )
-                            tbl_nm = "temp_" + i + "_csv_" + j
-                            df_pivot.createOrReplaceTempView(tbl_nm)
-                            df_pivot.show()
-                            logger.info(tbl_nm)
-                        df_list.show()
+                            transpose_query = "call create_transpose_tables('','','{}','{}')".format(i, j)
+                            utils.execute_query_in_redshift(transpose_query, self.whouse_details, logger)
+                        drop_metrics_table_query = "drop table if exists vfapdsmigration.temp_tnf_{}_metrics".format(
+                            i)
+                        utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
                     logger.info("entering inner join")
-                    tmp_csv_tnf_email_inputs_df = (
-                        spark.sql(
-                            """select temp_ssn_csv_md2o.customer_id as customer_id_temp,* from temp_ssn_csv_md2o 
-                    inner join temp_ssn_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_md2c.customer_id
-                    inner join temp_ssn_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_dsince_o.customer_id
-                    inner join temp_ssn_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_freq_s.customer_id
-                    inner join temp_ssn_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_freq_o.customer_id
-                    inner join temp_ssn_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_freq_c.customer_id
-                    inner join temp_ssn_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_pct_o.customer_id
-                    inner join temp_ssn_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_ssn_csv_pct_c.customer_id
-                    inner join temp_gen_csv_md2o ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_md2o.customer_id
-                    inner join temp_gen_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_md2c.customer_id
-                    inner join temp_gen_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_dsince_o.customer_id
-                    inner join temp_gen_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_freq_s.customer_id
-                    inner join temp_gen_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_freq_o.customer_id
-                    inner join temp_gen_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_freq_c.customer_id
-                    inner join temp_gen_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_pct_o.customer_id
-                    inner join temp_gen_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_gen_csv_pct_c.customer_id
-                    inner join temp_act_csv_md2o ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_md2o.customer_id
-                    inner join temp_act_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_md2c.customer_id
-                    inner join temp_act_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_dsince_o.customer_id
-                    inner join temp_act_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_freq_s.customer_id
-                    inner join temp_act_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_freq_o.customer_id
-                    inner join temp_act_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_freq_c.customer_id
-                    inner join temp_act_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_pct_o.customer_id
-                    inner join temp_act_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_act_csv_pct_c.customer_id
-                    inner join temp_prs_csv_md2o ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_md2o.customer_id
-                    inner join temp_prs_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_md2c.customer_id
-                    inner join temp_prs_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_dsince_o.customer_id
-                    inner join temp_prs_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_freq_s.customer_id
-                    inner join temp_prs_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_freq_o.customer_id
-                    inner join temp_prs_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_freq_c.customer_id
-                    inner join temp_prs_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_pct_o.customer_id
-                    inner join temp_prs_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_prs_csv_pct_c.customer_id
-                    inner join temp_chnl_csv_md2o ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_md2o.customer_id
-                    inner join temp_chnl_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_md2c.customer_id
-                    inner join temp_chnl_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_dsince_o.customer_id
-                    inner join temp_chnl_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_freq_s.customer_id
-                    inner join temp_chnl_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_freq_o.customer_id
-                    inner join temp_chnl_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_freq_c.customer_id
-                    inner join temp_chnl_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_pct_o.customer_id
-                    inner join temp_chnl_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_chnl_csv_pct_c.customer_id
-                    inner join temp_pcat_csv_md2o ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_md2o.customer_id
-                    inner join temp_pcat_csv_md2c ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_md2c.customer_id
-                    inner join temp_pcat_csv_dsince_o ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_dsince_o.customer_id
-                    inner join temp_pcat_csv_freq_s ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_freq_s.customer_id
-                    inner join temp_pcat_csv_freq_o ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_freq_o.customer_id
-                    inner join temp_pcat_csv_freq_c ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_freq_c.customer_id
-                    inner join temp_pcat_csv_pct_o ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_pct_o.customer_id
-                    inner join temp_pcat_csv_pct_c ON  temp_ssn_csv_md2o.customer_id=temp_pcat_csv_pct_c.customer_id"""
-                        )
-                        .drop("customer_id")
-                        .withColumnRenamed("customer_id_temp", "customer_id")
-                    )
+                    drop_temp_table_query = "drop table if exists vfapdsmigration.csv_tnf_email_inputs"
+                    utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
+                    create_stage_table_query1 = """create table vfapdsmigration.csv_tnf_email_inputs as
+                            select 
+                            * 
+                            from 
+                            (
+                            select distinct  customer_id_ssn_md2o as customer_id from vfapdsmigration.ssn_csv_md2o 
+                            union 
+                            select distinct  customer_id_ssn_md2c as customer_id from vfapdsmigration.ssn_csv_md2c
+                            union 
+                            select distinct  customer_id_ssn_dsince_o as customer_id from vfapdsmigration.ssn_csv_dsince_o
+                            union 
+                            select distinct  customer_id_ssn_freq_s as customer_id from vfapdsmigration.ssn_csv_freq_s
+                            union 
+                            select distinct  customer_id_ssn_freq_o as customer_id from vfapdsmigration.ssn_csv_freq_o
+                            union 
+                            select distinct  customer_id_ssn_freq_c as customer_id from vfapdsmigration.ssn_csv_freq_c
+                            union 
+                            select distinct  customer_id_ssn_pct_o as customer_id from vfapdsmigration.ssn_csv_pct_o
+                            union 
+                            select distinct  customer_id_ssn_pct_c as customer_id from vfapdsmigration.ssn_csv_pct_c
+                            union 
+                            select distinct  customer_id_gen_md2o as customer_id from vfapdsmigration.gen_csv_md2o
+                            union 
+                            select distinct  customer_id_gen_md2c as customer_id from vfapdsmigration.gen_csv_md2c
+                            union 
+                            select distinct  customer_id_gen_dsince_o as customer_id from vfapdsmigration.gen_csv_dsince_o
+                            union 
+                            select distinct  customer_id_gen_freq_s as customer_id from vfapdsmigration.gen_csv_freq_s
+                            union 
+                            select distinct  customer_id_gen_freq_o as customer_id from vfapdsmigration.gen_csv_freq_o
+                            union 
+                            select distinct  customer_id_gen_freq_c as customer_id from vfapdsmigration.gen_csv_freq_c
+                            union 
+                            select distinct  customer_id_gen_pct_o as customer_id from vfapdsmigration.gen_csv_pct_o
+                            union 
+                            select distinct  customer_id_gen_pct_c as customer_id from vfapdsmigration.gen_csv_pct_c
+                            union
+                            select distinct  customer_id_act_md2o as customer_id from vfapdsmigration.act_csv_md2o 
+                            union 
+                            select distinct  customer_id_act_md2c as customer_id from vfapdsmigration.act_csv_md2c
+                            union 
+                            select distinct  customer_id_act_dsince_o as customer_id from vfapdsmigration.act_csv_dsince_o
+                            union 
+                            select distinct  customer_id_act_freq_s as customer_id from vfapdsmigration.act_csv_freq_s
+                            union 
+                            select distinct  customer_id_act_freq_o as customer_id from vfapdsmigration.act_csv_freq_o
+                            union 
+                            select distinct  customer_id_act_freq_c as customer_id from vfapdsmigration.act_csv_freq_c
+                            union 
+                            select distinct  customer_id_act_pct_o as customer_id from vfapdsmigration.act_csv_pct_o
+                            union 
+                            select distinct  customer_id_act_pct_c as customer_id from vfapdsmigration.act_csv_pct_c
+                            union
+                            select distinct  customer_id_prs_md2o as customer_id from vfapdsmigration.prs_csv_md2o 
+                            union 
+                            select distinct  customer_id_prs_md2c as customer_id from vfapdsmigration.prs_csv_md2c
+                            union 
+                            select distinct  customer_id_prs_dsince_o as customer_id from vfapdsmigration.prs_csv_dsince_o
+                            union 
+                            select distinct  customer_id_prs_freq_s as customer_id from vfapdsmigration.prs_csv_freq_s
+                            union 
+                            select distinct  customer_id_prs_freq_o as customer_id from vfapdsmigration.prs_csv_freq_o
+                            union 
+                            select distinct  customer_id_prs_freq_c as customer_id from vfapdsmigration.prs_csv_freq_c
+                            union 
+                            select distinct  customer_id_prs_pct_o as customer_id from vfapdsmigration.prs_csv_pct_o
+                            union 
+                            select distinct  customer_id_prs_pct_c as customer_id from vfapdsmigration.prs_csv_pct_c
+                            union
+                            select distinct  customer_id_chnl_md2o as customer_id from vfapdsmigration.chnl_csv_md2o 
+                            union 
+                            select distinct  customer_id_chnl_md2c as customer_id from vfapdsmigration.chnl_csv_md2c
+                            union 
+                            select distinct  customer_id_chnl_dsince_o as customer_id from vfapdsmigration.chnl_csv_dsince_o
+                            union 
+                            select distinct  customer_id_chnl_freq_s as customer_id from vfapdsmigration.chnl_csv_freq_s
+                            union 
+                            select distinct  customer_id_chnl_freq_o as customer_id from vfapdsmigration.chnl_csv_freq_o
+                            union 
+                            select distinct  customer_id_chnl_freq_c as customer_id from vfapdsmigration.chnl_csv_freq_c
+                            union 
+                            select distinct  customer_id_chnl_pct_o as customer_id from vfapdsmigration.chnl_csv_pct_o
+                            union 
+                            select distinct  customer_id_chnl_pct_c as customer_id from vfapdsmigration.chnl_csv_pct_c
+                            union
+                            select distinct  customer_id_pcat_md2o as customer_id from vfapdsmigration.pcat_csv_md2o 
+                            union 
+                            select distinct  customer_id_pcat_md2c as customer_id from vfapdsmigration.pcat_csv_md2c
+                            union 
+                            select distinct  customer_id_pcat_dsince_o as customer_id from vfapdsmigration.pcat_csv_dsince_o
+                            union 
+                            select distinct  customer_id_pcat_freq_s as customer_id from vfapdsmigration.pcat_csv_freq_s
+                            union 
+                            select distinct  customer_id_pcat_freq_o as customer_id from vfapdsmigration.pcat_csv_freq_o
+                            union 
+                            select distinct  customer_id_pcat_freq_c as customer_id from vfapdsmigration.pcat_csv_freq_c
+                            union 
+                            select distinct  customer_id_pcat_pct_o as customer_id from vfapdsmigration.pcat_csv_pct_o
+                            union 
+                            select distinct  customer_id_pcat_pct_c as customer_id from vfapdsmigration.pcat_csv_pct_c
+                            )a
+                            left OUTER join vfapdsmigration.ssn_csv_md2o s1
+                            on a.customer_id =  s1.customer_id_ssn_md2o
+                            left OUTER join vfapdsmigration.ssn_csv_md2c s2
+                            on a.customer_id = s2.customer_id_ssn_md2c
+                            left OUTER join vfapdsmigration.ssn_csv_dsince_o s3
+                            on a.customer_id = s3.customer_id_ssn_dsince_o
+                            left OUTER join vfapdsmigration.ssn_csv_freq_s s4
+                            on a.customer_id =  s4.customer_id_ssn_freq_s
+                            left OUTER join vfapdsmigration.ssn_csv_freq_o s5
+                            on a.customer_id = s5.customer_id_ssn_freq_o
+                            left OUTER join vfapdsmigration.ssn_csv_freq_c s6
+                            on a.customer_id = s6.customer_id_ssn_freq_c
+                            left OUTER join vfapdsmigration.ssn_csv_pct_o s7
+                            on a.customer_id =  s7.customer_id_ssn_pct_o
+                            left OUTER join vfapdsmigration.ssn_csv_pct_c s8
+                            on a.customer_id = s8.customer_id_ssn_pct_c
+                            left OUTER join vfapdsmigration.gen_csv_md2o g1
+                            on a.customer_id = g1.customer_id_gen_md2o
+                            left OUTER join vfapdsmigration.gen_csv_md2c g2
+                            on a.customer_id =  g2.customer_id_gen_md2c
+                            left OUTER join vfapdsmigration.gen_csv_dsince_o g3
+                            on a.customer_id = g3.customer_id_gen_dsince_o
+                            left OUTER join vfapdsmigration.gen_csv_freq_s g4
+                            on a.customer_id = g4.customer_id_gen_freq_s
+                            left OUTER join vfapdsmigration.gen_csv_freq_o g5
+                            on a.customer_id =  g5.customer_id_gen_freq_o
+                            left OUTER join vfapdsmigration.gen_csv_freq_c g6
+                            on a.customer_id = g6.customer_id_gen_freq_c
+                            left OUTER join vfapdsmigration.gen_csv_pct_o g7
+                            on a.customer_id = g7.customer_id_gen_pct_o
+                            left OUTER join vfapdsmigration.gen_csv_pct_c g8
+                            on a.customer_id =  g8.customer_id_gen_pct_c
+                            left OUTER join vfapdsmigration.act_csv_md2o a1
+                            on a.customer_id = a1.customer_id_act_md2o
+                            left OUTER join vfapdsmigration.act_csv_md2c a2
+                            on a.customer_id =  a2.customer_id_act_md2c
+                            left OUTER join vfapdsmigration.act_csv_dsince_o a3
+                            on a.customer_id = a3.customer_id_act_dsince_o
+                            left OUTER join vfapdsmigration.act_csv_freq_s a4
+                            on a.customer_id = a4.customer_id_act_freq_s
+                            left OUTER join vfapdsmigration.act_csv_freq_o a5
+                            on a.customer_id =  a5.customer_id_act_freq_o
+                            left OUTER join vfapdsmigration.act_csv_freq_c a6
+                            on a.customer_id = a6.customer_id_act_freq_c
+                            left OUTER join vfapdsmigration.act_csv_pct_o a7
+                            on a.customer_id = a7.customer_id_act_pct_o
+                            left OUTER join vfapdsmigration.act_csv_pct_c a8
+                            on a.customer_id =  a8.customer_id_act_pct_c
+                            left OUTER join vfapdsmigration.prs_csv_md2o b1
+                            on a.customer_id = b1.customer_id_prs_md2o
+                            left OUTER join vfapdsmigration.prs_csv_md2c b2
+                            on a.customer_id =  b2.customer_id_prs_md2c
+                            left OUTER join vfapdsmigration.prs_csv_dsince_o b3
+                            on a.customer_id = b3.customer_id_prs_dsince_o
+                            left OUTER join vfapdsmigration.prs_csv_freq_s b4
+                            on a.customer_id = b4.customer_id_prs_freq_s
+                            left OUTER join vfapdsmigration.prs_csv_freq_o b5
+                            on a.customer_id =  b5.customer_id_prs_freq_o
+                            left OUTER join vfapdsmigration.prs_csv_freq_c b6
+                            on a.customer_id = b6.customer_id_prs_freq_c
+                            left OUTER join vfapdsmigration.prs_csv_pct_o b7
+                            on a.customer_id = b7.customer_id_prs_pct_o
+                            left OUTER join vfapdsmigration.prs_csv_pct_c b8
+                            on a.customer_id =  b8.customer_id_prs_pct_c
+                            left OUTER join vfapdsmigration.chnl_csv_md2o c1
+                            on a.customer_id = c1.customer_id_chnl_md2o
+                            left OUTER join vfapdsmigration.chnl_csv_md2c c2
+                            on a.customer_id =  c2.customer_id_chnl_md2c
+                            left OUTER join vfapdsmigration.chnl_csv_dsince_o c3
+                            on a.customer_id = c3.customer_id_chnl_dsince_o
+                            left OUTER join vfapdsmigration.chnl_csv_freq_s c4
+                            on a.customer_id = c4.customer_id_chnl_freq_s
+                            left OUTER join vfapdsmigration.chnl_csv_freq_o c5
+                            on a.customer_id =  c5.customer_id_chnl_freq_o
+                            left OUTER join vfapdsmigration.chnl_csv_freq_c c6
+                            on a.customer_id = c6.customer_id_chnl_freq_c
+                            left OUTER join vfapdsmigration.chnl_csv_pct_o c7
+                            on a.customer_id = c7.customer_id_chnl_pct_o
+                            left OUTER join vfapdsmigration.chnl_csv_pct_c c8
+                            on a.customer_id =  c8.customer_id_chnl_pct_c
+                            left OUTER join vfapdsmigration.pcat_csv_md2o p1
+                            on a.customer_id = p1.customer_id_pcat_md2o
+                            left OUTER join vfapdsmigration.pcat_csv_md2c p2
+                            on a.customer_id =  p2.customer_id_pcat_md2c
+                            left OUTER join vfapdsmigration.pcat_csv_dsince_o p3
+                            on a.customer_id = p3.customer_id_pcat_dsince_o
+                            left OUTER join vfapdsmigration.pcat_csv_freq_s p4
+                            on a.customer_id = p4.customer_id_pcat_freq_s
+                            left OUTER join vfapdsmigration.pcat_csv_freq_o p5
+                            on a.customer_id =  p5.customer_id_pcat_freq_o
+                            left OUTER join vfapdsmigration.pcat_csv_freq_c p6
+                            on a.customer_id = p6.customer_id_pcat_freq_c
+                            left OUTER join vfapdsmigration.pcat_csv_pct_o p7
+                            on a.customer_id = p7.customer_id_pcat_pct_o
+                            left OUTER join vfapdsmigration.pcat_csv_pct_c p8
+                            on a.customer_id =  p8.customer_id_pcat_pct_c"""
+                    status = utils.execute_query_in_redshift(create_stage_table_query1, self.whouse_details, logger)
+                    for i in cat_list:
+                        for j in var_list:
+                            drop_join_tables_query = "drop table vfapdsmigration.{0}_csv_{1}".format(i, j)
+                            drop_table_extra_columns_query = """alter table vfapdsmigration.csv_tnf_email_inputs_stage 
+                            drop column customer_id_{0}_{1}""".format(i, j)
+                            utils.execute_query_in_redshift(drop_join_tables_query, self.whouse_details, logger)
+                            utils.execute_query_in_redshift(drop_table_extra_columns_query, self.whouse_details,
+                                                            logger)
+
                     logger.info("exiting join")
-                    tmp_csv_tnf_email_inputs_df.show()
-                    tmp_csv_tnf_email_inputs_df.createOrReplaceTempView(
-                        "tmp_csv_tnf_email_inputs"
-                    )
-                    tmp_csv_tnf_email_inputs_df.cache()
-                    #                    csv_tnf_email_inputs_df = (
-                    #                        spark.sql(
-                    #                            """SELECT *,
-                    #                                    CASE WHEN act_dsince_o_WATER is null AND act_dsince_o_SURF > 0
-                    #                                        THEN act_dsince_o_SURF
-                    #                                        ELSE act_dsince_o_WATER
-                    #                                    END AS act_dsince_o_WATER_tmp,
-                    #                                    CASE WHEN act_pct_o_WATER is null  AND act_pct_o_SURF > 0
-                    #                                        THEN act_pct_o_SURF
-                    #                                        ELSE act_pct_o_WATER
-                    #                                    END AS act_pct_o_WATER_tmp
-                    #                                FROM     tmp_csv_tnf_email_inputs """
-                    #                        )
-                    #                        .drop(act_dsince_o_WATER, act_pct_o_WATER)
-                    #                        .withColumnRenamed("act_dsince_o_WATER_tmp", "act_dsince_o_WATER")
-                    #                        .withColumnRenamed("act_pct_o_WATER_tmp", "act_pct_o_WATER")
-                    #                    )
-                    #                    csv_tnf_email_inputs_df.show()
-                    transformed_df = tmp_csv_tnf_email_inputs_df
-                    transformed_df_dict = {params["tgt_dstn_tbl_name"]: transformed_df}
+
                 except Exception as error:
-                    transformed_df = None
-                    transformed_df_dict = {}
                     logger.info(
                         "Error Occurred while processing run_csv_tnf_build_email_inputs due to : {}".format(
                             error
@@ -3176,7 +3182,7 @@ class Reporting_Job(Core_Job):
                             error
                         )
                     )
-                return transformed_df_dict
+                return status
 
             def process(load_mode):
                 """
@@ -3196,36 +3202,8 @@ class Reporting_Job(Core_Job):
                 logger.info("reporting csv build email inputs program started")
                 params = self.params
 
-                transformed_df_data_dict = run_csv_tnf_build_email_inputs()
-                #            if len(transformed_df_data_dict) == 0:
-                #                transformed_df_to_redshift_table_status = False
-                #            else:
-                status = True
-                for (target_table, transformed_df) in transformed_df_data_dict.items():
-                    if status:
-                        logger.info(
-                            "Inside datadict loop writing transformed_df to : {}".format(
-                                target_table
-                            )
-                        )
-                        status = self.write_df_to_redshift_table(
-                            df=transformed_df,
-                            redshift_table=target_table,
-                            load_mode=load_mode,
-                        )
-                        logger.info(
-                            "Response from writing to redshift is {}".format(status)
-                        )
-
-                    else:
-                        status = False
-                        logger.info("Failed to Load Transformed Data Dict To Redshift")
-
-                logger.info("Response from writing to redshift is {}".format(status))
-                if status == False:
-                    raise Exception("Unable to write the data to the table in Redshift")
+                run_csv_tnf_build_email_inputs()
                 return constant.success
-
         except Exception as error:
             raise Exception(
                 "Error occurred in reporting_csv_build_email_inputs: {}".format(error)

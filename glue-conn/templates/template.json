@@ -36,7 +36,7 @@
 		"CreateDevResources" : {"Fn::Equals" : [{"Ref" : "Environment"}, "dev"]}
 	},
     "Resources": {
-        "QADbConnection": {
+        "QAGlueConnection": {
             "Type": "AWS::Glue::Connection",
 			"Condition" : "CreateQAResources",
             "Properties": {
@@ -60,7 +60,7 @@
                 }
             }
         },
-		"QADbConnection": {
+		"ProdGlueConnection": {
             "Type": "AWS::Glue::Connection",
 			"Condition" : "CreateProdResources",
             "Properties": {
