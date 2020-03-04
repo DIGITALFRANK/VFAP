@@ -66,7 +66,7 @@
             "prod": {
                 "GlueSecurityGroupList": "sg-09cec04942d0ed1d8",
 				"GlueSubnetId": "subnet-0631970a1a0db93d9",
-				"JDBCConnURL": "jdbc:redshift://vf-uap-us-east-1-redshift.czqy5bqgnljf.us-east-1.redshift.amazonaws.com:5439/vfuap",
+				"JDBCConnURL": "jdbc:redshift://vf-uap-us-east-1-redshift.czqy5bqgnljf.us-east-1.redshift.amazonaws.com:5439/vfap",
 				"RedshiftUser": "admin",
 				"GlueRole": "arn:aws:iam::776735242840:role/vf-prod-glueServiceRole",
 				"KMSKeyID": "e7c052bd-8ac0-4480-afa3-291342ea0585",
