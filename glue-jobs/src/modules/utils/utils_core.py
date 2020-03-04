@@ -128,7 +128,9 @@ class utils:
             [dict] -- Returns a dictionary of parameters from dynamo DB
         """
         file_params = None
-        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())['config_table']
+        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())[
+            "config_table"
+        ]
         if filename.__contains__("xref") or filename.__contains__("map"):
             logger.debug("Get Weekly job configuration")
             file_parts = filename.split("_")
@@ -196,7 +198,7 @@ class utils:
                     partition_key_value=partition_key,
                     sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                     sort_key_value=None,  # sort_key,
-                    table=config.FILE_BROKER_TABLE,
+                    table=broker_table,
                     logger=logger,
                 )
                 # Adding file_date as attribute to ddb params using in tr_weather_historical
