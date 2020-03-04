@@ -162,27 +162,6 @@
                 ]
             }
         },
-		"GlueConnStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "Environment": { "Ref": "Environment" },
-				  "GlueSecurityGroupList": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSecurityGroupList" ] },
-				  "GlueSubnetId": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "GlueSubnetId" ] },
-				  "RedshiftUser": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "RedshiftUser" ] },
-				  "JDBCConnURL": { "Fn::FindInMap": [ "EnvironmentMap", { "Ref": "Environment" }, "JDBCConnURL" ] }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-conn/templates/template.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": "VFAP:DLMigration" }
-                ]
-            }
-        },
 		"RefineStack": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
