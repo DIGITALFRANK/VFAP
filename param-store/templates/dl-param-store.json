@@ -41,7 +41,7 @@
 	},
     "Resources": {
         "ParameterStore": {
-            "Type": "AWS::SSM::Parameter",,
+            "Type": "AWS::SSM::Parameter",
 			"Condition" : "CreateQAResources",
             "Properties": {
                 "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dl-config" ] ] },				
