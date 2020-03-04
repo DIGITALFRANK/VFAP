@@ -60,7 +60,7 @@
             }
         },
 		"ProdParameterStore": {
-            "Type": "AWS::SSM::Parameter",,
+            "Type": "AWS::SSM::Parameter",
 			"Condition" : "CreateProdResources",
             "Properties": {
                 "Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dl-config" ] ] },				
