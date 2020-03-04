@@ -79,10 +79,5 @@
             }
         }
     },
-	"Outputs" : {
-	  "ParameterStoreName" : {
-		"Description": "Parameter Store Name",  
-		"Value" : { "Ref" : "ParameterStore" }
-	  }
-	}
+	"Outputs" : {}
 }
