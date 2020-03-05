@@ -2085,7 +2085,7 @@ class Reporting_Job(Core_Job):
         Parameters: load_mode
 
         Returns:
-
+        Job to run the missing dates check and send email notification
         True if success, raises Exception in the event of failure
         """
         try:
@@ -2096,6 +2096,7 @@ class Reporting_Job(Core_Job):
                     params = self.params
                     sc = self.sc
                     logger = self.logger
+                    _LEVEL = self.env_params["env_name"]
                     logger.info(" Applying tr_etl_rpt_missing_dates ")
                     dbschema = self.whouse_details["dbSchema"]
                     missing_date_tbl = params["tr_params"]["target_tbl"]["missing_date"]
@@ -2200,12 +2201,11 @@ class Reporting_Job(Core_Job):
                                     tbl_nm, load_date, br_id, filter_clause, dbschema
                                 )
                             )
-                            utils.execute_query_in_redshift(create_report_table_query, self.whouse_details, logger)  ##
+                            utils.execute_query_in_redshift(create_report_table_query, self.whouse_details, logger)
+                            logger.info("inserting data")
                             missing_dates_query = ("""insert into {1}.{2} (select table_name,sas_brand_id,missing_date::timestamp,process_dtm from 
                             {1}.{0}_report_stage)""".format(tbl_nm, dbschema, missing_date_tbl))
                             utils.execute_query_in_redshift(missing_dates_query, self.whouse_details, logger)
-
-                            logger.info("missing date count is {}")
                             min_max_date_query = (
                                     """insert into {1}.{2} 
                                     (select '%s' as table_name,'%s' as column_checked,
@@ -2217,7 +2217,7 @@ class Reporting_Job(Core_Job):
                             )
                             status = utils.execute_query_in_redshift(min_max_date_query, self.whouse_details, logger)
                         else:
-                            logger.info("No records are present for the given brand id")  ##
+                            logger.info("No records are present for the given brand id")
                         drop_table_query3 = (
                             """drop table if exists {1}.{0}_report_stage"""
                         ).format(tbl_nm, dbschema)
@@ -2228,8 +2228,21 @@ class Reporting_Job(Core_Job):
                         utils.execute_query_in_redshift(drop_table_query4, self.whouse_details, logger)
                     missing_date_stg_df = self.redshift_table_to_dataframe(redshift_table=missing_date_tbl)
                     min_max_date_stg_df = self.redshift_table_to_dataframe(redshift_table=min_max_date_tbl)
-                    logger.info("count of missing date table {}".format(missing_date_stg_df.count()))
-                    logger.info("count of min max date table {}".format(min_max_date_stg_df.count()))
+                    reporting_dttm = datetime.datetime.now().strftime("%d%b%Y")
+                    reporting_subject_str = (
+                    "VFC/"
+                    + _LEVEL
+                    + "/"
+                    + reporting_dttm
+                    + " - Missing Date Summary."
+                    )
+                    footnote_str = ("Please check warehouse ETL_RPT_MISSING_DATE for more details. This report is produced by run_etl_rpt_missing_dates on " + reporting_dttm)
+                    utils_ses.send_report_email(job_name=self.file_name,
+                                            subject=reporting_subject_str,
+                                            dataframes=[min_max_date_stg_df],
+                                            table_titles=["Min & Max dates for each data source in warehouse"],
+                                            log=logger,
+                                            footnote=footnote_str)
                 except Exception as error:
                     logger.info(
                         "Error Occurred While processing etl_rpt_missing_dates due to : {}".format(error)
@@ -2266,12 +2279,12 @@ class Reporting_Job(Core_Job):
 
         return process(load_mode)
 
-    def reporting_csv_build_email_inputs(self, load_mode):
+    def reporting_csv_build_email_inputs(self):
         """
-        Parameters: load_mode
+        Parameters: None
 
         Returns:
-
+        Builds email responsys as cap CSV
         True if success, raises Exception in the event of failure
         """
         try:
@@ -2282,7 +2295,7 @@ class Reporting_Job(Core_Job):
                     params = self.params
                     logger = self.logger
                     whouse_etl_parm = self.redshift_table_to_dataframe(
-                        redshift_table="etl_params_test"
+                        redshift_table="etl_parm"
                     )
                     logger.info("enter into util_read_etl_parm_table")
                     today = datetime.datetime.today()
@@ -2305,14 +2318,13 @@ class Reporting_Job(Core_Job):
                             calculated_date, _brand_name_prefix
                         )
                     )
-                    df.show()
                     logger.info("end of util_read_etl_parm_table")
                     df.createOrReplaceTempView("date_table")
 
                     cutoff_date_df = spark.sql(
-                        """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
+                        """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN 
+                           date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
                     )
-                    cutoff_date_df.show()
                     cut_off_list = cutoff_date_df.select("cutoff_date").collect()
                     _cutoff_date = cut_off_list[0].cutoff_date
                     logger.info("the cutoff date is {}".format(_cutoff_date))
@@ -2325,9 +2337,8 @@ class Reporting_Job(Core_Job):
                 return _cutoff_date
 
             def run_csv_tnf_build_email_inputs():
-                """ Builds email responsys
+                """ Builds email responsys as cap CSV
                 """
-                transformed_df_dict = {}
 
                 try:
                     transformed_df = None
@@ -2335,34 +2346,42 @@ class Reporting_Job(Core_Job):
                     params = self.params
                     logger = self.logger
                     logger.info("enter into try block")
+                    logger.info("reading the required views")
+
+                    launch_view = params["tr_params"]["source_view"]["launch_view"]
+                    open_view = params["tr_params"]["source_view"]["open_view"]
+                    click_view = params["tr_params"]["source_view"]["click_view"]
+                    sent_view = params["tr_params"]["source_view"]["sent_view"]
+                    target_table = params["tr_params"]["target_tbl"]
+
+                    dbschema = self.whouse_details["dbSchema"]
                     cutoff_date = util_read_etl_parm_table()
                     _cutoff_date = datetime.datetime.strptime(cutoff_date, '%d%b%Y').date()
                     logger.info("cutoff date converted is {}".format(_cutoff_date))
+                    drop_launch_stg_tables_query = ["drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage1".format(dbschema),
+                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage2".format(dbschema),
+                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage3".format(dbschema),
+                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage4".format(dbschema)]
 
-                    tmp_tnf_email_launch_clean_csv_query_stage1 = """CREATE TABLE vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 
+                    utils.execute_multiple_queries_in_redshift(drop_launch_stg_tables_query, self.whouse_details, logger)
+                    tmp_tnf_email_launch_clean_csv_query_stage1 = """CREATE TABLE {0}.x_tmp_tnf_email_launch_clean_stage1 
                                             as SELECT *,
                                             UPPER(campaign_name) AS campaign_name_tmp,
                                             UPPER(subject) as subject_tmp
-                                            FROM vfapdsmigration.tnf_email_launch_view where UPPER(launch_type) in ('S', 'P', 'R') 
-                                            AND UPPER(launch_status)='C'"""
+                                            FROM {0}.{1} where UPPER(launch_type) in ('S', 'P', 'R') 
+                                            AND UPPER(launch_status)='C'""".format(dbschema,launch_view)
                     utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage1,
                                                     self.whouse_details, logger)
 
-                    alter_tmp_tnf_email_launch_query1 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 drop column campaign_name"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query1, self.whouse_details, logger)
+                    alter_table_query1=["alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column campaign_name".format(dbschema),
+                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column subject".format(dbschema),
+                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column subject_tmp to subject".format(dbschema),
+                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column campaign_name_tmp to campaign_name".format(dbschema)]
+                    utils.execute_multiple_queries_in_redshift(alter_table_query1, self.whouse_details, logger)
 
-                    alter_tmp_tnf_email_launch_query2 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 drop column subject"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query2, self.whouse_details, logger)
-
-                    alter_tmp_tnf_email_launch_query3 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 rename column subject_tmp to subject"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query3, self.whouse_details, logger)
-
-                    alter_tmp_tnf_email_launch_query4 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1 rename column campaign_name_tmp to campaign_name"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query4, self.whouse_details, logger)
-
-                    tmp_tnf_email_launch_clean_csv_query_stage2 = """create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage2 
+                    tmp_tnf_email_launch_clean_csv_query_stage2 = """create table {0}.x_tmp_tnf_email_launch_clean_stage2 
                            as 
-                           SELECT * FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage1
+                           SELECT * FROM {0}.x_tmp_tnf_email_launch_clean_stage1
                            where CHARINDEX('UNSUB',campaign_name) <= 0 AND
                            CHARINDEX('SHIPPING',campaign_name) <= 0 AND
                            CHARINDEX('SHIP_',campaign_name) <= 0 AND
@@ -2379,12 +2398,12 @@ class Reporting_Job(Core_Job):
                            CHARINDEX('OUTOFSTOCK',campaign_name) <= 0 AND
                            CHARINDEX('USSHIPTOSTORE',campaign_name) <= 0 AND
                            CHARINDEX('TEST',subject) <= 0 AND
-                           CHARINDEX('TRIGGERED',subject) <= 0"""
+                           CHARINDEX('TRIGGERED',subject) <= 0""".format(dbschema)
 
                     utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage2,
                                                     self.whouse_details, logger)
 
-                    tmp_tnf_email_launch_clean_csv_query_stage3 = """ create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 
+                    tmp_tnf_email_launch_clean_csv_query_stage3 = """ create table {0}.x_tmp_tnf_email_launch_clean_stage3 
                                     as SELECT *,
                                     CASE WHEN CHARINDEX('FALL',campaign_name) > 0 OR 
                                                 CHARINDEX('FALL',subject) > 0 OR 
@@ -2601,18 +2620,16 @@ class Reporting_Job(Core_Job):
                                             THEN 'ACCSR'
                                     ELSE null
                                     END AS Product_category_tmp
-                                FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage2
-                                    """
+                                FROM {0}.x_tmp_tnf_email_launch_clean_stage2
+                                    """.format(dbschema)
                     utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage3,
                                                     self.whouse_details, logger)
 
-                    alter_tmp_tnf_email_launch_query5 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query5, self.whouse_details, logger)
+                    alter_table_query2=["alter table {0}.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category".format(dbschema),
+                                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category".format(dbschema)]
+                    utils.execute_multiple_queries_in_redshift(alter_table_query2, self.whouse_details, logger)
 
-                    alter_tmp_tnf_email_launch_query6 = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category"
-                    utils.execute_query_in_redshift(alter_tmp_tnf_email_launch_query6, self.whouse_details, logger)
-
-                    tmp_tnf_email_launch_clean_csv_query_stage4 = """ create table vfapdsmigration.x_tmp_tnf_email_launch_clean_stage4
+                    tmp_tnf_email_launch_clean_csv_query_stage4 = """ create table {0}.x_tmp_tnf_email_launch_clean_stage4
                             AS 
                             SELECT *,
                                             CASE WHEN CHARINDEX('OUTDOOR',campaign_name) > 0 OR 
@@ -2715,28 +2732,30 @@ class Reporting_Job(Core_Job):
                                             THEN 'SURVEY'
                                     ELSE null
                                     END AS email_persona
-                                FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage3"""
+                                FROM {0}.x_tmp_tnf_email_launch_clean_stage3""".format(dbschema)
                     utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage4,
                                                     self.whouse_details, logger)
 
-                    drop_temp_table_query = "drop table if exists vfapdsmigration.x_tmp_tnf_email_launch_clean"
+                    drop_temp_table_query = "drop table if exists {0}.x_tmp_tnf_email_launch_clean".format(dbschema)
                     utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
                     create_x_tmp_tnf_email_launch_clean_table_query = (
-                        """             Create Table vfapdsmigration.x_tmp_tnf_email_launch_clean As
+                        """             Create Table {0}.x_tmp_tnf_email_launch_clean As
                                     SELECT sub.* FROM  
                                             ( SELECT *, 
-                                                ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM vfapdsmigration.x_tmp_tnf_email_launch_clean_stage4 
+                                                ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM {0}.x_tmp_tnf_email_launch_clean_stage4 
                                             ) sub 
-                                    WHERE row_num = 1""")
+                                    WHERE row_num = 1""".format(dbschema))
                     utils.execute_query_in_redshift(create_x_tmp_tnf_email_launch_clean_table_query,
                                                     self.whouse_details, logger)
-                    drop_column_rownum_query = "alter table vfapdsmigration.x_tmp_tnf_email_launch_clean drop column row_num"
+                    drop_column_rownum_query = "alter table {0}.x_tmp_tnf_email_launch_clean drop column row_num".format(dbschema)
                     utils.execute_query_in_redshift(drop_column_rownum_query, self.whouse_details, logger)
 
-                    drop_temp_table_query1 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_sent_clean"
+                    utils.execute_multiple_queries_in_redshift(drop_launch_stg_tables_query, self.whouse_details, logger)
+
+                    drop_temp_table_query1 = "drop table if exists {0}.x_tmp_tnf_email_sent_clean".format(dbschema)
                     utils.execute_query_in_redshift(drop_temp_table_query1, self.whouse_details, logger)
                     create_x_tmp_tnf_email_sent_clean_table_query = (
-                        """             Create Table vfapdsmigration.x_tmp_tnf_email_sent_clean As
+                        """             Create Table {0}.x_tmp_tnf_email_sent_clean As
                                         SELECT 
                                             distinct
                                             st.campaign_id,
@@ -2751,27 +2770,27 @@ class Reporting_Job(Core_Job):
                                             lh.email_persona    AS prs,
                                             lh.email_channel    AS chnl,
                                             lh.product_category AS pcat
-                                        FROM vfapdsmigration.tnf_email_sent_view st
-                                        INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                        FROM {0}.{1} st
+                                        INNER JOIN {0}.x_tmp_tnf_email_launch_clean lh
                                         ON st.campaign_id = lh.campaign_id
                                             AND st.launch_id = lh.launch_id
                                             AND st.list_id = lh.list_id
                                         WHERE 
                                             LOWER(TRIM(st.email_ISP))  <> 'vfc.com' 
-                                            AND st.event_captured_dt::date <= '{}'
+                                            AND st.event_captured_dt::date <= '{2}'
                                     """.format(
-                            _cutoff_date
+                            dbschema,sent_view,_cutoff_date
                         )
                     )
                     logger.info("generic query to create stage table: {}".format(
                         create_x_tmp_tnf_email_sent_clean_table_query))
-                    query_status_create = utils.execute_query_in_redshift(
+                    utils.execute_query_in_redshift(
                         create_x_tmp_tnf_email_sent_clean_table_query, self.whouse_details, logger)
 
-                    drop_temp_table_query2 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_open_clean"
+                    drop_temp_table_query2 = "drop table if exists {0}.x_tmp_tnf_email_open_clean".format(dbschema)
                     utils.execute_query_in_redshift(drop_temp_table_query2, self.whouse_details, logger)
                     create_x_tmp_tnf_email_open_clean_table_query = (
-                        """            Create Table vfapdsmigration.x_tmp_tnf_email_open_clean As
+                        """            Create Table {0}.x_tmp_tnf_email_open_clean As
                                        SELECT distinct
                                                 op.campaign_id,
                                                 op.launch_id,
@@ -2779,31 +2798,31 @@ class Reporting_Job(Core_Job):
                                                 op.riid,
                                                 MIN (op.event_captured_dt::date) AS open_date,
                                                 MAX (op.event_captured_dt::date) AS most_recent_o
-                                            FROM vfapdsmigration.tnf_email_open_view op
-                                            INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                            FROM {0}.{1} op
+                                            INNER JOIN {0}.x_tmp_tnf_email_launch_clean lh
                                                     ON op.campaign_id = lh.campaign_id
                                                     AND op.launch_id  = lh.launch_id
                                                     AND op.list_id    = lh.list_id
                                             WHERE 
                                                     op.event_captured_dt IS NOT NULL
-                                                    AND op.event_captured_dt::date <= '{}'
+                                                    AND op.event_captured_dt::date <= '{2}'
                                             GROUP BY 
                                                     op.campaign_id,
                                                     op.launch_id,
                                                     op.list_id,
                                                     op.riid
                                             """.format(
-                            _cutoff_date
+                            dbschema,open_view,_cutoff_date
                         ))
                     logger.info("generic query to create stage table: {}".format(
                         create_x_tmp_tnf_email_open_clean_table_query))
-                    query_status_create1 = utils.execute_query_in_redshift(
+                    utils.execute_query_in_redshift(
                         create_x_tmp_tnf_email_open_clean_table_query, self.whouse_details, logger)
 
-                    drop_temp_table_query3 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_click_clean"
+                    drop_temp_table_query3 = "drop table if exists {0}.x_tmp_tnf_email_click_clean".format(dbschema)
                     utils.execute_query_in_redshift(drop_temp_table_query3, self.whouse_details, logger)
                     create_x_tmp_tnf_email_click_clean_table_query = (
-                        """            Create Table vfapdsmigration.x_tmp_tnf_email_click_clean As
+                        """            Create Table {0}.x_tmp_tnf_email_click_clean As
                                         SELECT 
                                             distinct
                                                 cl.campaign_id,
@@ -2811,31 +2830,31 @@ class Reporting_Job(Core_Job):
                                                 cl.list_id,
                                                 cl.riid,
                                                 MIN (cl.event_captured_dt::date) AS click_date
-                                            FROM vfapdsmigration.tnf_email_click_view cl
-                                                INNER JOIN vfapdsmigration.x_tmp_tnf_email_launch_clean lh
+                                            FROM {0}.tnf_email_click_view cl
+                                                INNER JOIN {0}.x_tmp_tnf_email_launch_clean lh
                                                     ON cl.campaign_id = lh.campaign_id
                                                     AND cl.launch_id  = lh.launch_id
                                                     AND cl.list_id = lh.list_id
                                             WHERE 
                                                     LOWER(trim(cl.offer_name)) <> 'unsubscribe_footer'
-                                                    AND cl.event_captured_dt::date <= '{}'
+                                                    AND cl.event_captured_dt::date <= '{2}'
                                             GROUP BY cl.campaign_id,
                                                     cl.launch_id,
                                                     cl.list_id,
                                                     cl.riid
                                         """.format(
-                            _cutoff_date
+                            dbschema,click_view,_cutoff_date
                         )
                     )
                     logger.info("generic query to create stage table: {}".format(
                         create_x_tmp_tnf_email_click_clean_table_query))
-                    query_status_create2 = utils.execute_query_in_redshift(
+                    utils.execute_query_in_redshift(
                         create_x_tmp_tnf_email_click_clean_table_query, self.whouse_details, logger)
 
-                    drop_temp_table_query4 = "drop table if exists vfapdsmigration.x_tmp_tnf_email_inputs"
+                    drop_temp_table_query4 = "drop table if exists {0}.x_tmp_tnf_email_inputs".format(dbschema)
                     utils.execute_query_in_redshift(drop_temp_table_query4, self.whouse_details, logger)
                     create_x_tmp_tnf_email_inputs_table_query = (
-                        """            Create Table vfapdsmigration.x_tmp_tnf_email_inputs As
+                        """            Create Table {0}.x_tmp_tnf_email_inputs As
                                         SELECT 	t3.CUSTOMER_ID,
                                             t3.ACT,
                                             t3.CHNL,
@@ -2874,23 +2893,23 @@ class Reporting_Job(Core_Job):
                                                     WHEN t2.open_date IS NOT NULL THEN 1
                                                 ELSE 0
                                                 END AS open_ind
-                                            FROM vfapdsmigration.x_tmp_tnf_email_sent_clean t1
-                                            LEFT JOIN vfapdsmigration.x_tmp_tnf_email_open_clean t2
+                                            FROM {0}.x_tmp_tnf_email_sent_clean t1
+                                            LEFT JOIN {0}.x_tmp_tnf_email_open_clean t2
                                                     ON t1.campaign_id = t2.campaign_id
                                                     AND t1.list_id = t2.list_id
                                                     AND t1.launch_id = t2.launch_id
                                                     AND t1.riid = t2.riid 
                                             ) t3
-                                        LEFT JOIN vfapdsmigration.x_tmp_tnf_email_click_clean t4
+                                        LEFT JOIN {0}.x_tmp_tnf_email_click_clean t4
                                         ON t4.campaign_id = t3.campaign_id
                                             AND t4.list_id = t3.list_id
                                             AND t4.launch_id = t3.launch_id
                                             AND t4.riid = t3.riid 
-                                        """
+                                        """.format(dbschema)
                     )
                     logger.info(
                         "generic query to create stage table: {}".format(create_x_tmp_tnf_email_inputs_table_query))
-                    query_status_create3 = utils.execute_query_in_redshift(
+                    utils.execute_query_in_redshift(
                         create_x_tmp_tnf_email_inputs_table_query, self.whouse_details, logger)
 
                     cat_list = ["ssn", "gen", "act", "prs", "chnl", "pcat"]
@@ -2899,8 +2918,10 @@ class Reporting_Job(Core_Job):
                     # loops through all category and var lists to create median days to open, median days to click, #sent, #open, #click, %open and %click
                     for i in cat_list:
                         logger.info("the value of i is :{}".format(i))
+                        drop_metrics_table_query = "drop table if exists {1}.temp_tnf_{0}_metrics".format(i,dbschema)
+                        utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
                         create_x_tmp_tnf_metrics = (
-                            """Create Table vfapdsmigration.temp_tnf_{0}_metrics As
+                            """Create Table {2}.temp_tnf_{0}_metrics As
                                 select tmp.*,
                                   '{1}'::date - dsince_o_tmp as dsince_o,
                                    ROUND((freq_o * 100 / freq_s),1) as pct_o,
@@ -2913,7 +2934,7 @@ class Reporting_Job(Core_Job):
                                        count(*) as freq_s,
                                        sum(open_ind) as freq_o,
                                        sum(click_ind) as freq_c
-                                   FROM vfapdsmigration.x_tmp_tnf_email_inputs
+                                   FROM {2}.x_tmp_tnf_email_inputs
                                    WHERE {0} is not null
                                    GROUP BY customer_id, {0} ) a
 
@@ -2922,13 +2943,13 @@ class Reporting_Job(Core_Job):
 
                                       MEDIAN(days_to_click)  as md2c
 
-                                   FROM vfapdsmigration.x_tmp_tnf_email_inputs
+                                   FROM {2}.x_tmp_tnf_email_inputs
                                    WHERE {0} is not null
                                    GROUP BY customer_id, {0} 
 
                                    ) b
                                    on a.customer_id = b.customer_id and a.{0} = b.{0}
-                                   ) tmp""".format(i, _cutoff_date))
+                                   ) tmp""".format(i,_cutoff_date,dbschema))
 
                         utils.execute_query_in_redshift(create_x_tmp_tnf_metrics, self.whouse_details, logger)
                         #                                    select tmp.*,
@@ -2956,215 +2977,213 @@ class Reporting_Job(Core_Job):
                         for j in var_list:
                             transpose_query = "call create_transpose_tables('','','{}','{}')".format(i, j)
                             utils.execute_query_in_redshift(transpose_query, self.whouse_details, logger)
-                        drop_metrics_table_query = "drop table if exists vfapdsmigration.temp_tnf_{}_metrics".format(
-                            i)
                         utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
                     logger.info("entering inner join")
-                    drop_temp_table_query = "drop table if exists vfapdsmigration.csv_tnf_email_inputs"
+                    drop_temp_table_query = "drop table if exists {0}.{1}".format(dbschema,target_table)
                     utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
-                    create_stage_table_query1 = """create table vfapdsmigration.csv_tnf_email_inputs as
+                    create_stage_table_query1 = """create table {0}.{1} as
                             select 
                             * 
                             from 
                             (
-                            select distinct  customer_id_ssn_md2o as customer_id from vfapdsmigration.ssn_csv_md2o 
+                            select distinct  customer_id_ssn_md2o as customer_id from {0}.ssn_csv_md2o 
                             union 
-                            select distinct  customer_id_ssn_md2c as customer_id from vfapdsmigration.ssn_csv_md2c
+                            select distinct  customer_id_ssn_md2c as customer_id from {0}.ssn_csv_md2c
                             union 
-                            select distinct  customer_id_ssn_dsince_o as customer_id from vfapdsmigration.ssn_csv_dsince_o
+                            select distinct  customer_id_ssn_dsince_o as customer_id from {0}.ssn_csv_dsince_o
                             union 
-                            select distinct  customer_id_ssn_freq_s as customer_id from vfapdsmigration.ssn_csv_freq_s
+                            select distinct  customer_id_ssn_freq_s as customer_id from {0}.ssn_csv_freq_s
                             union 
-                            select distinct  customer_id_ssn_freq_o as customer_id from vfapdsmigration.ssn_csv_freq_o
+                            select distinct  customer_id_ssn_freq_o as customer_id from {0}.ssn_csv_freq_o
                             union 
-                            select distinct  customer_id_ssn_freq_c as customer_id from vfapdsmigration.ssn_csv_freq_c
+                            select distinct  customer_id_ssn_freq_c as customer_id from {0}.ssn_csv_freq_c
                             union 
-                            select distinct  customer_id_ssn_pct_o as customer_id from vfapdsmigration.ssn_csv_pct_o
+                            select distinct  customer_id_ssn_pct_o as customer_id from {0}.ssn_csv_pct_o
                             union 
-                            select distinct  customer_id_ssn_pct_c as customer_id from vfapdsmigration.ssn_csv_pct_c
+                            select distinct  customer_id_ssn_pct_c as customer_id from {0}.ssn_csv_pct_c
                             union 
-                            select distinct  customer_id_gen_md2o as customer_id from vfapdsmigration.gen_csv_md2o
+                            select distinct  customer_id_gen_md2o as customer_id from {0}.gen_csv_md2o
                             union 
-                            select distinct  customer_id_gen_md2c as customer_id from vfapdsmigration.gen_csv_md2c
+                            select distinct  customer_id_gen_md2c as customer_id from {0}.gen_csv_md2c
                             union 
-                            select distinct  customer_id_gen_dsince_o as customer_id from vfapdsmigration.gen_csv_dsince_o
+                            select distinct  customer_id_gen_dsince_o as customer_id from {0}.gen_csv_dsince_o
                             union 
-                            select distinct  customer_id_gen_freq_s as customer_id from vfapdsmigration.gen_csv_freq_s
+                            select distinct  customer_id_gen_freq_s as customer_id from {0}.gen_csv_freq_s
                             union 
-                            select distinct  customer_id_gen_freq_o as customer_id from vfapdsmigration.gen_csv_freq_o
+                            select distinct  customer_id_gen_freq_o as customer_id from {0}.gen_csv_freq_o
                             union 
-                            select distinct  customer_id_gen_freq_c as customer_id from vfapdsmigration.gen_csv_freq_c
+                            select distinct  customer_id_gen_freq_c as customer_id from {0}.gen_csv_freq_c
                             union 
-                            select distinct  customer_id_gen_pct_o as customer_id from vfapdsmigration.gen_csv_pct_o
+                            select distinct  customer_id_gen_pct_o as customer_id from {0}.gen_csv_pct_o
                             union 
-                            select distinct  customer_id_gen_pct_c as customer_id from vfapdsmigration.gen_csv_pct_c
+                            select distinct  customer_id_gen_pct_c as customer_id from {0}.gen_csv_pct_c
                             union
-                            select distinct  customer_id_act_md2o as customer_id from vfapdsmigration.act_csv_md2o 
+                            select distinct  customer_id_act_md2o as customer_id from {0}.act_csv_md2o 
                             union 
-                            select distinct  customer_id_act_md2c as customer_id from vfapdsmigration.act_csv_md2c
+                            select distinct  customer_id_act_md2c as customer_id from {0}.act_csv_md2c
                             union 
-                            select distinct  customer_id_act_dsince_o as customer_id from vfapdsmigration.act_csv_dsince_o
+                            select distinct  customer_id_act_dsince_o as customer_id from {0}.act_csv_dsince_o
                             union 
-                            select distinct  customer_id_act_freq_s as customer_id from vfapdsmigration.act_csv_freq_s
+                            select distinct  customer_id_act_freq_s as customer_id from {0}.act_csv_freq_s
                             union 
-                            select distinct  customer_id_act_freq_o as customer_id from vfapdsmigration.act_csv_freq_o
+                            select distinct  customer_id_act_freq_o as customer_id from {0}.act_csv_freq_o
                             union 
-                            select distinct  customer_id_act_freq_c as customer_id from vfapdsmigration.act_csv_freq_c
+                            select distinct  customer_id_act_freq_c as customer_id from {0}.act_csv_freq_c
                             union 
-                            select distinct  customer_id_act_pct_o as customer_id from vfapdsmigration.act_csv_pct_o
+                            select distinct  customer_id_act_pct_o as customer_id from {0}.act_csv_pct_o
                             union 
-                            select distinct  customer_id_act_pct_c as customer_id from vfapdsmigration.act_csv_pct_c
+                            select distinct  customer_id_act_pct_c as customer_id from {0}.act_csv_pct_c
                             union
-                            select distinct  customer_id_prs_md2o as customer_id from vfapdsmigration.prs_csv_md2o 
+                            select distinct  customer_id_prs_md2o as customer_id from {0}.prs_csv_md2o 
                             union 
-                            select distinct  customer_id_prs_md2c as customer_id from vfapdsmigration.prs_csv_md2c
+                            select distinct  customer_id_prs_md2c as customer_id from {0}.prs_csv_md2c
                             union 
-                            select distinct  customer_id_prs_dsince_o as customer_id from vfapdsmigration.prs_csv_dsince_o
+                            select distinct  customer_id_prs_dsince_o as customer_id from {0}.prs_csv_dsince_o
                             union 
-                            select distinct  customer_id_prs_freq_s as customer_id from vfapdsmigration.prs_csv_freq_s
+                            select distinct  customer_id_prs_freq_s as customer_id from {0}.prs_csv_freq_s
                             union 
-                            select distinct  customer_id_prs_freq_o as customer_id from vfapdsmigration.prs_csv_freq_o
+                            select distinct  customer_id_prs_freq_o as customer_id from {0}.prs_csv_freq_o
                             union 
-                            select distinct  customer_id_prs_freq_c as customer_id from vfapdsmigration.prs_csv_freq_c
+                            select distinct  customer_id_prs_freq_c as customer_id from {0}.prs_csv_freq_c
                             union 
-                            select distinct  customer_id_prs_pct_o as customer_id from vfapdsmigration.prs_csv_pct_o
+                            select distinct  customer_id_prs_pct_o as customer_id from {0}.prs_csv_pct_o
                             union 
-                            select distinct  customer_id_prs_pct_c as customer_id from vfapdsmigration.prs_csv_pct_c
+                            select distinct  customer_id_prs_pct_c as customer_id from {0}.prs_csv_pct_c
                             union
-                            select distinct  customer_id_chnl_md2o as customer_id from vfapdsmigration.chnl_csv_md2o 
+                            select distinct  customer_id_chnl_md2o as customer_id from {0}.chnl_csv_md2o 
                             union 
-                            select distinct  customer_id_chnl_md2c as customer_id from vfapdsmigration.chnl_csv_md2c
+                            select distinct  customer_id_chnl_md2c as customer_id from {0}.chnl_csv_md2c
                             union 
-                            select distinct  customer_id_chnl_dsince_o as customer_id from vfapdsmigration.chnl_csv_dsince_o
+                            select distinct  customer_id_chnl_dsince_o as customer_id from {0}.chnl_csv_dsince_o
                             union 
-                            select distinct  customer_id_chnl_freq_s as customer_id from vfapdsmigration.chnl_csv_freq_s
+                            select distinct  customer_id_chnl_freq_s as customer_id from {0}.chnl_csv_freq_s
                             union 
-                            select distinct  customer_id_chnl_freq_o as customer_id from vfapdsmigration.chnl_csv_freq_o
+                            select distinct  customer_id_chnl_freq_o as customer_id from {0}.chnl_csv_freq_o
                             union 
-                            select distinct  customer_id_chnl_freq_c as customer_id from vfapdsmigration.chnl_csv_freq_c
+                            select distinct  customer_id_chnl_freq_c as customer_id from {0}.chnl_csv_freq_c
                             union 
-                            select distinct  customer_id_chnl_pct_o as customer_id from vfapdsmigration.chnl_csv_pct_o
+                            select distinct  customer_id_chnl_pct_o as customer_id from {0}.chnl_csv_pct_o
                             union 
-                            select distinct  customer_id_chnl_pct_c as customer_id from vfapdsmigration.chnl_csv_pct_c
+                            select distinct  customer_id_chnl_pct_c as customer_id from {0}.chnl_csv_pct_c
                             union
-                            select distinct  customer_id_pcat_md2o as customer_id from vfapdsmigration.pcat_csv_md2o 
+                            select distinct  customer_id_pcat_md2o as customer_id from {0}.pcat_csv_md2o 
                             union 
-                            select distinct  customer_id_pcat_md2c as customer_id from vfapdsmigration.pcat_csv_md2c
+                            select distinct  customer_id_pcat_md2c as customer_id from {0}.pcat_csv_md2c
                             union 
-                            select distinct  customer_id_pcat_dsince_o as customer_id from vfapdsmigration.pcat_csv_dsince_o
+                            select distinct  customer_id_pcat_dsince_o as customer_id from {0}.pcat_csv_dsince_o
                             union 
-                            select distinct  customer_id_pcat_freq_s as customer_id from vfapdsmigration.pcat_csv_freq_s
+                            select distinct  customer_id_pcat_freq_s as customer_id from {0}.pcat_csv_freq_s
                             union 
-                            select distinct  customer_id_pcat_freq_o as customer_id from vfapdsmigration.pcat_csv_freq_o
+                            select distinct  customer_id_pcat_freq_o as customer_id from {0}.pcat_csv_freq_o
                             union 
-                            select distinct  customer_id_pcat_freq_c as customer_id from vfapdsmigration.pcat_csv_freq_c
+                            select distinct  customer_id_pcat_freq_c as customer_id from {0}.pcat_csv_freq_c
                             union 
-                            select distinct  customer_id_pcat_pct_o as customer_id from vfapdsmigration.pcat_csv_pct_o
+                            select distinct  customer_id_pcat_pct_o as customer_id from {0}.pcat_csv_pct_o
                             union 
-                            select distinct  customer_id_pcat_pct_c as customer_id from vfapdsmigration.pcat_csv_pct_c
+                            select distinct  customer_id_pcat_pct_c as customer_id from {0}.pcat_csv_pct_c
                             )a
-                            left OUTER join vfapdsmigration.ssn_csv_md2o s1
+                            left OUTER join {0}.ssn_csv_md2o s1
                             on a.customer_id =  s1.customer_id_ssn_md2o
-                            left OUTER join vfapdsmigration.ssn_csv_md2c s2
+                            left OUTER join {0}.ssn_csv_md2c s2
                             on a.customer_id = s2.customer_id_ssn_md2c
-                            left OUTER join vfapdsmigration.ssn_csv_dsince_o s3
+                            left OUTER join {0}.ssn_csv_dsince_o s3
                             on a.customer_id = s3.customer_id_ssn_dsince_o
-                            left OUTER join vfapdsmigration.ssn_csv_freq_s s4
+                            left OUTER join {0}.ssn_csv_freq_s s4
                             on a.customer_id =  s4.customer_id_ssn_freq_s
-                            left OUTER join vfapdsmigration.ssn_csv_freq_o s5
+                            left OUTER join {0}.ssn_csv_freq_o s5
                             on a.customer_id = s5.customer_id_ssn_freq_o
-                            left OUTER join vfapdsmigration.ssn_csv_freq_c s6
+                            left OUTER join {0}.ssn_csv_freq_c s6
                             on a.customer_id = s6.customer_id_ssn_freq_c
-                            left OUTER join vfapdsmigration.ssn_csv_pct_o s7
+                            left OUTER join {0}.ssn_csv_pct_o s7
                             on a.customer_id =  s7.customer_id_ssn_pct_o
-                            left OUTER join vfapdsmigration.ssn_csv_pct_c s8
+                            left OUTER join {0}.ssn_csv_pct_c s8
                             on a.customer_id = s8.customer_id_ssn_pct_c
-                            left OUTER join vfapdsmigration.gen_csv_md2o g1
+                            left OUTER join {0}.gen_csv_md2o g1
                             on a.customer_id = g1.customer_id_gen_md2o
-                            left OUTER join vfapdsmigration.gen_csv_md2c g2
+                            left OUTER join {0}.gen_csv_md2c g2
                             on a.customer_id =  g2.customer_id_gen_md2c
-                            left OUTER join vfapdsmigration.gen_csv_dsince_o g3
+                            left OUTER join {0}.gen_csv_dsince_o g3
                             on a.customer_id = g3.customer_id_gen_dsince_o
-                            left OUTER join vfapdsmigration.gen_csv_freq_s g4
+                            left OUTER join {0}.gen_csv_freq_s g4
                             on a.customer_id = g4.customer_id_gen_freq_s
-                            left OUTER join vfapdsmigration.gen_csv_freq_o g5
+                            left OUTER join {0}.gen_csv_freq_o g5
                             on a.customer_id =  g5.customer_id_gen_freq_o
-                            left OUTER join vfapdsmigration.gen_csv_freq_c g6
+                            left OUTER join {0}.gen_csv_freq_c g6
                             on a.customer_id = g6.customer_id_gen_freq_c
-                            left OUTER join vfapdsmigration.gen_csv_pct_o g7
+                            left OUTER join {0}.gen_csv_pct_o g7
                             on a.customer_id = g7.customer_id_gen_pct_o
-                            left OUTER join vfapdsmigration.gen_csv_pct_c g8
+                            left OUTER join {0}.gen_csv_pct_c g8
                             on a.customer_id =  g8.customer_id_gen_pct_c
-                            left OUTER join vfapdsmigration.act_csv_md2o a1
+                            left OUTER join {0}.act_csv_md2o a1
                             on a.customer_id = a1.customer_id_act_md2o
-                            left OUTER join vfapdsmigration.act_csv_md2c a2
+                            left OUTER join {0}.act_csv_md2c a2
                             on a.customer_id =  a2.customer_id_act_md2c
-                            left OUTER join vfapdsmigration.act_csv_dsince_o a3
+                            left OUTER join {0}.act_csv_dsince_o a3
                             on a.customer_id = a3.customer_id_act_dsince_o
-                            left OUTER join vfapdsmigration.act_csv_freq_s a4
+                            left OUTER join {0}.act_csv_freq_s a4
                             on a.customer_id = a4.customer_id_act_freq_s
-                            left OUTER join vfapdsmigration.act_csv_freq_o a5
+                            left OUTER join {0}.act_csv_freq_o a5
                             on a.customer_id =  a5.customer_id_act_freq_o
-                            left OUTER join vfapdsmigration.act_csv_freq_c a6
+                            left OUTER join {0}.act_csv_freq_c a6
                             on a.customer_id = a6.customer_id_act_freq_c
-                            left OUTER join vfapdsmigration.act_csv_pct_o a7
+                            left OUTER join {0}.act_csv_pct_o a7
                             on a.customer_id = a7.customer_id_act_pct_o
-                            left OUTER join vfapdsmigration.act_csv_pct_c a8
+                            left OUTER join {0}.act_csv_pct_c a8
                             on a.customer_id =  a8.customer_id_act_pct_c
-                            left OUTER join vfapdsmigration.prs_csv_md2o b1
+                            left OUTER join {0}.prs_csv_md2o b1
                             on a.customer_id = b1.customer_id_prs_md2o
-                            left OUTER join vfapdsmigration.prs_csv_md2c b2
+                            left OUTER join {0}.prs_csv_md2c b2
                             on a.customer_id =  b2.customer_id_prs_md2c
-                            left OUTER join vfapdsmigration.prs_csv_dsince_o b3
+                            left OUTER join {0}.prs_csv_dsince_o b3
                             on a.customer_id = b3.customer_id_prs_dsince_o
-                            left OUTER join vfapdsmigration.prs_csv_freq_s b4
+                            left OUTER join {0}.prs_csv_freq_s b4
                             on a.customer_id = b4.customer_id_prs_freq_s
-                            left OUTER join vfapdsmigration.prs_csv_freq_o b5
+                            left OUTER join {0}.prs_csv_freq_o b5
                             on a.customer_id =  b5.customer_id_prs_freq_o
-                            left OUTER join vfapdsmigration.prs_csv_freq_c b6
+                            left OUTER join {0}.prs_csv_freq_c b6
                             on a.customer_id = b6.customer_id_prs_freq_c
-                            left OUTER join vfapdsmigration.prs_csv_pct_o b7
+                            left OUTER join {0}.prs_csv_pct_o b7
                             on a.customer_id = b7.customer_id_prs_pct_o
-                            left OUTER join vfapdsmigration.prs_csv_pct_c b8
+                            left OUTER join {0}.prs_csv_pct_c b8
                             on a.customer_id =  b8.customer_id_prs_pct_c
-                            left OUTER join vfapdsmigration.chnl_csv_md2o c1
+                            left OUTER join {0}.chnl_csv_md2o c1
                             on a.customer_id = c1.customer_id_chnl_md2o
-                            left OUTER join vfapdsmigration.chnl_csv_md2c c2
+                            left OUTER join {0}.chnl_csv_md2c c2
                             on a.customer_id =  c2.customer_id_chnl_md2c
-                            left OUTER join vfapdsmigration.chnl_csv_dsince_o c3
+                            left OUTER join {0}.chnl_csv_dsince_o c3
                             on a.customer_id = c3.customer_id_chnl_dsince_o
-                            left OUTER join vfapdsmigration.chnl_csv_freq_s c4
+                            left OUTER join {0}.chnl_csv_freq_s c4
                             on a.customer_id = c4.customer_id_chnl_freq_s
-                            left OUTER join vfapdsmigration.chnl_csv_freq_o c5
+                            left OUTER join {0}.chnl_csv_freq_o c5
                             on a.customer_id =  c5.customer_id_chnl_freq_o
-                            left OUTER join vfapdsmigration.chnl_csv_freq_c c6
+                            left OUTER join {0}.chnl_csv_freq_c c6
                             on a.customer_id = c6.customer_id_chnl_freq_c
-                            left OUTER join vfapdsmigration.chnl_csv_pct_o c7
+                            left OUTER join {0}.chnl_csv_pct_o c7
                             on a.customer_id = c7.customer_id_chnl_pct_o
-                            left OUTER join vfapdsmigration.chnl_csv_pct_c c8
+                            left OUTER join {0}.chnl_csv_pct_c c8
                             on a.customer_id =  c8.customer_id_chnl_pct_c
-                            left OUTER join vfapdsmigration.pcat_csv_md2o p1
+                            left OUTER join {0}.pcat_csv_md2o p1
                             on a.customer_id = p1.customer_id_pcat_md2o
-                            left OUTER join vfapdsmigration.pcat_csv_md2c p2
+                            left OUTER join {0}.pcat_csv_md2c p2
                             on a.customer_id =  p2.customer_id_pcat_md2c
-                            left OUTER join vfapdsmigration.pcat_csv_dsince_o p3
+                            left OUTER join {0}.pcat_csv_dsince_o p3
                             on a.customer_id = p3.customer_id_pcat_dsince_o
-                            left OUTER join vfapdsmigration.pcat_csv_freq_s p4
+                            left OUTER join {0}.pcat_csv_freq_s p4
                             on a.customer_id = p4.customer_id_pcat_freq_s
-                            left OUTER join vfapdsmigration.pcat_csv_freq_o p5
+                            left OUTER join {0}.pcat_csv_freq_o p5
                             on a.customer_id =  p5.customer_id_pcat_freq_o
-                            left OUTER join vfapdsmigration.pcat_csv_freq_c p6
+                            left OUTER join {0}.pcat_csv_freq_c p6
                             on a.customer_id = p6.customer_id_pcat_freq_c
-                            left OUTER join vfapdsmigration.pcat_csv_pct_o p7
+                            left OUTER join {0}.pcat_csv_pct_o p7
                             on a.customer_id = p7.customer_id_pcat_pct_o
-                            left OUTER join vfapdsmigration.pcat_csv_pct_c p8
-                            on a.customer_id =  p8.customer_id_pcat_pct_c"""
+                            left OUTER join {0}.pcat_csv_pct_c p8
+                            on a.customer_id =  p8.customer_id_pcat_pct_c""".format(dbschema,target_table)
                     status = utils.execute_query_in_redshift(create_stage_table_query1, self.whouse_details, logger)
                     for i in cat_list:
                         for j in var_list:
-                            drop_join_tables_query = "drop table vfapdsmigration.{0}_csv_{1}".format(i, j)
-                            drop_table_extra_columns_query = """alter table vfapdsmigration.csv_tnf_email_inputs_stage 
-                            drop column customer_id_{0}_{1}""".format(i, j)
+                            drop_join_tables_query = "drop table  if exists {2}.{0}_csv_{1}".format(i, j,dbschema)
+                            drop_table_extra_columns_query = """alter table {2}.{3}
+                            drop column customer_id_{0}_{1}""".format(i, j,dbschema,target_table)
                             utils.execute_query_in_redshift(drop_join_tables_query, self.whouse_details, logger)
                             utils.execute_query_in_redshift(drop_table_extra_columns_query, self.whouse_details,
                                                             logger)
@@ -3172,7 +3191,7 @@ class Reporting_Job(Core_Job):
                     logger.info("exiting join")
 
                 except Exception as error:
-                    logger.info(
+                    logger.error(
                         "Error Occurred while processing run_csv_tnf_build_email_inputs due to : {}".format(
                             error
                         )
@@ -3184,9 +3203,9 @@ class Reporting_Job(Core_Job):
                     )
                 return status
 
-            def process(load_mode):
+            def process():
                 """
-                Parameters:load_mode
+                Parameters:None
 
                 Returns:
 
@@ -3209,7 +3228,8 @@ class Reporting_Job(Core_Job):
                 "Error occurred in reporting_csv_build_email_inputs: {}".format(error)
             )
 
-        return process(load_mode)
+        return process()
+
 
     def reporting_send_daily_etl_job_status_report(
         self,

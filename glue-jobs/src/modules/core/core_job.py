@@ -165,12 +165,14 @@ class Core_Job:
                 log.info("Control file from s3 has 0 records")
                 row_count = 0
             else:
+                log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0] - 1
         else:
             if control_file_row_count == 0:
                 log.info("Control file from s3 has 0 records")
                 row_count = 0
             else:
+                log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0]
         log.debug("Successfully collected row count - {0}".format(row_count))
         return row_count
@@ -950,6 +952,93 @@ class Core_Job:
             )
         return status
 
+    def write_df_to_redshift_table(self, df, redshift_table, load_mode):
+        """
+            Parameters:
+
+            df: pyspark.sql.DataFrame
+            redshift_table: str,
+            load_mode: str,
+
+            Returns:
+
+            None
+
+            This function loads a DataFrame from memory into a table in AWS Redshift.
+             The three possible
+            modes for loading are:
+
+                append - appends data to table
+
+                overwrite - deletes all data in table and appends
+
+                errorIfExists - throws an error and fails if the table exists
+
+                ignore - if the table exists, do nothing
+            """
+        logger = self.logger
+        redshift_user = self.whouse_details["username"]
+        redshift_password = self.whouse_details["password"]
+        redshift_schema = self.whouse_details["dbSchema"]
+        logger.info("Attempting to create jdbc url for redshift")
+
+        env_params = self.env_params
+        temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
+
+        #!Commented code is needed for running write to redshift with databricks driver
+        # env_params = self.env_params
+        # temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
+
+        redshift_url = "jdbc:{}://{}:{}/{}".format(
+            self.whouse_details["engine"],
+            self.whouse_details["host"],
+            self.whouse_details["port"],
+            self.whouse_details["dbCatalog"],
+        )
+        logger.info(
+            "Attempting to write DataFrame {} to Redshift table {}.{}".format(
+                df, redshift_schema, redshift_table
+            )
+        )
+        schema_qualified_table = redshift_schema + "." + redshift_table
+        try:
+
+            df.write.format("com.databricks.spark.redshift").option(
+                "url",
+                redshift_url
+                + "?user="
+                + redshift_user
+                + "&password="
+                + redshift_password,
+            ).option("dbtable", schema_qualified_table).option(
+                "tempdir", temp_bucket
+            ).option(
+                "aws_iam_role", env_params["redshift_iam_role"]
+            ).save(
+                mode=load_mode
+            )
+            logger.info(
+                "Successfully wrote DataFrame {} to Redshift table {}".format(
+                    df, schema_qualified_table
+                )
+            )
+            status = True
+
+        except Exception as exception:
+            status = False
+            logger.error(
+                "Unable to write DataFrame {0} to Redshift table {1}: {2}".format(
+                    df, schema_qualified_table, exception
+                ),
+                exc_info=True,
+            )
+            raise IOException.IOError(
+                moduleName=constant.CORE_JOB,
+                exeptionType=constant.IO_WRITE_REDSHIFT_EXCEPTION,
+                message=constant.DF_TO_REDSHIFT_WRITE_FAILED.format(exception),
+            )
+        return status
+
     def query_to_redshift(self):
         """This method will query a redshift table and return query results in spark dataframe
         """
@@ -1078,6 +1167,31 @@ class Core_Job:
                 logger.error(
                     "Error Occurred in Core Class due To {}".format(error), exc_info=1
                 )
+                logger.error(
+                    "Moving Feed_file and CTNL files in the failed folder".format(
+                        error
+                    ),
+                    exc_info=1,
+                )
+                file_moved_status = utils.move_s3_file_from_current(
+                    file_name=file_name,
+                    src_bucket=core_job.env_params["refined_bucket"],
+                    tgt_bucket=core_job.env_params["refined_bucket"],
+                    params=params,
+                    logger=logger,
+                    tgt_path="{}/{}".format(params["failed_dest_folder_nm"], file_name),
+                )
+                utils.move_s3_file_from_current(
+                    file_name=control_file_name,
+                    src_bucket=core_job.env_params["refined_bucket"],
+                    tgt_bucket=core_job.env_params["refined_bucket"],
+                    params=params,
+                    logger=logger,
+                    tgt_path="{}/{}".format(
+                        params["failed_dest_folder_nm"], control_file_name
+                    ),
+                )
+
                 process_status = constant.failure
                 raise CustomAppException.CustomAppError(
                     moduleName=error.moduleName,
