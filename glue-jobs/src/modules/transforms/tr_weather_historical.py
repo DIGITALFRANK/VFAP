@@ -6,6 +6,8 @@ from pyspark.sql.types import *
 from modules.exceptions.CustomAppException import CustomAppError
 from modules.constants import constant
 import traceback
+from pyspark.sql.types import IntegerType
+
 
 class tr_weather_historical(Core_Job):
     def __init__(self, file_name):
@@ -36,9 +38,17 @@ class tr_weather_historical(Core_Job):
             params = self.params
             logger = self.logger
             logger.info("Applying tr_weather_historical")
-            warehouse_df = self.redshift_table_to_dataframe(redshift_table=params['tgt_dstn_tbl_name'])
+            warehouse_df = self.redshift_table_to_dataframe(
+                redshift_table=params["tgt_dstn_tbl_name"]
+            )
             # add sas_process_dt column having date value from file_name
-            refined_df = df.withColumn("SAS_PROCESS_DT", F.lit(params["file_date"])).withColumn("sas_brand_id", lit(int(params["sas_brand_id"]))).withColumn("process_dtm", F.current_timestamp()).withColumn("file_name", F.lit(self.file_name))
+            refined_df = (
+                df.withColumn("SAS_PROCESS_DT", F.lit(params["file_date"]))
+                .withColumn("sas_brand_id", lit(int(params["sas_brand_id"])))
+                .withColumn("process_dtm", F.current_timestamp())
+                .withColumn("file_name", F.lit(self.file_name))
+                .withColumn("fs_sk", lit(None).cast(IntegerType()))
+            )
 
             # renaming columns from I_TNF_WeatherTrends_vf_historical_data file as present at destination
             logger.info("Schema After Adding SAS_PROCESS_DT : ")
@@ -87,17 +97,17 @@ class tr_weather_historical(Core_Job):
             ).show(10, truncate=False)
 
             # returning transformed_data_dict df
-            transformed_df_dict={
-                params["tgt_dstn_tbl_name"]: full_load_df
-            }
+            transformed_df_dict = {params["tgt_dstn_tbl_name"]: full_load_df}
 
         except Exception as error:
             full_load_df = None
-            transformed_df_dict={}
-            logger.error(
-                " : {}".format(
-                    error
-                ),exc_info=True
+            transformed_df_dict = {}
+            logger.error(" : {}".format(error), exc_info=True)
+            raise CustomAppError(
+                moduleName=constant.TR_WEARHER_HISTORICAL,
+                exeptionType=constant.TRANSFORMATION_EXCEPTION,
+                message="Error Ocurred in tr_weather_historical due to : {}".format(
+                    traceback.format_exc()
+                ),
             )
-            raise CustomAppError(moduleName=constant.TR_WEARHER_HISTORICAL, exeptionType=constant.TRANSFORMATION_EXCEPTION, message="Error Ocurred in tr_weather_historical due to : {}".format(traceback.format_exc()))
         return transformed_df_dict
