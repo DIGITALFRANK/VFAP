@@ -497,7 +497,9 @@ class utils:
             return False
 
     @staticmethod
-    def move_s3_file_from_current(file_name, src_bucket, tgt_bucket, params, logger):
+    def move_s3_file_from_current(
+        file_name, src_bucket, tgt_bucket, params, logger, tgt_path=None
+    ):
         file_moved_status = False
         try:
             s3_client = boto3.client("s3")
@@ -512,9 +514,12 @@ class utils:
             file_date = datetime.strptime(file_parts[-1].split(".")[0], date_format)
             date_partition = file_parts[-1].split(".")[0][0:8]
             src_path = "{}/{}".format(params["rf_source_dir"], file_name)
-            tgt_path = "{}{}/date={}/{}".format(
-                params["rf_dstn_folder_name"], feed_name, date_partition, file_name
-            )
+            if tgt_path is None:
+                tgt_path = "{}{}/date={}/{}".format(
+                    params["rf_dstn_folder_name"], feed_name, date_partition, file_name
+                )
+            else:
+                tgt_path = tgt_path
             copy_source = {"Bucket": src_bucket, "Key": src_path}
             logger.info("Copying file from  {} to {}".format(src_path, tgt_path))
             file_moved_response = s3_client.copy(
@@ -651,6 +656,60 @@ class utils:
             cur1 = conn.cursor()
             cur1.execute(query)
             logger.info("Query executed successfully in the Redshift..")
+            conn.commit()
+            cur1.close()
+            conn.close()
+            query_run_status = True
+
+        except Exception as Error:
+            logger.error(
+                "Error occured while executing the query in the Redshift. :{}".format(
+                    Error
+                ),
+                exc_info=True,
+            )
+            query_run_status = False
+            raise AppUtilsError(
+                moduleName=constant.CORE_UTILS,
+                exeptionType=constant.CORE_UTILS_EXCEPTION,
+                message="Error occured while re_run_table {}".format(
+                    traceback.format_exc()
+                ),
+            )
+
+        return query_run_status
+
+    @staticmethod
+    def execute_multiple_queries_in_redshift(query, whouse_details, logger):
+        """This method will go and execute the given query.
+        """
+        redshift_user = whouse_details["username"]
+        redshift_password = whouse_details["password"]
+        redshift_schema = whouse_details["dbSchema"]
+        redshift_host = whouse_details["host"]
+        redshift_port = whouse_details["port"]
+        redshift_database = whouse_details["dbCatalog"]
+
+        query_run_status = False
+        try:
+            logger.info("Connecting to Redshift..")
+            conn = pg8000.connect(
+                database=redshift_database,
+                user=redshift_user,
+                password=redshift_password,
+                host=redshift_host,
+                port=redshift_port,
+            )
+
+            logger.info("Connecting to redshift table and executing the given Query.")
+
+            logger.info("Query to Execute: {}".format(query))
+            cur1 = conn.cursor()
+            for i in query:
+                cur1.execute(i)
+                logger.info("Query executed successfully in the Redshift: {}".format(i))
+
+            logger.info("Queries executed successfully in the Redshift..")
             conn.commit()
             cur1.close()
             conn.close()
@@ -906,4 +965,3 @@ class utils:
                 "job_id": utils.get_glue_job_run_id(),
                 "job_start_time": str(datetime.utcnow()),
             }
-

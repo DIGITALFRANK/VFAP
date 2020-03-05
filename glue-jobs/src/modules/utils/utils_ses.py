@@ -461,6 +461,7 @@ def send_report_email(
     dataframes,
     table_titles,
     log,
+    footnote=str(datetime.datetime.utcnow()),
     environment=ses_config.environment,
     sender_address=ses_config.reporting_email_sender_address,
     recipient_list=ses_config.reporting_email_recipient_address_list,
@@ -478,6 +479,7 @@ def send_report_email(
     dataframes: List[pyspark.sql.DataFrame]
     table_titles: List[str]
     log: logging.Logger
+    footnote: str
     environment: str
     sender_address: str
     recipient_list: List[str]
@@ -519,7 +521,7 @@ def send_report_email(
     html = build_html_summary(
         dataframes=dataframes,
         table_titles=table_titles,
-        footnote=str(datetime.datetime.utcnow()),
+        footnote=footnote,
         log=log,
     )
 

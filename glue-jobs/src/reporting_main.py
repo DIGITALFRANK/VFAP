@@ -114,9 +114,7 @@ def driver(file_name, args):
 
         if file_name == "reporting_csv_build_email_inputs":
             logger.info("Job reporting_csv_build_email_inputs started")
-            stage_status = reporting_job_obj.reporting_csv_build_email_inputs(
-                load_mode=reporting_job_obj.params["write_mode"]
-            )
+            stage_status = reporting_job_obj.reporting_csv_build_email_inputs()
 
         if file_name == "reporting_send_daily_etl_job_status_report":
             stage_status = reporting_job_obj.reporting_send_daily_etl_job_status_report(
