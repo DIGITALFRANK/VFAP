@@ -581,7 +581,7 @@
         },
 		"DailyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "DailyETLJob" ],
+			  "DependsOn" : [ "DailyInitJob" ],
 			  "Properties": {
 				"Parameters": {
 				  "DailyETLJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
