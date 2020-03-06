@@ -451,19 +451,12 @@
 		"DailyETLJob": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
-				"Parameters": {
-				  "AllocatedCapacity": 10, 
-				  "ScriptName": "main.py",
+				"Parameters": { 
+				  "ScriptName": "main_job_queue.py",
 				  "GlueJobName": "daily-job",
-				  "MaxConcurrentRuns": 70,
+				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
-				  "MaxCapacity": 8,
-				  "WorkerType": "Standard",
-				  "Timeout": 480,
-				  "NumberOfWorkers": 8,
-				  "FileNameArgument": "NULL",
-				  "JobParamArgument": "NULL",
-				  "JobTypeArgument": "NULL",				
+				  "Timeout": 480,			
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
@@ -471,7 +464,7 @@
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "GlueRole": { "Ref": "GlueRole" }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/daily-glue-etl-job.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },

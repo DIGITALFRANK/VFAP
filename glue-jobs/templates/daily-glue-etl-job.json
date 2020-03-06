@@ -1,0 +1,105 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Glue jobs stack",
+  "Parameters": {
+		"Environment": {
+		  "Description": "The environment type",
+		  "Type": "String",
+		  "Default": "dev",
+		  "AllowedValues": [
+			"dev",
+			"prod",
+			"qa"
+		  ],
+		  "ConstraintDescription": "must be a dev, test or prod"
+		},
+		"ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"GlueRole": {
+            "Description": "Glue Role",
+            "Type": "String"
+        },
+		"ScriptName": {
+            "Description": "Script Name",
+            "Type": "String"
+        },
+		"GlueJobName": {
+            "Description": "Glue Job Name",
+            "Type": "String"
+        },
+		"MaxConcurrentRuns": {
+            "Description": "Max Concurrent Runs",
+            "Type": "Number"
+        },
+		"MaxRetries": {
+            "Description": "Max Retries",
+            "Type": "Number"
+        },
+		"Timeout": {
+            "Description": "Timeout (min)",
+            "Type": "Number"
+        }
+	},
+	"Mappings": {},
+	"Resources": {
+		"GlueETLJob": {
+		  "Type": "AWS::Glue::Job",
+		  "Properties": {
+			"Command": {
+			  "Name": "pythonshell",
+			  "PythonVersion": "3",
+			  "ScriptLocation": { "Fn::Join": [ "/", ["s3://vf-artifacts-bucket/vfap/glue-jobs/src", { "Ref": "ScriptName" } ] ] }
+			},
+			"Connections": {
+			  "Connections" : [ { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] } ]
+			},
+			"DefaultArguments": {
+			  "--GLUE_DAILY_JOB_NAME": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] },
+			  "--S3_LOG_DESTINATION_FOLDER": "glue-process/",
+			  "--S3_LOG_TOP_FOLDER_NAME": "DAILY_QUEUE_ORCHESTRATION",
+			  "--S3_FEED_FILE_SOURCE_FOLDER": "current/",
+			  "--DDB_FEED_NAME_ATTRIBUTE": "feed_name",
+			  "--DDB_TARGET_TABLE_ATTRIBUTE": "tgt_dstn_tbl_name",
+			  "--ITERATION_PAUSE": "30",
+			  "--S3_CONFIG_BUCKET": { "Fn::Join": [ "", [ "s3://vf-artifacts-bucket/vfap/config-files/", { "Ref": "Environment" }, "/clm/config_store.ini" ] ] }        
+			},
+			"Description": { "Fn::Join": [ " ", [ { "Ref": "GlueJobName" }, "Email xref glue etl job" ] ] },
+			"ExecutionProperty": {
+			  "MaxConcurrentRuns": { "Ref": "MaxConcurrentRuns" }
+			},
+			"MaxCapacity": 1,
+			"MaxRetries": { "Ref": "MaxRetries" },
+			"Timeout": { "Ref": "Timeout" },
+			"Name": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] },
+			"Role": { "Ref": "GlueRole" },
+			"Tags": {
+			  "CostCenter": "118204800",
+			  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+			  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+			  "Environment": { "Ref": "Environment" },
+			  "ResourceGroup": { "Ref": "ResourceGroup" },
+			  "Application": { "Ref": "Application" }
+			}
+		  }
+		}
+    },
+	"Outputs": {
+		"JobName": {
+			"Value": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] }
+		}
+	}
+}
