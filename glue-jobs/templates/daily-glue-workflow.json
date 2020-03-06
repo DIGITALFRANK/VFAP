@@ -58,7 +58,7 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "DailyETLJob" } }
+				{  "JobName" : { "Ref": "DailyInitJob" } }
 			  ],
 			  "Description" : "Glue workflow daily trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-job-trigger" ] ] },

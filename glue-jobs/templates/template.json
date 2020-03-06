@@ -451,9 +451,43 @@
 		"DailyETLJob": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "main.py",
+				  "GlueJobName": "daily-etl-job",
+				  "MaxConcurrentRuns": 70,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "Standard",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "NULL",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"DailyInitJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
 				"Parameters": { 
 				  "ScriptName": "main_job_queue.py",
-				  "GlueJobName": "daily-job",
+				  "GlueJobName": "daily-init-job",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "Timeout": 480,			
@@ -550,7 +584,7 @@
 			  "DependsOn" : [ "DailyETLJob" ],
 			  "Properties": {
 				"Parameters": {
-				  "DailyETLJob": { "Fn::GetAtt": [ "DailyETLJob", "Outputs.JobName" ] },
+				  "DailyETLJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
 				  "StartOnCreation" : { "Ref": "StartOnCreation" },
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
