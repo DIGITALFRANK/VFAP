@@ -28,7 +28,7 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"DailyETLJob": {
+		"DailyInitJob": {
             "Description": "DailyETL Job name",
             "Type": "String"
         },
@@ -58,11 +58,11 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "DailyETLJob" } }
+				{  "JobName" : { "Ref": "DailyInitJob" } }
 			  ],
 			  "Description" : "Glue workflow daily trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-job-trigger" ] ] },
-			  "Schedule" : "cron(0 22 * * ? *)",
+			  "Schedule" : "cron(0 22 ? * MON-FRI *)",
 			  "StartOnCreation" : { "Ref": "StartOnCreation" },
 			  "Tags" : {
 				"CostCenter":"118204800",
