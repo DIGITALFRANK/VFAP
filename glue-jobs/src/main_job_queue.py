@@ -1,9 +1,92 @@
 import logging
-import time
 import traceback
-import boto3
+import time
 import itertools
 import sys
+import datetime
+import configparser
+import json
+import tempfile
+import boto3
+from awsglue.utils import getResolvedOptions
+
+
+def get_env_params(bucket_name, key, region_name):
+    """
+    Parameters:
+    bucket_name: str - S3 bucket containing config file
+    s3_key: str - s3 key for config file
+    region_name: str - AWS region
+
+    Returns:
+
+    params: Dict[str, str]
+
+    This function reads a configuration file from S3 and parses it.
+    Then taking a key from this configuration file, we can access
+    AWS Systems Manager parameter store
+    """
+    # Download .ini config file from S3 to local temp URL
+    defaults = {"aws_region": region_name}
+    session = boto3.session.Session(region_name=region_name)
+    bucket = session.resource("s3").Bucket(bucket_name)
+    temporary_file = tempfile.NamedTemporaryFile()
+    bucket.download_file(key, temporary_file.name)
+    # Load local .ini file and parse
+    config = configparser.ConfigParser(defaults=defaults)
+    with open(temporary_file.name, "r") as f:
+        config.readfp(f)
+    temporary_file.close()
+    # Get parameter store key from ConfigParser object
+    key = config["PARAMSTORE"]["StoreKey"]
+    # Get parameter store key-value pairs from AWS SSM
+    client = boto3.client("ssm", region_name="us-east-1")
+    response = client.get_parameter(Name=key)
+    return json.loads(response["Parameter"]["Value"])
+
+
+class Constants:
+
+    # Hard-coded values
+    AWS_REGION = "us-east-1"
+    LOCAL_LOG_URL = "./{0}.txt".format(str(datetime.datetime.utcnow()))
+
+    # Get glue job key-value pairs
+    job_args = getResolvedOptions(
+        sys.argv,
+        [
+            "GLUE_DAILY_JOB_NAME",
+            "S3_LOG_DESTINATION_FOLDER",
+            "S3_LOG_TOP_FOLDER_NAME",
+            "S3_FEED_FILE_SOURCE_FOLDER",
+            "DDB_FEED_NAME_ATTRIBUTE",
+            "DDB_TARGET_TABLE_ATTRIBUTE",
+            "ITERATION_PAUSE",
+            "S3_CONFIG_BUCKET",
+            "S3_CONFIG_FILE_PATH",
+        ],
+    )
+    # Get env parameters from AWS systems manager
+    env_params = get_env_params(
+        bucket_name=job_args["S3_CONFIG_BUCKET"],
+        key=job_args["S3_CONFIG_FILE_PATH"],
+        region_name=AWS_REGION,
+    )
+
+    # Configured via Param store
+    DDB_JOB_METADATA_TABLE = env_params["config_table"]
+    S3_LOG_DESTINATION_BUCKET = env_params["log_bucket"]
+    S3_FEED_FILE_SOURCE_BUCKET = env_params["refined_bucket"]
+
+    # Configured via Glue job
+    GLUE_DAILY_JOB_NAME = job_args["GLUE_DAILY_JOB_NAME"]
+    ITERATION_PAUSE = int(job_args["ITERATION_PAUSE"])
+    S3_LOG_DESTINATION_FOLDER = job_args["S3_LOG_DESTINATION_FOLDER"]
+    S3_LOG_TOP_FOLDER_NAME = job_args["S3_LOG_TOP_FOLDER_NAME"]
+    S3_FEED_FILE_SOURCE_FOLDER = job_args["S3_FEED_FILE_SOURCE_FOLDER"]
+    DDB_FEED_NAME_ATTRIBUTE = job_args["DDB_FEED_NAME_ATTRIBUTE"]
+    DDB_TARGET_TABLE_ATTRIBUTE = job_args["DDB_TARGET_TABLE_ATTRIBUTE"]
+
 
 log = logging.getLogger()
 # Set root logging level
@@ -15,12 +98,57 @@ stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setLevel(logging.INFO)
 stream_handler.setFormatter(formatter)
 # Set file handler
-file_handler = logging.FileHandler("./log.txt")
+file_handler = logging.FileHandler(Constants.LOCAL_LOG_URL)
 file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(formatter)
 # Attach handlers to log
 log.addHandler(stream_handler)
 log.addHandler(file_handler)
+
+
+def load_log_to_s3(
+    log=log,
+    local_url=Constants.LOCAL_LOG_URL,
+    s3_bucket=Constants.S3_LOG_DESTINATION_BUCKET,
+    s3_root=Constants.S3_LOG_DESTINATION_FOLDER,
+    s3_top_folder=Constants.S3_LOG_TOP_FOLDER_NAME,
+):
+    """
+    This function loads the log from a local URL to a configured location in S3
+    """
+    s3_client = boto3.client("s3")
+    now = datetime.datetime.now()
+    datetime_extension = (
+        str(now.year)
+        + "%02d" % now.month
+        + "%02d" % now.day
+        # + "%02d" % now.hour
+        # + "%02d" % now.minute
+        # + "%02d" % now.second
+    )
+    s3_object_url = (
+        s3_root
+        + datetime_extension
+        + "/"
+        + s3_top_folder
+        + "/"
+        + "daily_clm_queues_"
+        + datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        + ".log"
+    )
+    log.info("Loading log file to s3://{0}/{1}".format(s3_bucket, s3_object_url))
+    s3_client.upload_file(local_url, s3_bucket, s3_object_url)
+    return s3_object_url
+
+
+class OrchestrationException(Exception):
+    def __init__(self, message):
+        """
+        This exception class loads the log to a stable location in S3
+        before exiting S3
+        """
+        load_log_to_s3()
+        super().__init__(message)
 
 
 def trigger_glue_job(job_name, file_name, log):
@@ -271,23 +399,23 @@ def get_list_of_feed_files_in_s3(bucket_name, folder, log):
         raise Exception(error_msg)
     try:
         # extract S3 fully qualified names for each object
-        qualified_bucket_objects = map(lambda x: x["Key"], response["Contents"])
+        qualified_bucket_objects = [x["Key"] for x in response["Contents"]]
         log.info(
             "Objects in bucket {0}, folder {1} - {2}".format(
-                bucket_name, folder, list(qualified_bucket_objects)
+                bucket_name, folder, qualified_bucket_objects
             )
         )
         # remove directory prefix from filenames
-        unqualified_bucket_objects = map(
-            lambda x: x.split("/")[-1], qualified_bucket_objects
-        )
+        unqualified_bucket_objects = [
+            x.split("/")[-1] for x in qualified_bucket_objects
+        ]
         # remove empty-file directory reference from collection
         unqualified_bucket_files = filter(lambda x: x != "", unqualified_bucket_objects)
         # remove control files from collection
         feed_files = list(filter(lambda x: "_CNTL_" not in x, unqualified_bucket_files))
         log.info(
             "Feed files in bucket {0}, folder {1} - {2}".format(
-                bucket_name, folder, list()
+                bucket_name, folder, feed_files
             )
         )
         return feed_files
@@ -400,20 +528,26 @@ def map_feed_files_to_destination_tables(
     )
     try:
         files_to_feeds = list(
-            map(
-                lambda x: (
-                    x,
-                    list(
-                        filter(
-                            lambda y: y[feed_name_attribute] == trim_feed_file_name(x)
-                            or y[feed_name_attribute] == trim_feed_file_name(x) + "_",
-                            feeds_destinations,
-                        )
+            filter(
+                lambda x: len(x[1]) > 0,
+                map(
+                    lambda x: (
+                        x,
+                        list(
+                            filter(
+                                lambda y: y[feed_name_attribute]
+                                == trim_feed_file_name(x)
+                                or y[feed_name_attribute]
+                                == trim_feed_file_name(x) + "_",
+                                feeds_destinations,
+                            )
+                        ),
                     ),
+                    feed_files,
                 ),
-                feed_files,
             )
         )
+        log.info("File names to feed name mapping - {0}".format(files_to_feeds))
         file_destination_pairs = list(
             map(lambda x: (x[0], x[1][0][target_table_attribute]), files_to_feeds)
         )
@@ -451,7 +585,9 @@ def group_file_names_by_destination_table(file_destination_pairs, log):
     log.info("Grouping file names by their destination tables")
     try:
         job_groups = []
-        for key, group in itertools.groupby(file_destination_pairs, key=lambda x: x[1]):
+        for key, group in itertools.groupby(
+            sorted(file_destination_pairs, key=lambda x: x[1]), key=lambda x: x[1]
+        ):
             job_groups.append([element[0] for element in group])
         log.info("Grouped file names by destination table - {0}".format(job_groups))
         return job_groups
@@ -462,6 +598,68 @@ def group_file_names_by_destination_table(file_destination_pairs, log):
         log.error(error_msg)
         log.error(traceback.format_exc())
         raise Exception(error_msg)
+
+
+def extract_timestamp(job, log):
+    """
+    Parameters:
+
+    job: str
+    log: logging.Logger
+
+    Returns:
+
+    datetime.datetime
+
+    This function extracts a python datetime object from a feed file name
+    """
+    file_name = job.split(".")[0]
+    dt = file_name.split("_")[-1]
+
+    year = int(dt[0:4])
+    month = int(dt[4:6])
+    day = int(dt[6:8])
+    if len(dt) == 8:
+        hour, minute, second = 0, 0, 0
+    elif len(dt) == 14:
+        hour = int(dt[8:10])
+        minute = int(dt[10:12])
+        second = int(dt[12:14])
+    else:
+        error_msg = "Timestamp/date substring for file should be 8 or 14 characters - {0}".format(
+            job
+        )
+        log.error(error_msg)
+        raise ValueError(error_msg)
+    try:
+        ts = datetime.datetime(
+            year=year, month=month, day=day, hour=hour, minute=minute, second=second
+        )
+    except ValueError as e:
+        error_msg = "Timestamp/date substring for file - {0} is invalid - {1}".format(
+            job, str(e)
+        )
+        log.error(error_msg)
+        raise ValueError(error_msg)
+    return ts
+
+
+def order_jobs(job_list, log):
+    """
+    Parameters:
+
+    job_list: List[str]
+    log: logging.Logger
+
+    Returns:
+
+    List[str]
+
+    This function orders the jobs in a list according to some timestamp or date
+    embedded in the name of each job and returns the ordered list
+    """
+    ordered_job_list = sorted(job_list, key=lambda x: extract_timestamp(x, log))
+    return ordered_job_list
 
 
 def run_job_queues(glue_job, job_groups, iteration_pause, log):
@@ -481,7 +679,11 @@ def run_job_queues(glue_job, job_groups, iteration_pause, log):
     AWS Glue job template with a variable file_name parameter for each job. User specifies
     pause length after each iteration of queue updates.
     """
-    log.info("Running parallel queues of jobs for filenames - {0}".format(job_groups))
+    log.info(
+        "Running {0} parallel queues of jobs for filenames - {1}".format(
+            len(job_groups), job_groups
+        )
+    )
     log.info(
         "Iteration through queues will be subject to {0} second pause".format(
             iteration_pause
@@ -515,57 +717,47 @@ def run_job_queues(glue_job, job_groups, iteration_pause, log):
         raise Exception(error_msg)
 
 
-class Constants:
-    # Configured via Param store
-    DDB_JOB_METADATA_TABLE = "vf-dev-etl-file-broker"
-    S3_LOG_DESTINATION_BUCKET = "vf-datalake-dev-logs"
-    S3_FEED_FILE_SOURCE_BUCKET = "vf-datalake-dev-refined"
-    AWS_REGION = "us-east-1"
-    # Configured via Glue job
-    GLUE_JOB_NAME = "Test_pipeline_anchal"
-    S3_LOG_DESTINATION_FOLDER = "glue_process"
-    S3_FEED_FILE_SOURCE_FOLDER = "current/"
-    DDB_FEED_NAME_ATTRIBUTE = "feed_name"
-    DDB_TARGET_TABLE_ATTRIBUTE = "tgt_dstn_tbl_name"
-    ITERATION_PAUSE = 30
+if __name__ == "__main__":
+    try:
+        s3_objects = get_list_of_feed_files_in_s3(
+            bucket_name=Constants.S3_FEED_FILE_SOURCE_BUCKET,
+            folder=Constants.S3_FEED_FILE_SOURCE_FOLDER,
+            log=log,
+        )
 
+        feeds_destinations = get_feeds_and_destinations(
+            table_name=Constants.DDB_JOB_METADATA_TABLE,
+            ddb_region=Constants.AWS_REGION,
+            feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
+            target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
+            log=log,
+        )
 
-s3_objects = get_list_of_feed_files_in_s3(
-    bucket_name=Constants.S3_FEED_FILE_SOURCE_BUCKET,
-    folder=Constants.S3_FEED_FILE_SOURCE_FOLDER,
-    log=log,
-)
-print(s3_objects)
+        file_destination_pairs = map_feed_files_to_destination_tables(
+            feed_files=s3_objects,
+            feeds_destinations=feeds_destinations,
+            feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
+            target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
+            log=log,
+        )
+        job_groups = group_file_names_by_destination_table(
+            file_destination_pairs=file_destination_pairs, log=log
+        )
 
-response = get_feeds_and_destinations(
-    table_name=Constants.DDB_JOB_METADATA_TABLE,
-    ddb_region=Constants.AWS_REGION,
-    feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
-    target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
-    log=log,
-)
-print(response)
+        ordered_job_groups = [
+            order_jobs(job_list=job_group, log=log) for job_group in job_groups
+        ]
 
+        log.info("Ordered job groups - {0}".format(ordered_job_groups))
 
-file_destination_pairs = map_feed_files_to_destination_tables(
-    feed_files=s3_objects,
-    feeds_destinations=response,
-    feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
-    target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
-    log=log,
-)
+        run_job_queues(
+            glue_job=Constants.GLUE_DAILY_JOB_NAME,
+            job_groups=ordered_job_groups,
+            iteration_pause=Constants.ITERATION_PAUSE,
+            log=log,
+        )
+        log.info("Parallel queue of jobs executed successfully")
+        load_log_to_s3()
 
-print(file_destination_pairs)
-
-
-job_groups = group_file_names_by_destination_table(
-    file_destination_pairs=file_destination_pairs, log=log
-)
-print(job_groups)
-
-run_job_queues(
-    glue_job=Constants.GLUE_JOB_NAME,
-    job_groups=job_groups,
-    iteration_pause=Constants.ITERATION_PAUSE,
-    log=log
-)
+    except BaseException as e:
+        raise OrchestrationException(str(e))

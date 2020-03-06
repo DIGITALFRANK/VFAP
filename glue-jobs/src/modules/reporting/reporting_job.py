@@ -3,6 +3,7 @@ import sys
 from pyspark.sql.types import StructType, StructField, StringType, DateType, IntegerType
 from modules.core.core_job import Core_Job
 from modules.utils.utils_core import utils
+from modules.config import config
 from modules.utils import utils_ses
 from modules.constants import constant
 from pyspark.sql import functions as F
@@ -2236,7 +2237,7 @@ class Reporting_Job(Core_Job):
                     + reporting_dttm
                     + " - Missing Date Summary."
                     )
-                    footnote_str = ("Please check warehouse ETL_RPT_MISSING_DATE for more details. This report is produced by run_etl_rpt_missing_dates on " + reporting_dttm)
+                    footnote_str = ("Please check warehouse ETL_RPT_MISSING_DATE for more details.\nThis report is produced by reporting_etl_rpt_missing_dates on " + reporting_dttm)
                     utils_ses.send_report_email(job_name=self.file_name,
                                             subject=reporting_subject_str,
                                             dataframes=[min_max_date_stg_df],
@@ -2912,6 +2913,12 @@ class Reporting_Job(Core_Job):
                     utils.execute_query_in_redshift(
                         create_x_tmp_tnf_email_inputs_table_query, self.whouse_details, logger)
 
+                    transpose_stored_procedure = config.transpose_stored_procedure.format(dbschema)
+
+                    utils.execute_query_in_redshift(
+                        transpose_stored_procedure, self.whouse_details, logger
+                    )
+
                     cat_list = ["ssn", "gen", "act", "prs", "chnl", "pcat"]
                     var_list = ["md2o", "md2c", "dsince_o", "freq_s", "freq_o", "freq_c", "pct_o", "pct_c"]
                     logger.info("entering outer loop")
@@ -2975,7 +2982,7 @@ class Reporting_Job(Core_Job):
                         #                        df_list.createOrReplaceTempView(table_nm)
 
                         for j in var_list:
-                            transpose_query = "call create_transpose_tables('','','{}','{}')".format(i, j)
+                            transpose_query = "call {2}.create_transpose_tables('','','{0}','{1}')".format(i, j,dbschema)
                             utils.execute_query_in_redshift(transpose_query, self.whouse_details, logger)
                         utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
                     logger.info("entering inner join")

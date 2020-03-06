@@ -355,3 +355,49 @@ Raise info ''Append_brand_id_qry executed successfully!!'';
 END;
 ' LANGUAGE plpgsql;
 """
+
+# --------------------------REPORTING JOB CONFIGURATIONS -------------------------
+
+transpose_stored_procedure = """CREATE OR REPLACE PROCEDURE {0}.create_transpose_tables(query_out INOUT VARCHAR(max) ,query_sum_out INOUT varchar(max) ,category IN VARCHAR , var_list IN VARCHAR )
+AS '
+ 
+DECLARE 
+ customer_rec record;
+ full_query varchar(max);
+ dist_qry varchar;
+ tmp_tbl_qry varchar;
+ drop_tbl_qry varchar;
+ cat varchar;
+ var_nm varchar;
+ 
+BEGIN
+ 
+dist_qry = ''create temp table distinct_'' + category + '' as select distinct '' + category + '' from {0}.temp_tnf_''+ category +''_metrics''; 
+Raise info ''dist_qry : %'',dist_qry;
+Execute dist_qry;
+tmp_tbl_qry = ''select ''+ category +'' as category from distinct_'' + category;
+Raise info ''tmp_tbl_qry : %'',tmp_tbl_qry;
+ 
+for customer_rec in Execute tmp_tbl_qry loop
+cat = customer_rec.category;
+var_nm = category + ''_'' + var_list+ ''_'' + cat;
+ 
+query_out := query_out||'',case when ''+ category + ''= ''||quote_literal(cat)||'' then '' + var_list + '' else null end as ''||var_nm;
+Raise info ''query_out : %'',query_out;
+ 
+query_sum_out := query_sum_out||'',sum(''||var_nm||'') as '' + var_nm ;
+Raise info ''query_sum_out : %'',query_sum_out;
+end loop; 
+ 
+drop_tbl_qry = ''drop table if exists {0}.''+ category + ''_csv_''+var_list;
+EXECUTE drop_tbl_qry;
+full_query = ''create table {0}.''+ category + ''_csv_''+var_list+'' DISTKEY(customer_id_'' + category + ''_'' + var_list+'') as ( with ''+ category + ''_csv_''+var_list+'' as ( 
+ select customer_id as customer_id_'' + category + ''_'' + var_list || query_out || '' from {0}.temp_tnf_''+ category +''_metrics ) select customer_id_''+category + ''_'' + var_list||query_sum_out||'' from ''
+ + category + ''_csv_''+var_list + '' group by customer_id_'' +category + ''_'' + var_list+'' )'';
+Raise info ''Full Query : %'',full_query;
+EXECUTE full_query ;
+Raise info ''Query Executed successfully'';
+ 
+ 
+END;
+' LANGUAGE plpgsql;"""
