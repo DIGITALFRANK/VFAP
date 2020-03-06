@@ -75,7 +75,8 @@
 			  "--DDB_FEED_NAME_ATTRIBUTE": "feed_name",
 			  "--DDB_TARGET_TABLE_ATTRIBUTE": "tgt_dstn_tbl_name",
 			  "--ITERATION_PAUSE": "30",
-			  "--S3_CONFIG_BUCKET": { "Fn::Join": [ "", [ "s3://vf-artifacts-bucket/vfap/config-files/", { "Ref": "Environment" }, "/clm/config_store.ini" ] ] }        
+			  "--S3_CONFIG_BUCKET": "vf-artifacts-bucket",
+			  "--S3_CONFIG_FILE_PATH": { "Fn::Join": [ "", [ "vfap/config-files/", { "Ref": "Environment" }, "/clm/config_store.ini" ] ] }
 			},
 			"Description": { "Fn::Join": [ " ", [ { "Ref": "GlueJobName" }, "Email xref glue etl job" ] ] },
 			"ExecutionProperty": {
