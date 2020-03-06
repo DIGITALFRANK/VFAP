@@ -584,7 +584,7 @@
 			  "DependsOn" : [ "DailyInitJob" ],
 			  "Properties": {
 				"Parameters": {
-				  "DailyETLJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
+				  "DailyInitJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
 				  "StartOnCreation" : { "Ref": "StartOnCreation" },
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },

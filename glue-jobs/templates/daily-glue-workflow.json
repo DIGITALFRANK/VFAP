@@ -28,7 +28,7 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"DailyETLJob": {
+		"DailyInitJob": {
             "Description": "DailyETL Job name",
             "Type": "String"
         },

@@ -68,7 +68,7 @@
 			  "Connections" : [ { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "redshift-conn" ] ] } ]
 			},
 			"DefaultArguments": {
-			  "--GLUE_DAILY_JOB_NAME": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, { "Ref": "GlueJobName" } ] ] },
+			  "--GLUE_DAILY_JOB_NAME": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-etl-job" ] ] },
 			  "--S3_LOG_DESTINATION_FOLDER": "glue-process/",
 			  "--S3_LOG_TOP_FOLDER_NAME": "DAILY_QUEUE_ORCHESTRATION",
 			  "--S3_FEED_FILE_SOURCE_FOLDER": "current/",
