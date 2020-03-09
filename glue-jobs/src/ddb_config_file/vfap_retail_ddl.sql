@@ -3134,7 +3134,6 @@ style_aka VARCHAR(20) ,
 style_description VARCHAR(29) ,
 retail DOUBLE PRECISION ,
 cost DOUBLE PRECISION ,
-fs_sk INTEGER ,
 vans_prodcat VARCHAR(30) ,
 mte_ind INTEGER ,
 vans_sas_product_category VARCHAR(30) ,
@@ -3158,6 +3157,7 @@ trgt_ultrngpro_flag INTEGER ,
 trgt_bts_flag INTEGER ,
 trgt_new_ultrarange_flag INTEGER ,
 process_dtm TIMESTAMP default sysdate,
+fs_sk INTEGER ,
 file_name VARCHAR(200)
 )
 DISTSTYLE EVEN;
@@ -4147,8 +4147,8 @@ CREATE TABLE IF NOT EXISTS vfap_retail.experian_behavior
 	,country_of_origin INTEGER   
 	,totalenhanmatchtype VARCHAR(3)   
 	,process_dtm TIMESTAMP WITHOUT TIME ZONE   
-	,sas_brand_id INTEGER   
-	,fs_sk INTEGER   
-	,file_name VARCHAR(200)   
+	,sas_brand_id INTEGER      
+	,file_name VARCHAR(200) 
+	,fs_sk INTEGER
 )
 ;
