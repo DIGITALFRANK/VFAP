@@ -68,7 +68,7 @@
 				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "GlueRole": { "Ref": "GlueRole" },
-				  "CatalogDB": { "Fn::GetAtt": [ "CatalogDB", "Outputs.DBName" ] }
+				  "CatalogDB": { "Ref": "Environment" }
 				},
 				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-crawler.json",
                 "Tags": [
