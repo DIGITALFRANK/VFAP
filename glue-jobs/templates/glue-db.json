@@ -1,0 +1,33 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Glue Crawler cloud formation stack",
+    "Parameters": { 
+	    "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        }
+	},
+	"Resources": {
+		"CatalogDB": {
+		  "Type" : "AWS::Glue::Database",
+		  "Properties" : {
+			  "CatalogId" : { "Ref": "AWS::AccountId" },
+			  "DatabaseInput" : {
+				  "Description" : "Catalog DB",
+				  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "catalog-db" ] ] }
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"DBName": {
+			"Value": { "Fn::GetAtt": [ "CatalogDB", "Name" ] }
+		}
+	}
+}

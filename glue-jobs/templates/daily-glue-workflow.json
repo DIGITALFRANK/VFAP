@@ -29,7 +29,23 @@
             "Type": "String"
         },
 		"DailyInitJob": {
-            "Description": "DailyETL Job name",
+            "Description": "Daily init Job name",
+            "Type": "String"
+        },
+		"StatusReportJob": {
+            "Description": "Status Reporting Job name",
+            "Type": "String"
+        },
+		"WeekWeatherSumJob": {
+            "Description": "Week Weather Sum Job name",
+            "Type": "String"
+        },
+		"ETLReportMissingDatesJob": {
+            "Description": "ETL Report Missing Dates Job name",
+            "Type": "String"
+        },
+		"CrawlerName": {
+            "Description": "Crawler name",
             "Type": "String"
         },
 		"StartOnCreation": {
@@ -73,6 +89,100 @@
 				"Application":{ "Ref": "Application" }
 			  },
 			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"RunReportingTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "ETLReportMissingDatesJob" } },
+				{  "JobName" : { "Ref": "WeekWeatherSumJob" } }
+			  ],
+			  "Description" : "Run Reporting status trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "run-reporting-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "DailyInitJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"DDBCrawlerTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "CrawlerName" : { "Ref": "CrawlerName" } }
+			  ],
+			  "Description" : "DynamoDB crawler trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-ddb-crawler-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "WeekWeatherSumJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "ETLReportMissingDatesJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"DailyStatusReportTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  ],
+			  "Description" : "daily status trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-status-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "CrawlerName" : { "Ref": "CrawlerName" },
+					  "LogicalOperator" : "EQUALS",
+					  "CrawlState" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		}

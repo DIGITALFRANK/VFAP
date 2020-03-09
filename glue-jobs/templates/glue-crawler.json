@@ -1,0 +1,74 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Refine routine lambda cloud formation stack",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"GlueRole": {
+            "Description": "Glue Role",
+            "Type": "String"
+        },
+		"CatalogDB": {
+            "Description": "Catalog DB name",
+            "Type": "String"
+        }
+    },
+	"Resources": {
+		"DDBCrawler": {
+		  "Type" : "AWS::Glue::Crawler",
+		  "Properties" : {
+			  "DatabaseName" : { "Ref": "CatalogDB" },
+			  "Description" : "Crawl DynamoDB table to get the ETLFileStatus",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "ddb-crawler" ] ] },
+			  "Role" : { "Ref": "GlueRole" },
+			  "SchemaChangePolicy" : {
+				  "DeleteBehavior" : "DEPRECATE_IN_DATABASE",
+				  "UpdateBehavior" : "UPDATE_IN_DATABASE"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Targets" : {
+				  "DynamoDBTargets" : [ 
+					{  "Path" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "etl-file-status" ] ] } },
+					{  "Path" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "etl-file-broker" ] ] } }
+				  ]
+			  }
+			}
+		}
+	},
+	"Outputs": {
+		"CrawlerName": {
+			"Value": { "Fn::GetAtt": [ "DDBCrawler", "Name" ] }
+		}
+	}
+}

@@ -118,12 +118,7 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "LoyaltyXRef" } },
-				{  "JobName" : { "Ref": "VansCleanXRef" } },
-				{  "JobName" : { "Ref": "CustomerXRef" } },
-				{  "JobName" : { "Ref": "EmailXRef" } },
-				{  "JobName" : { "Ref": "AdobeMap" } }, 
-				{  "JobName" : { "Ref": "TNFCleanXRef" } }
+				{  "JobName" : { "Ref": "ReportingFileChecklist" } }
 			  ],
 			  "Description" : "Glue workflow Weekly trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
@@ -138,6 +133,40 @@
 				"Application":{ "Ref": "Application" }
 			  },
 			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartXRefTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "LoyaltyXRef" } },
+				{  "JobName" : { "Ref": "VansCleanXRef" } },
+				{  "JobName" : { "Ref": "CustomerXRef" } },
+				{  "JobName" : { "Ref": "EmailXRef" } },
+				{  "JobName" : { "Ref": "AdobeMap" } }, 
+				{  "JobName" : { "Ref": "TNFCleanXRef" } }
+			  ],
+			  "Description" : "Weekly XRef trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-xref-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "ReportingFileChecklist" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		},
