@@ -329,18 +329,18 @@ class Reporting_Job(Core_Job):
             try:
                 weather_history_filtered_df = spark_session.sql(
                     """
-                                                SELECT cast(dt as timestamp) as dt,
-                                                       cast(sas_brand_id as string) as sas_brand_id,
-                                                       cast(gustmph as double) as gustmph,
-                                                       cast(location as string) as location,
-                                                       cast(maxtempdegf as double) as maxtemp,
-                                                       cast(mintempdegf as double) as mintemp,
-                                                       cast(prcpin as double) as prcpin,
-                                                       cast(presmb as double) as presmb,
-                                                       cast(rhpct as double) as rhpct,
-                                                       cast(skycpct as double) as skycpct,
-                                                       cast(snowin as double) as snowin,
-                                                       cast(wspdmph as double) as wspdmph
+                                                SELECT dt,
+                                                       sas_brand_id,
+                                                       gustmph,
+                                                       location,
+                                                       maxtempdegf,
+                                                       mintempdegf,
+                                                       prcpin,
+                                                       presmb,
+                                                       rhpct,
+                                                       skycpct,
+                                                       snowin,
+                                                       wspdmph
                                                 FROM {0}
                                                 WHERE ({1})""".format(
                         indsn_table_id, where_clause

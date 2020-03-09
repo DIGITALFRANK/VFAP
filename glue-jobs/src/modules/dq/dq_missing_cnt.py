@@ -43,6 +43,7 @@ class dq_missing_cnt(Core_Job):
             whr_condition = params["dq_params"][dq_item]["whr_condition"]
             threshold = params["dq_params"][dq_item]["threshold"]
             logger.info("Applying Filter condition")
+            logger.info(" showing sample records : {}".format(df.filter(whr_condition).show(30)))
             sql_out = df.filter(whr_condition).count()
             # Get the threshold value for the respective dq. If sql_out is less than threshold value
             # then it is considered as PASS. Also, returning the status of the DQ. This Status is added

@@ -6,6 +6,7 @@ from modules.utils.utils_core import utils
 from string import digits
 from modules.exceptions.CustomAppException import CustomAppError
 from modules.constants import constant
+from datetime import datetime
 import traceback
 from awsglue.dynamicframe import DynamicFrame
 class dq_cust_style_product_missing_cnt(Core_Job):
@@ -32,6 +33,7 @@ class dq_cust_style_product_missing_cnt(Core_Job):
         s3 = boto3.resource("s3")
         bucket = s3.Bucket(file_bucket)
         for s3_file in bucket.objects.filter(Prefix=prfx):
+            logger.info("S3 File Name : {}".format(s3_file))
             key_trim = s3_file.key.split("/")[-1]
             # removing the datetime value from the filename and creating key value pair.
             remove_digits = str.maketrans("", "", digits)
@@ -92,9 +94,10 @@ class dq_cust_style_product_missing_cnt(Core_Job):
             current_folder_path = params["dq_params"][dq_item][
                 "current_folder_path"
             ]  # "Refinded/dq_check/"
-            ref_file_folder_path = params["dq_params"][dq_item]["ref_file_folder_path"]
+            #ref_file_folder_path = params["dq_params"][dq_item]["ref_file_folder_path"]
             sas_brand_id = params["sas_brand_id"]
             tgt_dstn_tbl_name = params["tgt_dstn_tbl_name"]
+            
 
             # Remove the date from the file name and Identify TNF/VANS from the file_name
             file_name_trim = (
@@ -102,8 +105,11 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 .translate(str.maketrans("", "", digits))
                 .split("_")[1]
             )
-            logger.info("Source File : {}".format(file_name_trim))
+            logger.info("Source File : {}".format(file_name_trim))           
+            date_partition = file_name.split("_")[-1].split(".")[0][0:8]
 
+            ref_file_folder_path = params["tgt_dstn_folder_name"]+"F_" + file_name_trim.upper() + "_" + str(whouse_tbl).upper()+"/date={}/".format(date_partition)
+            logger.info("Folder to check the respective file: {}".format(ref_file_folder_path))
             # Register a temporary table for the source dataframe.
             df.createOrReplaceTempView("source_tbl")
 
@@ -117,7 +123,7 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 prfx=current_folder_path
             )
             logger.info("Get List of Files from Refined Folder -- Transformed Bucket")
-            ref_folder_file_dict = self.get_list_of_files_from_bucket(file_bucket = self.env_params["transformed_bucket"],
+            ref_folder_file_dict = self.get_list_of_files_from_bucket(file_bucket = self.env_params["refined_bucket"],
                 prfx=ref_file_folder_path
             )
             logger.info("Todays file to find :{}".format(to_find.lower()))
@@ -303,11 +309,11 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 # Read the reference file, if the file is present in the current folder.
                 ref_file_params = utils.get_file_config_params(file_to_read, self.logger)
                 structype_schema = utils.convert_dynamodb_json_schema_to_struct_type_schema(ref_file_params["schema"], self.logger)
-                today_ref_df = super().read_from_s3(
-                    bucket=self.env_params["transformed_bucket"],
-                    path=ref_file_folder_path + file_to_read,
-                    structype_schema = structype_schema
-                )
+                # today_ref_df = super().read_from_s3(
+                #     bucket=self.env_params["transformed_bucket"],
+                #     path=ref_file_folder_path + file_to_read,
+                #     structype_schema = structype_schema
+                # )
                 # register a temporary table for the today_ref_df
                 #today_ref_df.registerTempTable("today_ref_tbl")
                 # Regarding Warehouse tables....
@@ -317,26 +323,32 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 final_qry = None
                 
                 ref_table = to_find + 'dq'
-                logger.info("writing today's ref table to redshift : {}".format(ref_table))
+                
+                create_ref_file_from_whouse_file_qry = """create table {0} as 
+                select * from {1} where file_name = '{2}'""".format(whouse_schema+ref_table,whouse_schema+whouse_empty_tbl,file_to_read)
+                utils.execute_query_in_redshift(create_ref_file_from_whouse_file_qry,self.whouse_details,logger)
+                logger.info("writing today's ref table to redshift completed..")
+                
+                # logger.info("writing today's ref table to redshift : {}".format(ref_table))
 
-                empty_ref_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+ref_table,whouse_schema+whouse_empty_tbl)
-                utils.execute_query_in_redshift(empty_ref_tbl_qry,self.whouse_details,logger)
+                # empty_ref_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+ref_table,whouse_schema+whouse_empty_tbl)
+                # utils.execute_query_in_redshift(empty_ref_tbl_qry,self.whouse_details,logger)
 
-                empty_ref_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+ref_table+self.params["brand"]+'_stage',whouse_schema+whouse_empty_tbl)
-                utils.execute_query_in_redshift(empty_ref_tbl_qry,self.whouse_details,logger)
+                # empty_ref_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+ref_table+self.params["brand"]+'_stage',whouse_schema+whouse_empty_tbl)
+                # utils.execute_query_in_redshift(empty_ref_tbl_qry,self.whouse_details,logger)
 
 
-                dynamic_df1 = DynamicFrame.fromDF(today_ref_df, self.glueContext, "dynamic_df1")
+                # dynamic_df1 = DynamicFrame.fromDF(today_ref_df, self.glueContext, "dynamic_df1")
 
-                connection_options1 = {
-                    "url": redshift_url,
-                    "user": username,
-                    "password": password,
-                    "dbtable": redshift_schema+'.'+ref_table,
-                    "redshiftTmpDir": temp_bucket,
-                    "database": database,
+                # connection_options1 = {
+                #     "url": redshift_url,
+                #     "user": username,
+                #     "password": password,
+                #     "dbtable": redshift_schema+'.'+ref_table,
+                #     "redshiftTmpDir": temp_bucket,
+                #     "database": database,
                     
-                }
+                # }
 
                 # self.glueContext.write_dynamic_frame.from_options(
                 #     frame=dynamic_df,
@@ -345,12 +357,12 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 #     transformation_ctx="datasink1",
                 # )
 
-                self.glueContext.write_dynamic_frame.from_jdbc_conf(
-                    frame=dynamic_df1,
-                    catalog_connection=redshift_conn,
-                    connection_options=connection_options1,
-                    transformation_ctx="datasink1",
-                )
+                # self.glueContext.write_dynamic_frame.from_jdbc_conf(
+                #     frame=dynamic_df1,
+                #     catalog_connection=redshift_conn,
+                #     connection_options=connection_options1,
+                #     transformation_ctx="datasink1",
+                # )
 
                 # transformed_df_to_redshift_table_status = self.write_glue_df_to_redshift(
                 #         df=today_ref_df,
