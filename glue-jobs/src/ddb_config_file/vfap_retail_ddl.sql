@@ -2841,7 +2841,7 @@ sas_product_id VARCHAR(17) ,
 productid VARCHAR(51) ,
 orderid INTEGER ,
 userid INTEGER ,
-price INTEGER ,
+price DOUBLE PRECISION ,
 currency VARCHAR(6) ,
 dt TIMESTAMP WITHOUT TIME ZONE ,
 rmaid varchar(100) ,			--check with Harsh/Phani
