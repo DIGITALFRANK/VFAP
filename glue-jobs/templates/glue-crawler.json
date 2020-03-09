@@ -68,7 +68,7 @@
 	},
 	"Outputs": {
 		"CrawlerName": {
-			"Value": { "Fn::GetAtt": [ "DDBCrawler", "Name" ] }
+			"Value": { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "ddb-crawler" ] ] }
 		}
 	}
 }

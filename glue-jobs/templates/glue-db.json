@@ -20,14 +20,10 @@
 			  "CatalogId" : { "Ref": "AWS::AccountId" },
 			  "DatabaseInput" : {
 				  "Description" : "Catalog DB",
-				  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "catalog-db" ] ] }
+				  "Name" : { "Ref": "Environment" }
 				}
 			}
 		}
 	},
-	"Outputs": {
-		"DBName": {
-			"Value": { "Fn::GetAtt": [ "CatalogDB", "Name" ] }
-		}
-	}
+	"Outputs": {}
 }
