@@ -820,15 +820,31 @@ class utils:
                 port=redshift_port,
             )
             logger.info("Query Execution in Progress...")
-            query1 = """select case when sas_brand_id = '7' then 'TNF' else 'VANS' end as Brand,'F_'||Brand||'_'||'CLASS' as file_name, trunc(process_dtm) as load_date,count(*) as brand_count from vfapdsmigration.class group by 1,2,3 union all
-                         select  case when sas_brand_id = '7' then 'TNF' else 'VANS' end as Brand,  'F_'||Brand||'_'||'COLOR' as file_name, trunc(process_dtm) as load_date,count(*) as brand_count from vfapdsmigration.class group by 1,2,3"""
+            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT 
+from 
+(select file_name as FILE_NAME,count(*) as CNT from {0}.CLASS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.COLOR group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.DEPT group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.PRODUCTXREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.REGION group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.ADDRESS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.STORE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.STYLE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ALT_KEY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_CATEGORY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ATTRIBUTE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_XREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_DETAIL group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
+""".format(redshift_schema)
             cur1 = conn.cursor()
             df_redshift_daily_data = cur1.execute(query1)
             logger.info("Query executed successfully")
             results = df_redshift_daily_data.fetchall()
             logger.info("Results : {}".format(results))
             df_redshift = spark.createDataFrame(
-                results, ["Brand", "file_name", "load_date", "brand_count"]
+                results, ["file_name", "Brand", "CNT"]
             )
             logger.info("df_redshift created.. {} ".format(type(df_redshift)))
             conn.commit()

@@ -735,8 +735,7 @@ CREATE TABLE IF NOT EXISTS vfap_retail.email_xref(
 email_address VARCHAR(111) ,
 customer_id INTEGER ,
 sas_brand_id INTEGER ,
-process_dtm TIMESTAMP default sysdate,
-file_name VARCHAR(200)
+process_dtm TIMESTAMP 
 )
 DISTSTYLE EVEN;
 
@@ -1940,8 +1939,7 @@ CREATE TABLE IF NOT EXISTS vfap_retail.webs_xref(
 sas_brand_id INTEGER ,
 webs_customer_id VARCHAR(88) ,
 customer_id INTEGER ,
-process_dtm TIMESTAMP default sysdate,
-file_name VARCHAR(200)
+process_dtm TIMESTAMP
 )
 DISTSTYLE EVEN;
 COMMIT;
@@ -2841,7 +2839,7 @@ sas_product_id VARCHAR(17) ,
 productid VARCHAR(51) ,
 orderid INTEGER ,
 userid INTEGER ,
-price DOUBLE PRECISION ,
+price INTEGER ,
 currency VARCHAR(6) ,
 dt TIMESTAMP WITHOUT TIME ZONE ,
 rmaid varchar(100) ,			--check with Harsh/Phani
@@ -3018,45 +3016,47 @@ DISTSTYLE EVEN;
 
 
 DROP table vfap_retail.tnf_style_xref_clean;
-CREATE TABLE IF NOT EXISTS vfap_retail.tnf_style_xref_clean( 
-department_code INTEGER ,
-department_description VARCHAR(25) ,
-class_code INTEGER ,
-class_description VARCHAR(25) ,
-style_id INTEGER ,
-vendor_style VARCHAR(6) ,
-style_description VARCHAR(25) ,
-vendor_cd_4 VARCHAR(8) ,
-vendor_cd_6 VARCHAR(6) ,
-cnodeid INTEGER ,
-style_description_short VARCHAR(25) ,
-style_description_long VARCHAR(40) ,
-product_line VARCHAR(39) ,
-sbu VARCHAR(22) ,
-series VARCHAR(13) ,
-newconsumersegmentterritory VARCHAR(18) ,
-newendusesport VARCHAR(23) ,
-newproductcollectionfamily VARCHAR(18) ,
-tnf___clm_description_for_sas VARCHAR(41) ,
-tnf_sas_product_category VARCHAR(50) ,
-product_gender VARCHAR(1) ,
-product_age_group VARCHAR(5) ,
-sas_style_description VARCHAR(100) ,
-gender_age VARCHAR(7) ,
-tb_flag INTEGER ,
-sm_flag INTEGER ,
-fn_flag INTEGER ,
-ss_flag INTEGER ,
-rw_flag INTEGER ,
-fw_flag INTEGER ,
-bcpck_flag INTEGER ,
-trgt_ma_flag INTEGER ,
-trgt_ms_flag INTEGER ,
-trgt_ml_flag INTEGER ,
-trgt_ue_flag INTEGER ,
-process_dtm TIMESTAMP default sysdate
+CREATE TABLE IF NOT EXISTS vfap_retail.tnf_style_xref_clean
+(
+	department_code INTEGER
+	,department_description VARCHAR(25)
+	,class_code INTEGER
+	,class_description VARCHAR(25)
+	,style_id INTEGER
+	,vendor_style VARCHAR(6)
+	,style_description VARCHAR(25)
+	,vendor_cd_4 VARCHAR(8)
+	,vendor_cd_6 VARCHAR(6)
+	,cnodeid INTEGER
+	,style_description_short VARCHAR(25)
+	,style_description_long VARCHAR(40)
+	,product_line VARCHAR(39)
+	,sbu VARCHAR(22)
+	,series VARCHAR(13)
+	,newconsumersegmentterritory VARCHAR(18)
+	,newendusesport VARCHAR(23)
+	,newproductcollectionfamily VARCHAR(18)
+	,tnf___clm_description_for_sas VARCHAR(41)
+	,tnf_sas_product_category VARCHAR(50)
+	,product_gender VARCHAR(1)
+	,product_age_group VARCHAR(5)
+	,sas_style_description VARCHAR(100)
+	,trgt_ma_flag INTEGER
+	,trgt_ms_flag INTEGER
+	,trgt_ml_flag INTEGER
+	,trgt_ue_flag INTEGER
+	,gender_age VARCHAR(7)
+	,tb_flag INTEGER
+	,sm_flag INTEGER
+	,fn_flag INTEGER
+	,ss_flag INTEGER
+	,rw_flag INTEGER
+	,fw_flag INTEGER
+	,bcpck_flag INTEGER
+	,process_dtm TIMESTAMP
 )
-DISTSTYLE EVEN;
+DISTSTYLE EVEN
+;
 
 DROP table vfap_retail.style_xref_clean;
 CREATE TABLE IF NOT EXISTS vfap_retail.style_xref_clean(
@@ -3134,6 +3134,7 @@ style_aka VARCHAR(20) ,
 style_description VARCHAR(29) ,
 retail DOUBLE PRECISION ,
 cost DOUBLE PRECISION ,
+fs_sk INTEGER ,
 vans_prodcat VARCHAR(30) ,
 mte_ind INTEGER ,
 vans_sas_product_category VARCHAR(30) ,
@@ -3156,9 +3157,7 @@ trgt_ultrngls_flag INTEGER ,
 trgt_ultrngpro_flag INTEGER ,
 trgt_bts_flag INTEGER ,
 trgt_new_ultrarange_flag INTEGER ,
-process_dtm TIMESTAMP default sysdate,
-fs_sk INTEGER ,
-file_name VARCHAR(200)
+process_dtm TIMESTAMP
 )
 DISTSTYLE EVEN;
 
@@ -4147,8 +4146,8 @@ CREATE TABLE IF NOT EXISTS vfap_retail.experian_behavior
 	,country_of_origin INTEGER   
 	,totalenhanmatchtype VARCHAR(3)   
 	,process_dtm TIMESTAMP WITHOUT TIME ZONE   
-	,sas_brand_id INTEGER      
-	,file_name VARCHAR(200) 
-	,fs_sk INTEGER
+	,sas_brand_id INTEGER   
+	,fs_sk INTEGER   
+	,file_name VARCHAR(200)   
 )
 ;

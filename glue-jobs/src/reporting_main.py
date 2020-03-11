@@ -53,8 +53,11 @@ def driver(file_name, args):
     # Attempt job run
     try:
         if file_name == "reporting_week_weather_sum":
-            # Only runs on Mondays
-            if datetime.datetime.utcnow().weekday() == 0:
+            # Only runs on Mondays - 0
+            if (
+                datetime.datetime.utcnow().weekday()
+                == reporting_job_obj.params["tr_params"]["run_on_day_of_week"]
+            ):
                 stage_status = reporting_job_obj.reporting_week_weather_sum(
                     input_weather_table=reporting_job_obj.params["tr_params"][
                         "input_tables"
@@ -104,6 +107,12 @@ def driver(file_name, args):
                 redshift_crm_file_not_present_this_week_table=reporting_job_obj.params[
                     "tr_params"
                 ]["redshift_crm_file_not_present_this_week_table"],
+                status_query_end_date=reporting_job_obj.params["tr_params"][
+                    "status_query_end_date"
+                ],
+                status_query_interval_days=reporting_job_obj.params["tr_params"][
+                    "status_query_interval_days"
+                ],
             )
 
         if file_name == "reporting_etl_rpt_missing_dates":

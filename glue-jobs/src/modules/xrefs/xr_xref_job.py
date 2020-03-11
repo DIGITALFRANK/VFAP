@@ -610,6 +610,7 @@ class Xref_Job(Core_Job):
             #     load_mode=response["xref_params"]["write_mode"],
             # )
             new_df = df.withColumn("process_dtm", F.current_timestamp())
+            logger.info("new_df sample records : {}".format(new_df.show(20)))
             write_status = self.write_glue_df_to_redshift(
                 df=new_df,
                 redshift_table=response["xref_params"]["xref_output"],
@@ -787,7 +788,7 @@ class Xref_Job(Core_Job):
             #     mode="overwrite",
             # )
             final_df = loyalty_xref_df.withColumn("process_dtm", F.current_timestamp())
-            loyalty_xref_status = self.write_df_to_redshift_table(
+            loyalty_xref_status = self.write_glue_df_to_redshift(
                 df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
@@ -809,7 +810,7 @@ class Xref_Job(Core_Job):
             )
         return loyalty_xref_status
 
-    def xr_email_xref(self):
+    def xr_email_xref_old(self):
         full_load_df = None
         spark = self.spark
         logger = self.logger
@@ -841,7 +842,7 @@ class Xref_Job(Core_Job):
                         AND mstr.sas_brand_id = uniq.sas_brand_id
                         """
             )
-            full_load_df.show()
+            full_load_df.show(20)
             # logger.info(
             #     "count of records in email_xref table is {}".format(
             #         full_load_df.count()
@@ -866,6 +867,65 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
+        except Exception as error:
+            full_load_df = None
+            logger.error(
+                "Error Ocuured While processiong email_xref due to : {}".format(error),
+                exc_info=True,
+            )
+            status = False
+            raise CustomAppError(
+                moduleName=constant.XR_XREF_JOB,
+                exeptionType=constant.XREF_EXCEPTION,
+                message="Error Ocuured While processiong email_xref due to : {}".format(
+                    traceback.format_exc()
+                ),
+            )
+
+        return status
+
+    def xr_email_xref(self):
+        full_load_df = None
+        spark = self.spark
+        logger = self.logger
+        logger.info("Applying tr_email_xref")
+        try:
+            response = self.params
+            email_xref_qry = "Truncate table {0}.email_xref".format(
+                self.whouse_details["dbSchema"]
+            )
+
+            email_xref_create_qry = """Insert into {0}.email_xref  SELECT 
+                        trim(lower(uniq.email_address)) as email_address,
+                        mstr.customer_id,
+                        uniq.sas_brand_id,
+                        current_timestamp as process_dtm
+                        FROM {0}.cust mstr
+                        INNER JOIN 
+                        (SELECT 
+                        email_address, 
+                        sas_brand_id 
+                        FROM {0}.cust 
+                        WHERE email_address IS NOT NULL 
+                        GROUP BY email_address , sas_brand_id  
+                        HAVING COUNT(DISTINCT customer_id) = 1
+                        ) uniq 
+                        ON mstr.email_address = uniq.email_address
+                        AND mstr.sas_brand_id = uniq.sas_brand_id
+                        """.format(
+                self.whouse_details["dbSchema"]
+            )
+
+            utils.execute_query_in_redshift(email_xref_qry, self.whouse_details, logger)
+            logger.info("Email_Xref created successfully!!!")
+
+            utils.execute_query_in_redshift(
+                email_xref_create_qry, self.whouse_details, logger
+            )
+            logger.info("create_email_Xref created successfully!!!")
+
+            status = True
+
         except Exception as error:
             full_load_df = None
             logger.error(

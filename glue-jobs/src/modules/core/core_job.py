@@ -179,7 +179,7 @@ class Core_Job:
 
     def read_from_s3_without_multilines(self, bucket, path, structype_schema):
         """This function reads data from s3 using spark.read method in Pyspark without multiline option so that if we reading a feed file with multiline feed, we can get physical count of the number of records in the feed
-        
+
         Arguments:
             bucket {[String]} -- Name of the bucket in S3
             path {String} -- s3 object key
@@ -1036,93 +1036,6 @@ class Core_Job:
                 message=constant.DF_TO_REDSHIFT_WRITE_FAILED.format(
                     traceback.format_exc()
                 ),
-            )
-        return status
-
-    def write_df_to_redshift_table(self, df, redshift_table, load_mode):
-        """
-            Parameters:
-
-            df: pyspark.sql.DataFrame
-            redshift_table: str,
-            load_mode: str,
-
-            Returns:
-
-            None
-
-            This function loads a DataFrame from memory into a table in AWS Redshift.
-             The three possible
-            modes for loading are:
-
-                append - appends data to table
-
-                overwrite - deletes all data in table and appends
-
-                errorIfExists - throws an error and fails if the table exists
-
-                ignore - if the table exists, do nothing
-            """
-        logger = self.logger
-        redshift_user = self.whouse_details["username"]
-        redshift_password = self.whouse_details["password"]
-        redshift_schema = self.whouse_details["dbSchema"]
-        logger.info("Attempting to create jdbc url for redshift")
-
-        env_params = self.env_params
-        temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
-
-        #!Commented code is needed for running write to redshift with databricks driver
-        # env_params = self.env_params
-        # temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
-
-        redshift_url = "jdbc:{}://{}:{}/{}".format(
-            self.whouse_details["engine"],
-            self.whouse_details["host"],
-            self.whouse_details["port"],
-            self.whouse_details["dbCatalog"],
-        )
-        logger.info(
-            "Attempting to write DataFrame {} to Redshift table {}.{}".format(
-                df, redshift_schema, redshift_table
-            )
-        )
-        schema_qualified_table = redshift_schema + "." + redshift_table
-        try:
-
-            df.write.format("com.databricks.spark.redshift").option(
-                "url",
-                redshift_url
-                + "?user="
-                + redshift_user
-                + "&password="
-                + redshift_password,
-            ).option("dbtable", schema_qualified_table).option(
-                "tempdir", temp_bucket
-            ).option(
-                "aws_iam_role", env_params["redshift_iam_role"]
-            ).save(
-                mode=load_mode
-            )
-            logger.info(
-                "Successfully wrote DataFrame {} to Redshift table {}".format(
-                    df, schema_qualified_table
-                )
-            )
-            status = True
-
-        except Exception as exception:
-            status = False
-            logger.error(
-                "Unable to write DataFrame {0} to Redshift table {1}: {2}".format(
-                    df, schema_qualified_table, exception
-                ),
-                exc_info=True,
-            )
-            raise IOException.IOError(
-                moduleName=constant.CORE_JOB,
-                exeptionType=constant.IO_WRITE_REDSHIFT_EXCEPTION,
-                message=constant.DF_TO_REDSHIFT_WRITE_FAILED.format(exception),
             )
         return status
 

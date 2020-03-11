@@ -32,7 +32,9 @@ class map_experian_gold(Core_Job):
                 map_table=params["map_params"]["source_target_params"][
                     "xref_cust_xref_final"
                 ],
-                map_params=params["map_params"]["map_experian_gold"],
+                map_params=params["map_params"]["map_experian_gold"][
+                    "cust_no_2_cust_id"
+                ],
             )
 
             # after cust_no_2_cust_id duplicates may exists,so get duplicates and truncate and load destination logic depends on fssk

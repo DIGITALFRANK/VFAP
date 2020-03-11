@@ -33,7 +33,7 @@ class MapUtils(Core_Job):
         try:
             # df = self.read_from_s3(bucket=bucket, path=path)
             df = self.redshift_table_to_dataframe(redshift_table=table)
-            #df.cache()
+            # df.cache()
             df.createOrReplaceTempView(view_name)
             self.logger.info("Creating Temp View : {}".format(view_name))
         except Exception as error:
@@ -71,67 +71,99 @@ class MapUtils(Core_Job):
 
             # read source and create view
             # self.read_from_source_register_view(bucket=src_bucket, path=src_path, view_name=config.MAP_SRC_TEMP_VIEW)
-#            self.read_from_source_register_view(
-#                table=src_table, view_name=config.MAP_SRC_TEMP_VIEW
-#            )
+            #            self.read_from_source_register_view(
+            #                table=src_table, view_name=config.MAP_SRC_TEMP_VIEW
+            #            )
 
             # read map and create view
             # self.read_from_source_register_view(bucket=map_bucket, path=map_path, view_name=config.MAP_TEMP_VIEW)
-#            self.read_from_source_register_view(
-#                table=map_table, view_name=config.MAP_TEMP_VIEW
-#            )
+            #            self.read_from_source_register_view(
+            #                table=map_table, view_name=config.MAP_TEMP_VIEW
+            #            )
             drop_query1 = config.MAP_DROP_QUERY1.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
             logger.info("generic drop table query: {}".format(drop_query1))
             create_query = config.MAP_CREATE_QUERY.format(
-                map_params["projectionExpression"], src_table, map_table, map_params["joinExpression"],self.whouse_details["dbSchema"]
+                map_params["projectionExpression"],
+                src_table,
+                map_table,
+                map_params["joinExpression"],
+                self.whouse_details["dbSchema"],
             )
-            logger.info("generic customerId mapping query to create stage table: {}".format(create_query))
+            logger.info(
+                "generic customerId mapping query to create stage table: {}".format(
+                    create_query
+                )
+            )
             update_query = config.MAP_UPDATE_QUERY.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
-            logger.info("generic customerId mapping query to update stage table: {}".format(update_query))
+            logger.info(
+                "generic customerId mapping query to update stage table: {}".format(
+                    update_query
+                )
+            )
             alter_query1 = config.MAP_ALTER_QUERY1.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
             logger.info("generic alter query to drop column: {}".format(alter_query1))
             alter_query2 = config.MAP_ALTER_QUERY2.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
             logger.info("generic alter query to rename column: {}".format(alter_query2))
             truncate_query = config.MAP_TRUNCATE_QUERY.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
-            logger.info("generic query to truncate source table: {}".format(truncate_query))
+            logger.info(
+                "generic query to truncate source table: {}".format(truncate_query)
+            )
             append_query = config.MAP_APPEND_QUERY.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
-            logger.info("generic query to append stage table records: {}".format(append_query))
+            logger.info(
+                "generic query to append stage table records: {}".format(append_query)
+            )
             drop_query2 = config.MAP_DROP_QUERY2.format(
-                src_table,self.whouse_details["dbSchema"]
+                src_table, self.whouse_details["dbSchema"]
             )
             logger.info("generic drop stage table query: {}".format(drop_query2))
-            query_status_drop1 = utils.execute_query_in_redshift(drop_query1,self.whouse_details,logger)
-            query_status = utils.execute_query_in_redshift(create_query,self.whouse_details,logger)
-            query_status_update = utils.execute_query_in_redshift(update_query,self.whouse_details,logger)
-            query_status_alter1= utils.execute_query_in_redshift(alter_query1,self.whouse_details,logger)
-            query_status_alter2= utils.execute_query_in_redshift(alter_query2,self.whouse_details,logger)
-            query_status_truncate= utils.execute_query_in_redshift(truncate_query,self.whouse_details,logger)
-            query_status_append= utils.execute_query_in_redshift(append_query,self.whouse_details,logger)
-            query_status_drop2= utils.execute_query_in_redshift(drop_query2,self.whouse_details,logger)
-#            mapped_df = (
-#                spark.sql(map_query)
-#                .select("customer_id_updated", F.expr("src_tbl.*"))
-#                .drop("customer_id")
-#                .withColumnRenamed("customer_id_updated", "customer_id")
-#            )
+            query_status_drop1 = utils.execute_query_in_redshift(
+                drop_query1, self.whouse_details, logger
+            )
+            query_status = utils.execute_query_in_redshift(
+                create_query, self.whouse_details, logger
+            )
+            query_status_update = utils.execute_query_in_redshift(
+                update_query, self.whouse_details, logger
+            )
+            query_status_alter1 = utils.execute_query_in_redshift(
+                alter_query1, self.whouse_details, logger
+            )
+            query_status_alter2 = utils.execute_query_in_redshift(
+                alter_query2, self.whouse_details, logger
+            )
+            query_status_truncate = utils.execute_query_in_redshift(
+                truncate_query, self.whouse_details, logger
+            )
+            query_status_append = utils.execute_query_in_redshift(
+                append_query, self.whouse_details, logger
+            )
+            query_status_drop2 = utils.execute_query_in_redshift(
+                drop_query2, self.whouse_details, logger
+            )
+            #            mapped_df = (
+            #                spark.sql(map_query)
+            #                .select("customer_id_updated", F.expr("src_tbl.*"))
+            #                .drop("customer_id")
+            #                .withColumnRenamed("customer_id_updated", "customer_id")
+            #            )
 
-#            logger.info("Mapped customer id results : {}".format(mapped_df.count()))
-#            mapped_df.show(10, truncate=False)
+            #            logger.info("Mapped customer id results : {}".format(mapped_df.count()))
+            #            mapped_df.show(10, truncate=False)
             # mapped_df.select("ORDERS_ID", "EMAIL_ADDRESS", "SAS_BRAND_ID", "CUSTOMER_ID").show(10, truncate=False)
             # super().write_to_tgt()
-#            logger.info("Writing Mapped results to Redshift ")
+            #            logger.info("Writing Mapped results to Redshift ")
             # update_status = super().write_to_tgt(
             #     df=mapped_df,
             #     mode="overwrite",
@@ -139,9 +171,9 @@ class MapUtils(Core_Job):
             #     bucket=src_bucket,
             #     path=src_path,
             # )
-#            update_status = super().write_df_to_redshift_table(
-#                df=mapped_df, redshift_table=src_table, load_mode="overwrite"
-#            )
+            #            update_status = super().write_df_to_redshift_table(
+            #                df=mapped_df, redshift_table=src_table, load_mode="overwrite"
+            #            )
             update_status = query_status_append
         except Exception as error:
             logger.error(
@@ -275,7 +307,6 @@ class MapUtils(Core_Job):
                 ),
             )
 
-
         return loyalty_xref_status
 
     def create_tnf_responsys_xref(self, src_table, tgt_table):
@@ -293,20 +324,26 @@ class MapUtils(Core_Job):
             spark = self.spark
             params = self.params
 
-
             # read tnf_email_sent_view
             # need to identify source/defination of  tnf_email_sent_view which is combination of tnf_email_sent and tnf_email_sent_hist
             # self.read_from_source_register_view(
             #     table=src_table, view_name=config.TNF_EMAIL_SENT_VIEW,
             # )
             self.whouse_details["dbSchema"]
-            tnf_responsys_xref_query = config.TNF_RESPONSYS_XREF_QUERY.format(self.whouse_details["dbSchema"],config.TNF_EMAIL_SENT_VIEW)
+            tnf_responsys_xref_query = config.TNF_RESPONSYS_XREF_QUERY.format(
+                self.whouse_details["dbSchema"], config.TNF_EMAIL_SENT_VIEW
+            )
             logger.info("responsys_xref_query : {}".format(tnf_responsys_xref_query))
-            tnf_responsys_xref_drop_query = config.TNF_RESPONSYS_XREF_DROP_QUERY.format(self.whouse_details["dbSchema"])
-            utils.execute_query_in_redshift(tnf_responsys_xref_drop_query,self.whouse_details,logger)
-            utils.execute_query_in_redshift(tnf_responsys_xref_query,self.whouse_details,logger)
+            tnf_responsys_xref_drop_query = config.TNF_RESPONSYS_XREF_DROP_QUERY.format(
+                self.whouse_details["dbSchema"]
+            )
+            utils.execute_query_in_redshift(
+                tnf_responsys_xref_drop_query, self.whouse_details, logger
+            )
+            utils.execute_query_in_redshift(
+                tnf_responsys_xref_query, self.whouse_details, logger
+            )
             # tnf_responsys_xref_df = spark.sql(tnf_responsys_xref_query)
-            
 
             logger.info("tnf_responsys_xref created successfully!!")
             # tnf_responsys_xref_df.show(10, truncate=False)
@@ -356,7 +393,6 @@ class MapUtils(Core_Job):
             spark = self.spark
             params = self.params
 
-
             self.read_from_source_register_view(
                 table=src_table, view_name=config.MAP_ADOBE_TEMP_VIEW,
             )
@@ -367,11 +403,11 @@ class MapUtils(Core_Job):
             webs_xref_df = spark.sql(webs_xref_query)
 
             logger.info("webs_xref : ")
-            #need to remove used for testsing
-            #webs_xref_df.show(10, truncate=False)
-
-            webs_xref_status = self.write_glue_df_to_redshift(#self.write_df_to_redshift_table(
-                df=webs_xref_df, redshift_table=tgt_table, load_mode=params["write_mode"]
+            # need to remove used for testsing
+            # webs_xref_df.show(10, truncate=False)
+            final_df = webs_xref_df.withColumn("process_dtm", F.current_timestamp())
+            webs_xref_status = self.write_glue_df_to_redshift(  # self.write_df_to_redshift_table(
+                df=final_df, redshift_table=tgt_table, load_mode=params["write_mode"]
             )
 
         except Exception as error:
@@ -409,7 +445,6 @@ class MapUtils(Core_Job):
             spark = self.spark
             params = self.params
 
-
             self.read_from_source_register_view(
                 table=src_table,
                 view_name=config.MAP_TNF_ADOBE_PRODUCTVIEW_ABANDON_TEMP_VIEW,
@@ -430,16 +465,18 @@ class MapUtils(Core_Job):
 
             logger.info("tnf_adobe_cart_xref_final : ")
             tnf_adobe_cart_and_prodview_xref_final_df.show(10, truncate=False)
-
+            cart_xref_final_df = tnf_adobe_cart_and_prodview_xref_final_df.withColumn(
+                "process_dtm", F.current_timestamp()
+            )
             # writing tnf_adobe_cart_and_prodview_xref_final_df to target -> tnf_adobe_cart_xref_final,need to chnage as per target
-            tnf_adobe_cart_xref_final_status = self.write_df_to_redshift_table(
-                df=tnf_adobe_cart_and_prodview_xref_final_df,
+            tnf_adobe_cart_xref_final_status = self.write_glue_df_to_redshift(
+                df=cart_xref_final_df,
                 redshift_table=cart_xref_tgt_table,
                 load_mode="overwrite",
             )
 
-            tnf_adobe_prodview_xref_final_status = self.write_df_to_redshift_table(
-                df=tnf_adobe_cart_and_prodview_xref_final_df,
+            tnf_adobe_prodview_xref_final_status = self.write_glue_df_to_redshift(
+                df=cart_xref_final_df,
                 redshift_table=prodview_xref_tgt_table,
                 load_mode="overwrite",
             )

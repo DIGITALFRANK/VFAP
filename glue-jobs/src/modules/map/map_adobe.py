@@ -5,6 +5,7 @@ from modules.constants import constant
 from modules.exceptions.CustomAppException import CustomAppError
 import traceback
 
+
 class map_adobe(Core_Job):
     def __init__(self, file_name):
         self.file_name = file_name
@@ -32,8 +33,12 @@ class map_adobe(Core_Job):
                 ],
             )
             if webs_xref_status == False:
-                raise CustomAppError(moduleName=constant.MAP_ADOBE,exeptionType=constant.MAP_EXCEPTION,message="webs_xref not loaded")
-            #assert webs_xref_status, "webs_xref not loaded"
+                raise CustomAppError(
+                    moduleName=constant.MAP_ADOBE,
+                    exeptionType=constant.MAP_EXCEPTION,
+                    message="webs_xref not loaded",
+                )
+            # assert webs_xref_status, "webs_xref not loaded"
 
             # TNF_ADOBE_CART_ABANDON
             # adobe_2_cust_id  -- source -> TNF_ADOBE_CART_ABANDON, map ->webs_xref
@@ -82,7 +87,7 @@ class map_adobe(Core_Job):
             tnf_adobe_cart_abandon_df.show(truncate=False)
 
             # load data updated with sas_product_id to target ->tnf_adobe_cart_abandon
-            tnf_adobe_cart_abandon_status = self.write_df_to_redshift_table(
+            tnf_adobe_cart_abandon_status = self.write_glue_df_to_redshift(
                 df=tnf_adobe_cart_abandon_df,
                 redshift_table=params["map_params"]["source_target_params"][
                     "cust_updt_tbl_tnf_adobe_cart_abandon"
@@ -108,7 +113,7 @@ class map_adobe(Core_Job):
             )
 
             # load data updated with sas_product_id to target ->tnf_adobe_productview_abandon
-            tnf_adobe_productview_abandon_status = self.write_df_to_redshift_table(
+            tnf_adobe_productview_abandon_status = self.write_glue_df_to_redshift(
                 df=tnf_adobe_productview_abandon_df,
                 redshift_table=params["map_params"]["source_target_params"][
                     "cust_updt_tbl_tnf_adobe_productview_abandon"
@@ -130,10 +135,13 @@ class map_adobe(Core_Job):
                 ],
             )
 
-            #assert (cart_and_prodview_xref_status), "Unable To Load tnf_adobe_cart_xref_final and tnf_adobe_prodview_xref_final"
+            # assert (cart_and_prodview_xref_status), "Unable To Load tnf_adobe_cart_xref_final and tnf_adobe_prodview_xref_final"
             if cart_and_prodview_xref_status == False:
-                raise CustomAppError(moduleName=constant.MAP_ADOBE,exeptionType=constant.MAP_EXCEPTION,message="Unable To Load tnf_adobe_cart_xref_final and tnf_adobe_prodview_xref_final")
-
+                raise CustomAppError(
+                    moduleName=constant.MAP_ADOBE,
+                    exeptionType=constant.MAP_EXCEPTION,
+                    message="Unable To Load tnf_adobe_cart_xref_final and tnf_adobe_prodview_xref_final",
+                )
 
             # Update the customer_id for same visitor_id
             # adobe_2_cust_id  -- source -> TNF_ADOBE_CART_ABANDON, map ->tnf_adobe_cart_xref_final
@@ -167,11 +175,15 @@ class map_adobe(Core_Job):
         except Exception as error:
             map_status = False
             logger.error(
-                "Error Ocuured While processiong map_adobe due to : {}".format(error),exc_info=True
+                "Error Ocuured While processiong map_adobe due to : {}".format(error),
+                exc_info=True,
             )
-            raise CustomAppError(moduleName=constant.MAP_ADOBE,
-                                 exeptionType=constant.MAP_EXCEPTION,
-                                 message="Error Ocuured While processiong map_adobe due to : {}".format(
-                                     traceback.format_exc()))
+            raise CustomAppError(
+                moduleName=constant.MAP_ADOBE,
+                exeptionType=constant.MAP_EXCEPTION,
+                message="Error Ocuured While processiong map_adobe due to : {}".format(
+                    traceback.format_exc()
+                ),
+            )
 
         return map_status

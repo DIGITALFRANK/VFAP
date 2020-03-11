@@ -333,8 +333,8 @@ class Reporting_Job(Core_Job):
                                                        sas_brand_id,
                                                        gustmph,
                                                        location,
-                                                       maxtempdegf,
-                                                       mintempdegf,
+                                                       maxtempdegf AS maxtemp,
+                                                       mintempdegf AS mintemp,
                                                        prcpin,
                                                        presmb,
                                                        rhpct,
@@ -2014,7 +2014,7 @@ class Reporting_Job(Core_Job):
                     log=log,
                 )
 
-                status = self.write_df_to_redshift_table(
+                status = self.write_glue_df_to_redshift(
                     df=spark.sql("select * from missing_toload"),
                     redshift_table=whistweek_ctrl_dsn,
                     load_mode=output_missing_weeks_table_write_mode,
@@ -2045,11 +2045,8 @@ class Reporting_Job(Core_Job):
             log.info(
                 "Writing {0} rows to {1}".format(master_overwrite_df.count(), outdsn)
             )
-
-            status = self.write_df_to_redshift_table(
-                df=master_overwrite_df,
-                redshift_table=outdsn,
-                load_mode=output_weather_table_write_mode,
+            status = self.write_glue_df_to_redshift(
+                df=master_overwrite_df, redshift_table=outdsn, load_mode=output_weather_table_write_mode
             )
 
             exit_routine(
@@ -2090,6 +2087,7 @@ class Reporting_Job(Core_Job):
         True if success, raises Exception in the event of failure
         """
         try:
+
             def get_missing_dates():
 
                 try:
@@ -2108,10 +2106,18 @@ class Reporting_Job(Core_Job):
                             tables_list_to_call
                         )
                     )
-                    truncate_table_query1="truncate table {1}.{0}".format(missing_date_tbl,dbschema)
-                    utils.execute_query_in_redshift(truncate_table_query1, self.whouse_details, logger)
-                    truncate_table_query2="truncate table {1}.{0}".format(min_max_date_tbl,dbschema)
-                    utils.execute_query_in_redshift(truncate_table_query2, self.whouse_details, logger)
+                    truncate_table_query1 = "truncate table {1}.{0}".format(
+                        missing_date_tbl, dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        truncate_table_query1, self.whouse_details, logger
+                    )
+                    truncate_table_query2 = "truncate table {1}.{0}".format(
+                        min_max_date_tbl, dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        truncate_table_query2, self.whouse_details, logger
+                    )
                     for tbl in tables_list_to_call:
                         tbl_nm = params["tr_params"]["table_list"][tbl]["table_name"]
                         br_id = params["tr_params"]["table_list"][tbl]["sas_brand_id"]
@@ -2122,18 +2128,30 @@ class Reporting_Job(Core_Job):
                         drop_table_query1 = (
                             """drop table if exists {1}.{0}_report_stage"""
                         ).format(tbl_nm, dbschema)
-                        utils.execute_query_in_redshift(drop_table_query1, self.whouse_details, logger)
+                        utils.execute_query_in_redshift(
+                            drop_table_query1, self.whouse_details, logger
+                        )
                         drop_table_query2 = (
                             """drop table if exists {1}.{0}_date_stage"""
                         ).format(tbl_nm, dbschema)
-                        utils.execute_query_in_redshift(drop_table_query2, self.whouse_details, logger)
+                        utils.execute_query_in_redshift(
+                            drop_table_query2, self.whouse_details, logger
+                        )
                         create_min_max_table_query = (
                             """create table {3}.{0}_date_stage DISTSTYLE EVEN as select min({1})::date as min_load_date,
                             max({1})::date as max_load_date,count(*) as count from {3}.{0} where {2}"""
                         ).format(tbl_nm, load_date, filter_clause, dbschema)
-                        logger.info("generic query to create stage table : {}".format(create_min_max_table_query))
-                        utils.execute_query_in_redshift(create_min_max_table_query, self.whouse_details, logger)
-                        date_stage_df = self.redshift_table_to_dataframe(redshift_table=tbl_nm + "_date_stage")
+                        logger.info(
+                            "generic query to create stage table : {}".format(
+                                create_min_max_table_query
+                            )
+                        )
+                        utils.execute_query_in_redshift(
+                            create_min_max_table_query, self.whouse_details, logger
+                        )
+                        date_stage_df = self.redshift_table_to_dataframe(
+                            redshift_table=tbl_nm + "_date_stage"
+                        )
                         max_str_ts = date_stage_df.first()["max_load_date"]
                         if max_str_ts is not None:
                             max_ts = max_str_ts
@@ -2141,8 +2159,8 @@ class Reporting_Job(Core_Job):
                             min_ts = date_stage_df.first()["min_load_date"]
                             logger.info("min_ts value is {}".format(min_ts))
                             three_yr_str = (
-                                    datetime.datetime.date(datetime.datetime.now())
-                                    - datetime.timedelta(days=365 * 3)
+                                datetime.datetime.date(datetime.datetime.now())
+                                - datetime.timedelta(days=365 * 3)
                             ).strftime("%d-%m-%Y")
                             three_yr = datetime.datetime.strptime(
                                 three_yr_str, "%d-%m-%Y"
@@ -2174,7 +2192,7 @@ class Reporting_Job(Core_Job):
                                 ]
                             )
                             calendar_df = spark.createDataFrame(rdd, schema)
-                            self.write_df_to_redshift_table(
+                            self.write_glue_df_to_redshift(
                                 df=calendar_df,
                                 redshift_table="calendar_stage",
                                 load_mode="overwrite",
@@ -2185,8 +2203,7 @@ class Reporting_Job(Core_Job):
                                     params["tr_params"]["table_list"][tbl]["report_nm"]
                                 )
                             )
-                            create_report_table_query = (
-                                """ create table {4}.{0}_report_stage as SELECT '{0}' as table_name,
+                            create_report_table_query = """ create table {4}.{0}_report_stage as SELECT '{0}' as table_name,
                                                             '{2}' as sas_brand_id,
                                                             to_date(c.calendar_dt,'dd-MM-yyyy') as missing_date,
                                                             getdate() as process_dtm,
@@ -2199,54 +2216,83 @@ class Reporting_Job(Core_Job):
                                                         WHERE em.dt IS null 
                                                             AND c.to_dt IS NOT null 
                                                     """.format(
-                                    tbl_nm, load_date, br_id, filter_clause, dbschema
-                                )
+                                tbl_nm, load_date, br_id, filter_clause, dbschema
                             )
-                            utils.execute_query_in_redshift(create_report_table_query, self.whouse_details, logger)
+                            utils.execute_query_in_redshift(
+                                create_report_table_query, self.whouse_details, logger
+                            )
                             logger.info("inserting data")
-                            missing_dates_query = ("""insert into {1}.{2} (select table_name,sas_brand_id,missing_date::timestamp,process_dtm from 
-                            {1}.{0}_report_stage)""".format(tbl_nm, dbschema, missing_date_tbl))
-                            utils.execute_query_in_redshift(missing_dates_query, self.whouse_details, logger)
-                            min_max_date_query = (
-                                    """insert into {1}.{2} 
+                            missing_dates_query = """insert into {1}.{2} (select table_name,sas_brand_id,missing_date::timestamp,process_dtm from 
+                            {1}.{0}_report_stage)""".format(
+                                tbl_nm, dbschema, missing_date_tbl
+                            )
+                            utils.execute_query_in_redshift(
+                                missing_dates_query, self.whouse_details, logger
+                            )
+                            min_max_date_query = """insert into {1}.{2} 
                                     (select '%s' as table_name,'%s' as column_checked,
                                     '%s' as sas_brand_id,'%s'::timestamp as min_dt,'%s'::timestamp as max_dt,
                                     (select count (*)  from  {1}.{0}_report_stage) as total_missing_dates,
                                     count(*) as total_cnt,getdate() as process_dtm from 
-                                    {1}.{0} where {3})""".format(tbl_nm, dbschema, min_max_date_tbl, filter_clause)
-                                    % (tbl_nm, col_nm, br_id, min_f, max_ts)
+                                    {1}.{0} where {3})""".format(
+                                tbl_nm, dbschema, min_max_date_tbl, filter_clause
+                            ) % (
+                                tbl_nm,
+                                col_nm,
+                                br_id,
+                                min_f,
+                                max_ts,
                             )
-                            status = utils.execute_query_in_redshift(min_max_date_query, self.whouse_details, logger)
+                            status = utils.execute_query_in_redshift(
+                                min_max_date_query, self.whouse_details, logger
+                            )
                         else:
                             logger.info("No records are present for the given brand id")
                         drop_table_query3 = (
                             """drop table if exists {1}.{0}_report_stage"""
                         ).format(tbl_nm, dbschema)
-                        utils.execute_query_in_redshift(drop_table_query3, self.whouse_details, logger)
+                        utils.execute_query_in_redshift(
+                            drop_table_query3, self.whouse_details, logger
+                        )
                         drop_table_query4 = (
                             """drop table if exists {1}.{0}_date_stage"""
                         ).format(tbl_nm, dbschema)
-                        utils.execute_query_in_redshift(drop_table_query4, self.whouse_details, logger)
-                    missing_date_stg_df = self.redshift_table_to_dataframe(redshift_table=missing_date_tbl)
-                    min_max_date_stg_df = self.redshift_table_to_dataframe(redshift_table=min_max_date_tbl)
+                        utils.execute_query_in_redshift(
+                            drop_table_query4, self.whouse_details, logger
+                        )
+                    missing_date_stg_df = self.redshift_table_to_dataframe(
+                        redshift_table=missing_date_tbl
+                    )
+                    min_max_date_stg_df = self.redshift_table_to_dataframe(
+                        redshift_table=min_max_date_tbl
+                    )
                     reporting_dttm = datetime.datetime.now().strftime("%d%b%Y")
                     reporting_subject_str = (
-                    "VFC/"
-                    + _LEVEL
-                    + "/"
-                    + reporting_dttm
-                    + " - Missing Date Summary."
+                        "VFC/"
+                        + _LEVEL
+                        + "/"
+                        + reporting_dttm
+                        + " - Missing Date Summary."
                     )
-                    footnote_str = ("Please check warehouse ETL_RPT_MISSING_DATE for more details.\nThis report is produced by reporting_etl_rpt_missing_dates on " + reporting_dttm)
-                    utils_ses.send_report_email(job_name=self.file_name,
-                                            subject=reporting_subject_str,
-                                            dataframes=[min_max_date_stg_df],
-                                            table_titles=["Min & Max dates for each data source in warehouse"],
-                                            log=logger,
-                                            footnote=footnote_str)
+                    footnote_str = (
+                        "Please check warehouse ETL_RPT_MISSING_DATE for more details.\nThis report is produced by reporting_etl_rpt_missing_dates on "
+                        + reporting_dttm
+                    )
+                    utils_ses.send_report_email(
+                        job_name=self.file_name,
+                        subject=reporting_subject_str,
+                        dataframes=[min_max_date_stg_df],
+                        table_titles=[
+                            "Min & Max dates for each data source in warehouse"
+                        ],
+                        log=logger,
+                        footnote=footnote_str,
+                    )
                 except Exception as error:
                     logger.info(
-                        "Error Occurred While processing etl_rpt_missing_dates due to : {}".format(error)
+                        "Error Occurred While processing etl_rpt_missing_dates due to : {}".format(
+                            error
+                        )
                     )
                     raise Exception(
                         "Error Occurred while processing etl_rpt_missing_dates due to: {}".format(
@@ -2273,10 +2319,9 @@ class Reporting_Job(Core_Job):
                 params = self.params
                 get_missing_dates()
                 return constant.success
+
         except Exception as error:
-            raise Exception(
-                "Error occurred in etl_rpt_missing_dates: {}".format(error)
-            )
+            raise Exception("Error occurred in etl_rpt_missing_dates: {}".format(error))
 
         return process(load_mode)
 
@@ -2300,7 +2345,9 @@ class Reporting_Job(Core_Job):
                     )
                     logger.info("enter into util_read_etl_parm_table")
                     today = datetime.datetime.today()
-                    calculated_date = today - datetime.timedelta(days=(today.weekday() - 1))
+                    calculated_date = today - datetime.timedelta(
+                        days=(today.weekday() - 1)
+                    )
                     logger.info("the calculated date is {}".format(calculated_date))
                     _brand_name_prefix = params["brand"]
                     ##Uncomment this line to run the CSV on a day that is out of the week from where is supposed to run, comment the line above
@@ -2333,7 +2380,8 @@ class Reporting_Job(Core_Job):
                     logger.error("Unable to calculate the cutoff date")
                     raise Exception(
                         "Error occurred in util_read_etl_parm_table, unable to calculate the cutoff date : {}".format(
-                            error)
+                            error
+                        )
                     )
                 return _cutoff_date
 
@@ -2357,28 +2405,59 @@ class Reporting_Job(Core_Job):
 
                     dbschema = self.whouse_details["dbSchema"]
                     cutoff_date = util_read_etl_parm_table()
-                    _cutoff_date = datetime.datetime.strptime(cutoff_date, '%d%b%Y').date()
+                    _cutoff_date = datetime.datetime.strptime(
+                        cutoff_date, "%d%b%Y"
+                    ).date()
                     logger.info("cutoff date converted is {}".format(_cutoff_date))
-                    drop_launch_stg_tables_query = ["drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage1".format(dbschema),
-                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage2".format(dbschema),
-                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage3".format(dbschema),
-                                 "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage4".format(dbschema)]
+                    drop_launch_stg_tables_query = [
+                        "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage1".format(
+                            dbschema
+                        ),
+                        "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage2".format(
+                            dbschema
+                        ),
+                        "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage3".format(
+                            dbschema
+                        ),
+                        "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage4".format(
+                            dbschema
+                        ),
+                    ]
 
-                    utils.execute_multiple_queries_in_redshift(drop_launch_stg_tables_query, self.whouse_details, logger)
+                    utils.execute_multiple_queries_in_redshift(
+                        drop_launch_stg_tables_query, self.whouse_details, logger
+                    )
                     tmp_tnf_email_launch_clean_csv_query_stage1 = """CREATE TABLE {0}.x_tmp_tnf_email_launch_clean_stage1 
                                             as SELECT *,
                                             UPPER(campaign_name) AS campaign_name_tmp,
                                             UPPER(subject) as subject_tmp
                                             FROM {0}.{1} where UPPER(launch_type) in ('S', 'P', 'R') 
-                                            AND UPPER(launch_status)='C'""".format(dbschema,launch_view)
-                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage1,
-                                                    self.whouse_details, logger)
+                                            AND UPPER(launch_status)='C'""".format(
+                        dbschema, launch_view
+                    )
+                    utils.execute_query_in_redshift(
+                        tmp_tnf_email_launch_clean_csv_query_stage1,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    alter_table_query1=["alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column campaign_name".format(dbschema),
-                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column subject".format(dbschema),
-                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column subject_tmp to subject".format(dbschema),
-                                       "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column campaign_name_tmp to campaign_name".format(dbschema)]
-                    utils.execute_multiple_queries_in_redshift(alter_table_query1, self.whouse_details, logger)
+                    alter_table_query1 = [
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column campaign_name".format(
+                            dbschema
+                        ),
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 drop column subject".format(
+                            dbschema
+                        ),
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column subject_tmp to subject".format(
+                            dbschema
+                        ),
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage1 rename column campaign_name_tmp to campaign_name".format(
+                            dbschema
+                        ),
+                    ]
+                    utils.execute_multiple_queries_in_redshift(
+                        alter_table_query1, self.whouse_details, logger
+                    )
 
                     tmp_tnf_email_launch_clean_csv_query_stage2 = """create table {0}.x_tmp_tnf_email_launch_clean_stage2 
                            as 
@@ -2399,10 +2478,15 @@ class Reporting_Job(Core_Job):
                            CHARINDEX('OUTOFSTOCK',campaign_name) <= 0 AND
                            CHARINDEX('USSHIPTOSTORE',campaign_name) <= 0 AND
                            CHARINDEX('TEST',subject) <= 0 AND
-                           CHARINDEX('TRIGGERED',subject) <= 0""".format(dbschema)
+                           CHARINDEX('TRIGGERED',subject) <= 0""".format(
+                        dbschema
+                    )
 
-                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage2,
-                                                    self.whouse_details, logger)
+                    utils.execute_query_in_redshift(
+                        tmp_tnf_email_launch_clean_csv_query_stage2,
+                        self.whouse_details,
+                        logger,
+                    )
 
                     tmp_tnf_email_launch_clean_csv_query_stage3 = """ create table {0}.x_tmp_tnf_email_launch_clean_stage3 
                                     as SELECT *,
@@ -2622,13 +2706,26 @@ class Reporting_Job(Core_Job):
                                     ELSE null
                                     END AS Product_category_tmp
                                 FROM {0}.x_tmp_tnf_email_launch_clean_stage2
-                                    """.format(dbschema)
-                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage3,
-                                                    self.whouse_details, logger)
+                                    """.format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        tmp_tnf_email_launch_clean_csv_query_stage3,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    alter_table_query2=["alter table {0}.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category".format(dbschema),
-                                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category".format(dbschema)]
-                    utils.execute_multiple_queries_in_redshift(alter_table_query2, self.whouse_details, logger)
+                    alter_table_query2 = [
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category".format(
+                            dbschema
+                        ),
+                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category".format(
+                            dbschema
+                        ),
+                    ]
+                    utils.execute_multiple_queries_in_redshift(
+                        alter_table_query2, self.whouse_details, logger
+                    )
 
                     tmp_tnf_email_launch_clean_csv_query_stage4 = """ create table {0}.x_tmp_tnf_email_launch_clean_stage4
                             AS 
@@ -2733,30 +2830,52 @@ class Reporting_Job(Core_Job):
                                             THEN 'SURVEY'
                                     ELSE null
                                     END AS email_persona
-                                FROM {0}.x_tmp_tnf_email_launch_clean_stage3""".format(dbschema)
-                    utils.execute_query_in_redshift(tmp_tnf_email_launch_clean_csv_query_stage4,
-                                                    self.whouse_details, logger)
+                                FROM {0}.x_tmp_tnf_email_launch_clean_stage3""".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        tmp_tnf_email_launch_clean_csv_query_stage4,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    drop_temp_table_query = "drop table if exists {0}.x_tmp_tnf_email_launch_clean".format(dbschema)
-                    utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
-                    create_x_tmp_tnf_email_launch_clean_table_query = (
-                        """             Create Table {0}.x_tmp_tnf_email_launch_clean As
+                    drop_temp_table_query = "drop table if exists {0}.x_tmp_tnf_email_launch_clean".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query, self.whouse_details, logger
+                    )
+                    create_x_tmp_tnf_email_launch_clean_table_query = """             Create Table {0}.x_tmp_tnf_email_launch_clean As
                                     SELECT sub.* FROM  
                                             ( SELECT *, 
                                                 ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM {0}.x_tmp_tnf_email_launch_clean_stage4 
                                             ) sub 
-                                    WHERE row_num = 1""".format(dbschema))
-                    utils.execute_query_in_redshift(create_x_tmp_tnf_email_launch_clean_table_query,
-                                                    self.whouse_details, logger)
-                    drop_column_rownum_query = "alter table {0}.x_tmp_tnf_email_launch_clean drop column row_num".format(dbschema)
-                    utils.execute_query_in_redshift(drop_column_rownum_query, self.whouse_details, logger)
+                                    WHERE row_num = 1""".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        create_x_tmp_tnf_email_launch_clean_table_query,
+                        self.whouse_details,
+                        logger,
+                    )
+                    drop_column_rownum_query = "alter table {0}.x_tmp_tnf_email_launch_clean drop column row_num".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_column_rownum_query, self.whouse_details, logger
+                    )
 
-                    utils.execute_multiple_queries_in_redshift(drop_launch_stg_tables_query, self.whouse_details, logger)
+                    utils.execute_multiple_queries_in_redshift(
+                        drop_launch_stg_tables_query, self.whouse_details, logger
+                    )
 
-                    drop_temp_table_query1 = "drop table if exists {0}.x_tmp_tnf_email_sent_clean".format(dbschema)
-                    utils.execute_query_in_redshift(drop_temp_table_query1, self.whouse_details, logger)
-                    create_x_tmp_tnf_email_sent_clean_table_query = (
-                        """             Create Table {0}.x_tmp_tnf_email_sent_clean As
+                    drop_temp_table_query1 = "drop table if exists {0}.x_tmp_tnf_email_sent_clean".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query1, self.whouse_details, logger
+                    )
+                    create_x_tmp_tnf_email_sent_clean_table_query = """             Create Table {0}.x_tmp_tnf_email_sent_clean As
                                         SELECT 
                                             distinct
                                             st.campaign_id,
@@ -2780,18 +2899,26 @@ class Reporting_Job(Core_Job):
                                             LOWER(TRIM(st.email_ISP))  <> 'vfc.com' 
                                             AND st.event_captured_dt::date <= '{2}'
                                     """.format(
-                            dbschema,sent_view,_cutoff_date
+                        dbschema, sent_view, _cutoff_date
+                    )
+                    logger.info(
+                        "generic query to create stage table: {}".format(
+                            create_x_tmp_tnf_email_sent_clean_table_query
                         )
                     )
-                    logger.info("generic query to create stage table: {}".format(
-                        create_x_tmp_tnf_email_sent_clean_table_query))
                     utils.execute_query_in_redshift(
-                        create_x_tmp_tnf_email_sent_clean_table_query, self.whouse_details, logger)
+                        create_x_tmp_tnf_email_sent_clean_table_query,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    drop_temp_table_query2 = "drop table if exists {0}.x_tmp_tnf_email_open_clean".format(dbschema)
-                    utils.execute_query_in_redshift(drop_temp_table_query2, self.whouse_details, logger)
-                    create_x_tmp_tnf_email_open_clean_table_query = (
-                        """            Create Table {0}.x_tmp_tnf_email_open_clean As
+                    drop_temp_table_query2 = "drop table if exists {0}.x_tmp_tnf_email_open_clean".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query2, self.whouse_details, logger
+                    )
+                    create_x_tmp_tnf_email_open_clean_table_query = """            Create Table {0}.x_tmp_tnf_email_open_clean As
                                        SELECT distinct
                                                 op.campaign_id,
                                                 op.launch_id,
@@ -2813,17 +2940,26 @@ class Reporting_Job(Core_Job):
                                                     op.list_id,
                                                     op.riid
                                             """.format(
-                            dbschema,open_view,_cutoff_date
-                        ))
-                    logger.info("generic query to create stage table: {}".format(
-                        create_x_tmp_tnf_email_open_clean_table_query))
+                        dbschema, open_view, _cutoff_date
+                    )
+                    logger.info(
+                        "generic query to create stage table: {}".format(
+                            create_x_tmp_tnf_email_open_clean_table_query
+                        )
+                    )
                     utils.execute_query_in_redshift(
-                        create_x_tmp_tnf_email_open_clean_table_query, self.whouse_details, logger)
+                        create_x_tmp_tnf_email_open_clean_table_query,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    drop_temp_table_query3 = "drop table if exists {0}.x_tmp_tnf_email_click_clean".format(dbschema)
-                    utils.execute_query_in_redshift(drop_temp_table_query3, self.whouse_details, logger)
-                    create_x_tmp_tnf_email_click_clean_table_query = (
-                        """            Create Table {0}.x_tmp_tnf_email_click_clean As
+                    drop_temp_table_query3 = "drop table if exists {0}.x_tmp_tnf_email_click_clean".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query3, self.whouse_details, logger
+                    )
+                    create_x_tmp_tnf_email_click_clean_table_query = """            Create Table {0}.x_tmp_tnf_email_click_clean As
                                         SELECT 
                                             distinct
                                                 cl.campaign_id,
@@ -2844,18 +2980,26 @@ class Reporting_Job(Core_Job):
                                                     cl.list_id,
                                                     cl.riid
                                         """.format(
-                            dbschema,click_view,_cutoff_date
+                        dbschema, click_view, _cutoff_date
+                    )
+                    logger.info(
+                        "generic query to create stage table: {}".format(
+                            create_x_tmp_tnf_email_click_clean_table_query
                         )
                     )
-                    logger.info("generic query to create stage table: {}".format(
-                        create_x_tmp_tnf_email_click_clean_table_query))
                     utils.execute_query_in_redshift(
-                        create_x_tmp_tnf_email_click_clean_table_query, self.whouse_details, logger)
+                        create_x_tmp_tnf_email_click_clean_table_query,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    drop_temp_table_query4 = "drop table if exists {0}.x_tmp_tnf_email_inputs".format(dbschema)
-                    utils.execute_query_in_redshift(drop_temp_table_query4, self.whouse_details, logger)
-                    create_x_tmp_tnf_email_inputs_table_query = (
-                        """            Create Table {0}.x_tmp_tnf_email_inputs As
+                    drop_temp_table_query4 = "drop table if exists {0}.x_tmp_tnf_email_inputs".format(
+                        dbschema
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query4, self.whouse_details, logger
+                    )
+                    create_x_tmp_tnf_email_inputs_table_query = """            Create Table {0}.x_tmp_tnf_email_inputs As
                                         SELECT 	t3.CUSTOMER_ID,
                                             t3.ACT,
                                             t3.CHNL,
@@ -2906,29 +3050,50 @@ class Reporting_Job(Core_Job):
                                             AND t4.list_id = t3.list_id
                                             AND t4.launch_id = t3.launch_id
                                             AND t4.riid = t3.riid 
-                                        """.format(dbschema)
+                                        """.format(
+                        dbschema
                     )
                     logger.info(
-                        "generic query to create stage table: {}".format(create_x_tmp_tnf_email_inputs_table_query))
+                        "generic query to create stage table: {}".format(
+                            create_x_tmp_tnf_email_inputs_table_query
+                        )
+                    )
                     utils.execute_query_in_redshift(
-                        create_x_tmp_tnf_email_inputs_table_query, self.whouse_details, logger)
+                        create_x_tmp_tnf_email_inputs_table_query,
+                        self.whouse_details,
+                        logger,
+                    )
 
-                    transpose_stored_procedure = config.transpose_stored_procedure.format(dbschema)
+                    transpose_stored_procedure = config.transpose_stored_procedure.format(
+                        dbschema
+                    )
 
                     utils.execute_query_in_redshift(
                         transpose_stored_procedure, self.whouse_details, logger
                     )
 
                     cat_list = ["ssn", "gen", "act", "prs", "chnl", "pcat"]
-                    var_list = ["md2o", "md2c", "dsince_o", "freq_s", "freq_o", "freq_c", "pct_o", "pct_c"]
+                    var_list = [
+                        "md2o",
+                        "md2c",
+                        "dsince_o",
+                        "freq_s",
+                        "freq_o",
+                        "freq_c",
+                        "pct_o",
+                        "pct_c",
+                    ]
                     logger.info("entering outer loop")
                     # loops through all category and var lists to create median days to open, median days to click, #sent, #open, #click, %open and %click
                     for i in cat_list:
                         logger.info("the value of i is :{}".format(i))
-                        drop_metrics_table_query = "drop table if exists {1}.temp_tnf_{0}_metrics".format(i,dbschema)
-                        utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
-                        create_x_tmp_tnf_metrics = (
-                            """Create Table {2}.temp_tnf_{0}_metrics As
+                        drop_metrics_table_query = "drop table if exists {1}.temp_tnf_{0}_metrics".format(
+                            i, dbschema
+                        )
+                        utils.execute_query_in_redshift(
+                            drop_metrics_table_query, self.whouse_details, logger
+                        )
+                        create_x_tmp_tnf_metrics = """Create Table {2}.temp_tnf_{0}_metrics As
                                 select tmp.*,
                                   '{1}'::date - dsince_o_tmp as dsince_o,
                                    ROUND((freq_o * 100 / freq_s),1) as pct_o,
@@ -2956,9 +3121,13 @@ class Reporting_Job(Core_Job):
 
                                    ) b
                                    on a.customer_id = b.customer_id and a.{0} = b.{0}
-                                   ) tmp""".format(i,_cutoff_date,dbschema))
+                                   ) tmp""".format(
+                            i, _cutoff_date, dbschema
+                        )
 
-                        utils.execute_query_in_redshift(create_x_tmp_tnf_metrics, self.whouse_details, logger)
+                        utils.execute_query_in_redshift(
+                            create_x_tmp_tnf_metrics, self.whouse_details, logger
+                        )
                         #                                    select tmp.*,
                         #                                    datediff('{}', dsince_o_tmp) as dsince_o,
                         #                                        ROUND((freq_o * 100 / freq_s),1) as pct_o,
@@ -2982,12 +3151,22 @@ class Reporting_Job(Core_Job):
                         #                        df_list.createOrReplaceTempView(table_nm)
 
                         for j in var_list:
-                            transpose_query = "call {2}.create_transpose_tables('','','{0}','{1}')".format(i, j,dbschema)
-                            utils.execute_query_in_redshift(transpose_query, self.whouse_details, logger)
-                        utils.execute_query_in_redshift(drop_metrics_table_query, self.whouse_details, logger)
+                            transpose_query = "call {2}.create_transpose_tables('','','{0}','{1}')".format(
+                                i, j, dbschema
+                            )
+                            utils.execute_query_in_redshift(
+                                transpose_query, self.whouse_details, logger
+                            )
+                        utils.execute_query_in_redshift(
+                            drop_metrics_table_query, self.whouse_details, logger
+                        )
                     logger.info("entering inner join")
-                    drop_temp_table_query = "drop table if exists {0}.{1}".format(dbschema,target_table)
-                    utils.execute_query_in_redshift(drop_temp_table_query, self.whouse_details, logger)
+                    drop_temp_table_query = "drop table if exists {0}.{1}".format(
+                        dbschema, target_table
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_temp_table_query, self.whouse_details, logger
+                    )
                     create_stage_table_query1 = """create table {0}.{1} as
                             select 
                             * 
@@ -3184,16 +3363,29 @@ class Reporting_Job(Core_Job):
                             left OUTER join {0}.pcat_csv_pct_o p7
                             on a.customer_id = p7.customer_id_pcat_pct_o
                             left OUTER join {0}.pcat_csv_pct_c p8
-                            on a.customer_id =  p8.customer_id_pcat_pct_c""".format(dbschema,target_table)
-                    status = utils.execute_query_in_redshift(create_stage_table_query1, self.whouse_details, logger)
+                            on a.customer_id =  p8.customer_id_pcat_pct_c""".format(
+                        dbschema, target_table
+                    )
+                    status = utils.execute_query_in_redshift(
+                        create_stage_table_query1, self.whouse_details, logger
+                    )
                     for i in cat_list:
                         for j in var_list:
-                            drop_join_tables_query = "drop table  if exists {2}.{0}_csv_{1}".format(i, j,dbschema)
+                            drop_join_tables_query = "drop table  if exists {2}.{0}_csv_{1}".format(
+                                i, j, dbschema
+                            )
                             drop_table_extra_columns_query = """alter table {2}.{3}
-                            drop column customer_id_{0}_{1}""".format(i, j,dbschema,target_table)
-                            utils.execute_query_in_redshift(drop_join_tables_query, self.whouse_details, logger)
-                            utils.execute_query_in_redshift(drop_table_extra_columns_query, self.whouse_details,
-                                                            logger)
+                            drop column customer_id_{0}_{1}""".format(
+                                i, j, dbschema, target_table
+                            )
+                            utils.execute_query_in_redshift(
+                                drop_join_tables_query, self.whouse_details, logger
+                            )
+                            utils.execute_query_in_redshift(
+                                drop_table_extra_columns_query,
+                                self.whouse_details,
+                                logger,
+                            )
 
                     logger.info("exiting join")
 
@@ -3230,13 +3422,13 @@ class Reporting_Job(Core_Job):
 
                 run_csv_tnf_build_email_inputs()
                 return constant.success
+
         except Exception as error:
             raise Exception(
                 "Error occurred in reporting_csv_build_email_inputs: {}".format(error)
             )
 
         return process()
-
 
     def reporting_send_daily_etl_job_status_report(
         self,
@@ -3683,7 +3875,7 @@ class Reporting_Job(Core_Job):
                 redshift_output_table
             )
         )
-        self.write_df_to_redshift_table(
+        self.write_glue_df_to_redshift(
             df=daily_etl_job_status_report_df,
             redshift_table=redshift_output_table,
             load_mode=redshift_load_mode,
@@ -3699,6 +3891,8 @@ class Reporting_Job(Core_Job):
         input_glue_etl_file_broker_db,
         redshift_crm_file_summary_table,
         redshift_crm_file_not_present_this_week_table,
+        status_query_end_date,
+        status_query_interval_days,
     ):
         """
         Parameters:
@@ -3709,20 +3903,76 @@ class Reporting_Job(Core_Job):
         input_glue_etl_file_broker_db: str
         redshift_crm_file_summary_table: str
         redshift_crm_file_not_present_this_week_table: str
+        status_query_end_date: str
+        status_query_interval_days: int
 
         Returns:
 
         TODO: Fill out function description
         This function xxx
         """
+
+        def get_CRM_job_status_query(
+            status_query_end_date, status_query_interval_days, log
+        ):
+            """
+            Parameters:
+
+            status_query_end_date: Union[str, None] - This is either None or a string encoded date in the format of YYYY-mm-dd
+            status_query_interval_days: Union[int, None] - This is either None or an integer for the number of days to query statuses over
+            log: logging.Logger
+
+            Returns:
+
+            str - CRM job status query
+
+            This function dynamically builds a query string intended for reading CRM job statuses from
+            existing SparkSQL tables. It handles parameterized values for the interval over which the
+            statuses are queried
+            """
+            log.info("Building CRM job status query")
+            # Handle parameters
+            if status_query_end_date is None:
+                start_date = str(datetime.datetime.now().date())
+            if status_query_interval_days is None:
+                interval = 4
+            else:
+                interval = status_query_interval_days
+            log.info(
+                "Querying CRM job statuses between {0} and {1} days before".format(
+                    start_date, interval
+                )
+            )
+            # Build query
+            query_string = """
+            SELECT file_broker.feed_name AS input_config_file_name,
+                   file_status.file_name AS status_file_name,
+                   file_status.load_date AS status_load_date
+            FROM (SELECT * from df_file_broker_table
+                  WHERE upper(data_source) = 'CRM') AS file_broker
+            LEFT JOIN (SELECT file_name,
+                              SPLIT(refined_to_transformed.update_dttm,' ')[1] AS LOAD_DATE,
+                              REGEXP_REPLACE(file_name,'[0-9]','')  AS file_name_wo_date
+                       FROM df_file_status_table
+                       WHERE UPPER(refined_to_transformed.status) = 'COMPLETED' AND refined_to_transformed.update_dttm BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'%Y-%m-%d') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'%Y-%m-%d')
+                       ORDER BY file_name, load_date) AS file_status
+            ON file_broker.feed_name = file_status.file_name_wo_date
+            """.format(
+                start_date, interval
+            )
+            log.info(
+                "Successfully constructed the CRM job status query - {0}".format(
+                    query_string
+                )
+            )
+            return query_string
+
         try:
             log = self.logger
             glueContext = self.glueContext
             spark = self.spark
             whouse_details = self.whouse_details
             _LEVEL = self.env_params["env_name"]
-            # TODO: Make these function parameters
-
             log.info("Connecting to Athena and get data from it..")
             df_file_status = glueContext.create_dynamic_frame.from_catalog(
                 database=input_glue_job_status_db,
@@ -3748,21 +3998,13 @@ class Reporting_Job(Core_Job):
             df_redshift.createOrReplaceTempView("df_redshift_table")
 
             log.info("Executing query to compute CRM job status")
+
             df_broker_status = spark.sql(
-                """
-            SELECT file_broker.feed_name AS input_config_file_name,
-                   file_status.file_name AS status_file_name,
-                   file_status.load_date AS status_load_date
-            FROM (SELECT * from df_file_broker_table
-                  WHERE upper(data_source) = 'CRM') AS file_broker
-            LEFT JOIN (SELECT file_name,
-                              SPLIT(refined_to_transformed.update_dttm,' ')[1] AS LOAD_DATE,
-                              REGEXP_REPLACE(file_name,'[0-9]','')  AS file_name_wo_date
-                       FROM df_file_status_table
-                       WHERE UPPER(refined_to_transformed.status) = 'COMPLETED' AND refined_to_transformed.update_dttm BETWEEN DATE_FORMAT((current_date - interval '4' day),'%Y-%m-%d') AND DATE_FORMAT((current_date - interval '0' day),'%Y-%m-%d')
-                       ORDER BY file_name, load_date) AS file_status
-            ON file_broker.feed_name = file_status.file_name_wo_date
-            """
+                get_CRM_job_status_query(
+                    status_query_end_date=status_query_end_date,
+                    status_query_interval_days=status_query_interval_days,
+                    log=log,
+                )
             )
             log.info("Successfully computed CRM job status")
             df_broker_status.createOrReplaceTempView("df_broker_status_table")
@@ -3775,12 +4017,11 @@ class Reporting_Job(Core_Job):
                    df_broker_status.status_load_date,
                    df_redshift_daily_data.file_name AS redshift_file_name,
                    df_redshift_daily_data.Brand AS Brand,
-                   df_redshift_daily_data.brand_count AS brand_count,
-                   df_redshift_daily_data.load_date AS redshift_load_date
+                   df_redshift_daily_data.CNT AS CNT
 
                    FROM df_broker_status_table df_broker_status
                    LEFT JOIN df_redshift_table df_redshift_daily_data
-                   ON df_broker_status.input_config_file_name = df_redshift_daily_data.file_name
+                   ON df_broker_status.status_file_name = df_redshift_daily_data.file_name
             """
             )
             log.info("Computed CRM job summary successfully")
@@ -3810,7 +4051,7 @@ class Reporting_Job(Core_Job):
                         )
                     )
                     # TODO: parameterize load mode
-                    transformed_df_to_redshift_table_status = self.write_df_to_redshift_table(
+                    transformed_df_to_redshift_table_status = self.write_glue_df_to_redshift(
                         df=transformed_df,
                         redshift_table=target_table,
                         load_mode="overwrite",
