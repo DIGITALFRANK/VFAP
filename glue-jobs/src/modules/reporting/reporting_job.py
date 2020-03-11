@@ -2014,7 +2014,7 @@ class Reporting_Job(Core_Job):
                     log=log,
                 )
 
-                status = self.write_glue_df_to_redshift(
+                status = self.write_df_to_redshift_table(
                     df=spark.sql("select * from missing_toload"),
                     redshift_table=whistweek_ctrl_dsn,
                     load_mode=output_missing_weeks_table_write_mode,
@@ -2046,7 +2046,9 @@ class Reporting_Job(Core_Job):
                 "Writing {0} rows to {1}".format(master_overwrite_df.count(), outdsn)
             )
             status = self.write_glue_df_to_redshift(
-                df=master_overwrite_df, redshift_table=outdsn, load_mode=output_weather_table_write_mode
+                df=master_overwrite_df,
+                redshift_table=outdsn,
+                load_mode=output_weather_table_write_mode,
             )
 
             exit_routine(
@@ -2192,7 +2194,7 @@ class Reporting_Job(Core_Job):
                                 ]
                             )
                             calendar_df = spark.createDataFrame(rdd, schema)
-                            self.write_glue_df_to_redshift(
+                            self.write_df_to_redshift_table(
                                 df=calendar_df,
                                 redshift_table="calendar_stage",
                                 load_mode="overwrite",
@@ -2260,6 +2262,12 @@ class Reporting_Job(Core_Job):
                         utils.execute_query_in_redshift(
                             drop_table_query4, self.whouse_details, logger
                         )
+                    drop_table_query5 = (
+                        """drop table if exists {0}.calendar_stage"""
+                    ).format(dbschema)
+                    utils.execute_query_in_redshift(
+                        drop_table_query5, self.whouse_details, logger
+                    )
                     missing_date_stg_df = self.redshift_table_to_dataframe(
                         redshift_table=missing_date_tbl
                     )
@@ -3875,7 +3883,7 @@ class Reporting_Job(Core_Job):
                 redshift_output_table
             )
         )
-        self.write_glue_df_to_redshift(
+        self.write_df_to_redshift_table(
             df=daily_etl_job_status_report_df,
             redshift_table=redshift_output_table,
             load_mode=redshift_load_mode,
@@ -3949,14 +3957,14 @@ class Reporting_Job(Core_Job):
                    file_status.file_name AS status_file_name,
                    file_status.load_date AS status_load_date
             FROM (SELECT * from df_file_broker_table
-                  WHERE upper(data_source) = 'CRM') AS file_broker
+                  WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL' ) AS file_broker
             LEFT JOIN (SELECT file_name,
                               SPLIT(refined_to_transformed.update_dttm,' ')[1] AS LOAD_DATE,
                               REGEXP_REPLACE(file_name,'[0-9]','')  AS file_name_wo_date
                        FROM df_file_status_table
                        WHERE UPPER(refined_to_transformed.status) = 'COMPLETED' AND refined_to_transformed.update_dttm BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'%Y-%m-%d') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'%Y-%m-%d')
                        ORDER BY file_name, load_date) AS file_status
-            ON file_broker.feed_name = file_status.file_name_wo_date
+            ON upper(file_broker.feed_name) = upper(file_status.file_name_wo_date)
             """.format(
                 start_date, interval
             )
@@ -4015,24 +4023,46 @@ class Reporting_Job(Core_Job):
             SELECT df_broker_status.input_config_file_name,
                    df_broker_status.status_file_name,
                    df_broker_status.status_load_date,
+                   
                    df_redshift_daily_data.file_name AS redshift_file_name,
                    df_redshift_daily_data.Brand AS Brand,
                    df_redshift_daily_data.CNT AS CNT
 
                    FROM df_broker_status_table df_broker_status
                    LEFT JOIN df_redshift_table df_redshift_daily_data
-                   ON df_broker_status.status_file_name = df_redshift_daily_data.file_name
+                   ON upper(df_broker_status.status_file_name) = upper(df_redshift_daily_data.file_name)
             """
             )
             log.info("Computed CRM job summary successfully")
             df_crm_file_summary.createOrReplaceTempView("df_crm_file_summary_table")
             df_crm_file_not_present_this_week = spark.sql(
-                """
-            SELECT df_crm_file_summary.input_config_file_name AS files_not_present_this_week
-            FROM df_crm_file_summary_table AS df_crm_file_summary
-            WHERE status_file_name IS NULL
-            """
+                """ SELECT 
+A.BRANDS, A.TOTAL_NUMBER_FILES,
+B.TOTAL_RECEIVED_FILES, 
+case when B.TOTAL_RECEIVED_FILES < 15 then 'NO' else 'YES' end as LOAD_FULL_CRM_INDICATOR
+
+FROM 
+(
+SELECT 
+brand as Brands, count(*) as TOTAL_NUMBER_FILES
+from df_file_broker_table WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL'
+group by 1
+) A 
+
+LEFT JOIN 
+(
+SELECT 
+Brand as brands, count(CNT) as TOTAL_RECEIVED_FILES
+from df_crm_file_summary_table
+group by 1
+) B
+
+On upper(A.Brands) = upper(B.Brands)"""
             )
+
+            # SELECT df_crm_file_summary.input_config_file_name AS files_not_present_this_week
+            # FROM df_crm_file_summary_table AS df_crm_file_summary
+            # WHERE status_file_name IS NULL
             log.info("Successfully executed query to compute CRM file summary")
             df_crm_file_summary.persist()
             df_crm_file_not_present_this_week.persist()

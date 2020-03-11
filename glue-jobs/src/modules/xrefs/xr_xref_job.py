@@ -788,7 +788,7 @@ class Xref_Job(Core_Job):
             #     mode="overwrite",
             # )
             final_df = loyalty_xref_df.withColumn("process_dtm", F.current_timestamp())
-            loyalty_xref_status = self.write_glue_df_to_redshift(
+            loyalty_xref_status = self.write_df_to_redshift_table(
                 df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
@@ -1418,7 +1418,9 @@ class Xref_Job(Core_Job):
             full_load_df.createOrReplaceTempView("vans_style_xref_clean")
             print("count of records in full_load_df is {}".format(full_load_df.count()))
             full_load_df.show()
-            final_df = full_load_df.withColumn("process_dtm", F.current_timestamp())
+            final_df = full_load_df.withColumn(
+                "process_dtm", F.current_timestamp()
+            ).withColumn("fs_sk", F.lit(None))
             final_df.show()
             final_df.printSchema()
             status = self.write_glue_df_to_redshift(
