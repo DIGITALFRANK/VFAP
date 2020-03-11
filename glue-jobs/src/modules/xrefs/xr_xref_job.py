@@ -1420,7 +1420,7 @@ class Xref_Job(Core_Job):
             full_load_df.show()
             final_df = full_load_df.withColumn(
                 "process_dtm", F.current_timestamp()
-            ).withColumn("fs_sk", F.lit(None))
+            ).withColumn("fs_sk", F.lit(-1))
             final_df.show()
             final_df.printSchema()
             status = self.write_glue_df_to_redshift(
