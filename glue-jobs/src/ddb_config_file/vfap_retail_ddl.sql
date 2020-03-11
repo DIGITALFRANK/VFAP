@@ -3134,7 +3134,6 @@ style_aka VARCHAR(20) ,
 style_description VARCHAR(29) ,
 retail DOUBLE PRECISION ,
 cost DOUBLE PRECISION ,
-fs_sk INTEGER ,
 vans_prodcat VARCHAR(30) ,
 mte_ind INTEGER ,
 vans_sas_product_category VARCHAR(30) ,
@@ -3157,7 +3156,8 @@ trgt_ultrngls_flag INTEGER ,
 trgt_ultrngpro_flag INTEGER ,
 trgt_bts_flag INTEGER ,
 trgt_new_ultrarange_flag INTEGER ,
-process_dtm TIMESTAMP
+process_dtm TIMESTAMP,
+fs_sk INTEGER
 )
 DISTSTYLE EVEN;
 
