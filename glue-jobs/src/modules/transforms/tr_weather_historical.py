@@ -78,23 +78,23 @@ class tr_weather_historical(Core_Job):
             )
 
             logger.info("Changed Records : ")
-            changed_records_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            # changed_records_df.select(
+            #     "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
+            # ).show(10, truncate=False)
 
             # getting retained records
             retained_records_df = spark.sql(config.retained_records_query)
             logger.info("Retained Records : ")
-            retained_records_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            # retained_records_df.select(
+            #     "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
+            # ).show(10, truncate=False)
 
             # Union Retained and Changed Records
             full_load_df = retained_records_df.unionByName(changed_records_df)
             logger.info("Full Load  Records For Target: ")
-            full_load_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            # full_load_df.select(
+            #     "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
+            # ).show(10, truncate=False)
 
             # returning transformed_data_dict df
             transformed_df_dict = {params["tgt_dstn_tbl_name"]: full_load_df}
