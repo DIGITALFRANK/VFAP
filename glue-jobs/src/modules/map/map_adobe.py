@@ -84,7 +84,7 @@ class map_adobe(Core_Job):
                 .substr(-4, 4),
             )
             logger.info("tnf_adobe_cart_abandon_df after sas_product_id")
-            tnf_adobe_cart_abandon_df.show(truncate=False)
+            # tnf_adobe_cart_abandon_df.show(truncate=False)
 
             # load data updated with sas_product_id to target ->tnf_adobe_cart_abandon
             tnf_adobe_cart_abandon_status = self.write_glue_df_to_redshift(
@@ -104,7 +104,7 @@ class map_adobe(Core_Job):
                 ]
             )
             logger.info("tnf_adobe_productview_abandon_df after sas_product_id")
-            tnf_adobe_productview_abandon_df.show(truncate=False)
+            # tnf_adobe_productview_abandon_df.show(truncate=False)
             tnf_adobe_productview_abandon_df = tnf_adobe_productview_abandon_df.withColumn(
                 "sas_product_id",
                 f.split(tnf_adobe_productview_abandon_df["products"], "-")

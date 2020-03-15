@@ -223,7 +223,7 @@ class MapUtils(Core_Job):
             cm_session_xref_df = spark.sql(cm_session_xref_query)
 
             print("cm_session_xref : ")
-            cm_session_xref_df.show(10, truncate=False)
+            # cm_session_xref_df.show(10, truncate=False)
 
             # writing cm_session_xref to target ,need to chnage as per target
             # cm_session_xref_status = self.write_to_tgt(
@@ -281,7 +281,7 @@ class MapUtils(Core_Job):
             loyalty_xref_df = spark.sql(loyalty_xref_query)
 
             logger.info("loyalty_xref : ")
-            loyalty_xref_df.show(10, truncate=False)
+            # loyalty_xref_df.show(10, truncate=False)
 
             # writing loyalty_xref to target ,need to chnage as per target
             loyalty_xref_status = self.write_to_tgt(
@@ -464,7 +464,7 @@ class MapUtils(Core_Job):
             )
 
             logger.info("tnf_adobe_cart_xref_final : ")
-            tnf_adobe_cart_and_prodview_xref_final_df.show(10, truncate=False)
+            # tnf_adobe_cart_and_prodview_xref_final_df.show(10, truncate=False)
             cart_xref_final_df = tnf_adobe_cart_and_prodview_xref_final_df.withColumn(
                 "process_dtm", F.current_timestamp()
             )
