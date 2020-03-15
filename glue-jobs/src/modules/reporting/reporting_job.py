@@ -6,7 +6,9 @@ from modules.utils.utils_core import utils
 from modules.config import config
 from modules.utils import utils_ses
 from modules.constants import constant
+from modules.utils import utils_dynamo
 from pyspark.sql import functions as F
+from pyspark.sql import Row
 from awsglue.job import Job
 from awsglue.utils import getResolvedOptions
 from modules.exceptions.CustomAppException import CustomAppError
@@ -3169,13 +3171,13 @@ class Reporting_Job(Core_Job):
                             drop_metrics_table_query, self.whouse_details, logger
                         )
                     logger.info("entering inner join")
-                    drop_temp_table_query = "drop table if exists {0}.{1}".format(
+                    drop_temp_table_query = "drop table if exists {0}.{1}_stage".format(
                         dbschema, target_table
                     )
                     utils.execute_query_in_redshift(
                         drop_temp_table_query, self.whouse_details, logger
                     )
-                    create_stage_table_query1 = """create table {0}.{1} as
+                    create_stage_table_query = """create table {0}.{1}_stage as
                             select 
                             * 
                             from 
@@ -3374,8 +3376,49 @@ class Reporting_Job(Core_Job):
                             on a.customer_id =  p8.customer_id_pcat_pct_c""".format(
                         dbschema, target_table
                     )
-                    status = utils.execute_query_in_redshift(
-                        create_stage_table_query1, self.whouse_details, logger
+                    utils.execute_query_in_redshift(
+                        create_stage_table_query, self.whouse_details, logger
+                    )
+                    drop_target_table_query = "drop table if exists {0}.{1}".format(
+                        dbschema, target_table
+                    )
+                    utils.execute_query_in_redshift(
+                        drop_target_table_query, self.whouse_details, logger
+                    )
+                    create_final_tbl_query = """create table {0}.{1} as SELECT *,
+                                    CASE WHEN act_dsince_o_WATER is null AND act_dsince_o_SURF > 0
+                                        THEN act_dsince_o_SURF
+                                        ELSE act_dsince_o_WATER
+                                    END AS act_dsince_o_WATER_tmp,
+                                    CASE WHEN act_pct_o_WATER is null  AND act_pct_o_SURF > 0
+                                        THEN act_pct_o_SURF
+                                        ELSE act_pct_o_WATER
+                                    END AS act_pct_o_WATER_tmp
+                                FROM  {0}.{1}_stage""".format(
+                        dbschema, target_table
+                    )
+
+                    utils.execute_query_in_redshift(
+                        create_final_tbl_query, self.whouse_details, logger
+                    )
+
+                    alter_tbl_query = [
+                        "alter table {0}.{1} drop column act_dsince_o_WATER".format(
+                            dbschema, target_table
+                        ),
+                        "alter table {0}.{1} drop column act_pct_o_WATER".format(
+                            dbschema, target_table
+                        ),
+                        "alter table {0}.{1} rename column act_dsince_o_WATER_tmp to act_dsince_o_WATER".format(
+                            dbschema, target_table
+                        ),
+                        "alter table {0}.{1} rename column act_pct_o_WATER_tmp to act_pct_o_WATER".format(
+                            dbschema, target_table
+                        ),
+                    ]
+
+                    utils.execute_multiple_queries_in_redshift(
+                        alter_tbl_query, self.whouse_details, logger
                     )
                     for i in cat_list:
                         for j in var_list:
@@ -3440,13 +3483,10 @@ class Reporting_Job(Core_Job):
 
     def reporting_send_daily_etl_job_status_report(
         self,
-        glue_db,
-        etl_status_table,
         etl_status_job_column_id,
         etl_status_dttm_column_id,
         etl_status_job_status_column_id,
         etl_status_record_count_column_id,
-        etl_parameter_table,
         etl_parameter_job_column_id,
         etl_parameter_target_column_id,
         redshift_output_table,
@@ -3706,9 +3746,9 @@ class Reporting_Job(Core_Job):
             etl_status_dttm_column_id,
             etl_status_job_status_column_id,
             etl_status_record_count_column_id,
-            etl_parameter_target_column_id,
             etl_status_table,
             etl_parameter_table,
+            etl_parameter_target_column_id,
             etl_parameter_job_column_id,
             spark_session,
         ):
@@ -3717,11 +3757,11 @@ class Reporting_Job(Core_Job):
 
             etl_status_job_column_id: str
             etl_status_dttm_column_id: str
+            etl_status_table: str
+            etl_parameter_table: str
             etl_status_job_status_column_id: str
             etl_status_record_count_column_id: str
             etl_parameter_target_column_id: str
-            etl_status_table: str
-            etl_parameter_table: str
             etl_parameter_job_column_id: str
 
             Returns:
@@ -3765,6 +3805,26 @@ class Reporting_Job(Core_Job):
 
             return output_df
 
+        def pad_missing_fields(record, expected_keys):
+            """
+            Parameters:
+
+            record: Dict[str, Any]
+            expected_keys: List[str]
+
+            Returns:
+
+            Dict[str, Any]
+
+            This function pads a record where expected keys are missing, with
+            key-value pairs with expected key name as key and None as the value
+            """
+            record_keys = record.keys()
+            for expected_key in expected_keys:
+                if expected_key not in record_keys:
+                    record[expected_key] = None
+            return record
+
         log = self.logger
         log.info(
             "Initializing dynamic dataFrame access for sending daily AWS glue job summary report"
@@ -3775,34 +3835,111 @@ class Reporting_Job(Core_Job):
         job = Job(glueContext)
         job.init(args["JOB_NAME"], args)
         log.info("Job successfully initialized")
+        etl_parameter_table = self.env_params["config_table"]
+        etl_status_table = self.env_params["status_table"]
 
-        etl_job_status_report_dynamic_frame = get_glue_table(
-            source_table=etl_status_table,
-            source_database=glue_db,
-            transformation_context="read_crawled_etl_status_table",
-            glueContext=glueContext,
+        #        job_parameter_dynamic_frame = get_glue_table(
+        #            source_table=etl_parameter_table,
+        #            source_database=glue_db,
+        #            transformation_context="read_crawled_etl_parameter_table",
+        #            glueContext=glueContext,
+        #            log=log,
+        #        )
+
+        attribute_list = [etl_parameter_target_column_id, etl_parameter_job_column_id]
+        file_broker_schema = StructType(
+            [
+                StructField(etl_parameter_target_column_id, StringType(), True),
+                StructField(etl_parameter_job_column_id, StringType(), True),
+            ]
+        )
+        file_broker_records = utils_dynamo.get_ddb_attributes(
+            table_name=etl_parameter_table,
+            ddb_region="us-east-1",
+            attribute_list=[
+                etl_parameter_target_column_id,
+                etl_parameter_job_column_id,
+            ],
+            log=log,
+        )
+        log.info(
+            "Pulled following records from DynamoDB table {0} - {1}".format(
+                etl_parameter_table, file_broker_records
+            )
+        )
+        log.info("Padding records with missing fields")
+        padded_file_broker_records = list(
+            map(lambda x: pad_missing_fields(x, attribute_list), file_broker_records)
+        )
+        log.info(
+            "Padded records with missing fields successfully - {0}".format(
+                padded_file_broker_records
+            )
+        )
+        log.info("Constructing DataFrame out of padded records")
+        job_parameter_df = spark.createDataFrame(
+            padded_file_broker_records, schema=file_broker_schema
+        )
+        etl_parameter_table = etl_parameter_table.replace("-","_")
+        log.info("Successfully created DataFrame out of padded records")
+        job_parameter_df.createOrReplaceTempView(etl_parameter_table)
+
+        log.info(
+            "Getting today's ETL job status data from DynamoDB table - {0}".format(
+                etl_status_table
+            )
+        )
+        status_attribute_list = [
+            etl_status_job_column_id,
+            etl_status_dttm_column_id,
+            etl_status_job_status_column_id,
+            etl_status_record_count_column_id,
+        ]
+
+        status_schema = StructType(
+            [
+                StructField(etl_status_job_column_id, StringType(), True),
+                StructField(etl_status_dttm_column_id, StringType(), True),
+                StructField(etl_status_job_status_column_id, StringType(), True),
+                StructField(etl_status_record_count_column_id, IntegerType(), True),
+            ]
+        )
+        status_records = utils_dynamo.get_filtered_ddb_attributes(
+            table_name=etl_status_table,
+            ddb_region="us-east-1",
+            attribute_list=status_attribute_list,
+            filter_attribute=etl_status_dttm_column_id,
+            begins_with_constraints=[str(datetime.datetime.now().date())],
             log=log,
         )
 
-        job_parameter_dynamic_frame = get_glue_table(
-            source_table=etl_parameter_table,
-            source_database=glue_db,
-            transformation_context="read_crawled_etl_parameter_table",
-            glueContext=glueContext,
-            log=log,
-        )
+        # Cast Decimal return type to integer type
+        for record in status_records:
+            if etl_status_record_count_column_id in record.keys():
+                record[etl_status_record_count_column_id] = int(
+                    record[etl_status_record_count_column_id]
+                )
 
-        dynamic_frame_to_spark_catalogue(
-            dynamic_frame=etl_job_status_report_dynamic_frame,
-            table_id=etl_status_table,
-            log=log,
+        log.info(
+            "Pulled following records from DynamoDB table {0} - {1}".format(
+                etl_status_table, status_records
+            )
         )
+        log.info("Padding records with missing fields")
+        padded_status_records = list(
+            map(lambda x: pad_missing_fields(x, status_attribute_list), status_records)
+        )
+        log.info(
+            "Padded records with missing fields successfully - {0}".format(
+                padded_status_records
+            )
+        )
+        log.info("Constructing DataFrame out of padded records")
+        status_df = spark.createDataFrame(padded_status_records, schema=status_schema)
+        log.info("Successfully created DataFrame out of padded records")
 
-        dynamic_frame_to_spark_catalogue(
-            dynamic_frame=job_parameter_dynamic_frame,
-            table_id=etl_parameter_table,
-            log=log,
-        )
+        etl_status_table= etl_status_table.replace("-","_")
+        status_df.createOrReplaceTempView(etl_status_table)
 
         get_todays_etl_job_status_report(
             job_column_id=etl_status_job_column_id,
@@ -3813,8 +3950,6 @@ class Reporting_Job(Core_Job):
             log=log,
         )
 
-        spark.sql("select * from {0}".format(etl_status_table)).show()
-
         remove_timestamp_csv_file_extension(
             table_id=etl_status_table,
             job_column_id=etl_status_job_column_id,
@@ -3824,8 +3959,6 @@ class Reporting_Job(Core_Job):
             log=log,
         )
 
-        spark.sql("select * from {0}".format(etl_status_table)).show()
-
         remove_trailing_underscore(
             table_id=etl_status_table,
             job_column_id=etl_status_job_column_id,
@@ -3843,24 +3976,20 @@ class Reporting_Job(Core_Job):
             record_count_column_id=etl_status_record_count_column_id,
             log=log,
         )
-
-        spark.sql("select * from {0}".format(etl_status_table)).show()
 
         daily_etl_job_status_report_df = enrich_etl_job_status_report(
             etl_status_job_column_id=etl_status_job_column_id,
             etl_status_dttm_column_id=etl_status_dttm_column_id,
             etl_status_job_status_column_id=etl_status_job_status_column_id,
             etl_status_record_count_column_id=etl_status_record_count_column_id,
-            etl_parameter_target_column_id=etl_parameter_target_column_id,
             etl_status_table=etl_status_table,
             etl_parameter_table=etl_parameter_table,
+            etl_parameter_target_column_id=etl_parameter_target_column_id,
             etl_parameter_job_column_id=etl_parameter_job_column_id,
             spark_session=spark,
         )
 
         daily_etl_job_status_report_df.show()
-
-        spark.sql("select * from {0}".format(etl_status_table)).show()
 
         # Send report via email
         log.info("Sending todays ETL job status report by email")
@@ -3893,26 +4022,20 @@ class Reporting_Job(Core_Job):
 
     def reporting_crm_file_checklist(
         self,
-        input_glue_job_status_table,
-        input_glue_job_status_db,
-        input_glue_etl_file_broker,
-        input_glue_etl_file_broker_db,
         redshift_crm_file_summary_table,
         redshift_crm_file_not_present_this_week_table,
         status_query_end_date,
         status_query_interval_days,
+        crm_file_count_constraint,
     ):
         """
         Parameters:
 
-        input_glue_job_status_table: str
-        input_glue_job_status_db: str
-        input_glue_etl_file_broker: str
-        input_glue_etl_file_broker_db: str
         redshift_crm_file_summary_table: str
         redshift_crm_file_not_present_this_week_table: str
         status_query_end_date: str
         status_query_interval_days: int
+        crm_file_count_constraint: int
 
         Returns:
 
@@ -3942,6 +4065,8 @@ class Reporting_Job(Core_Job):
             # Handle parameters
             if status_query_end_date is None:
                 start_date = str(datetime.datetime.now().date())
+            else:
+                start_date = status_query_end_date
             if status_query_interval_days is None:
                 interval = 4
             else:
@@ -3956,17 +4081,17 @@ class Reporting_Job(Core_Job):
             SELECT file_broker.feed_name AS input_config_file_name,
                    file_status.file_name AS status_file_name,
                    file_status.load_date AS status_load_date
-            FROM (SELECT * from df_file_broker_table
+            FROM (SELECT brand, feed_name, data_source from df_file_broker_table
                   WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL' ) AS file_broker
             LEFT JOIN (SELECT file_name,
-                              SPLIT(refined_to_transformed.update_dttm,' ')[1] AS LOAD_DATE,
+                              SPLIT(job_end_time,' ')[1] AS LOAD_DATE,
                               REGEXP_REPLACE(file_name,'[0-9]','')  AS file_name_wo_date
                        FROM df_file_status_table
-                       WHERE UPPER(refined_to_transformed.status) = 'COMPLETED' AND refined_to_transformed.update_dttm BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'%Y-%m-%d') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'%Y-%m-%d')
+                       WHERE job_status = '{2}' AND job_end_time BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'%Y-%m-%d') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'%Y-%m-%d')
                        ORDER BY file_name, load_date) AS file_status
             ON upper(file_broker.feed_name) = upper(file_status.file_name_wo_date)
             """.format(
-                start_date, interval
+                start_date, interval, constant.success
             )
             log.info(
                 "Successfully constructed the CRM job status query - {0}".format(
@@ -3975,30 +4100,158 @@ class Reporting_Job(Core_Job):
             )
             return query_string
 
+        def pad_missing_fields(record, expected_keys):
+            """
+            Parameters:
+
+            record: Dict[str, Any]
+            expected_keys: List[str]
+
+            Returns:
+
+            Dict[str, Any]
+
+            This function pads a record where expected keys are missing, with
+            key-value pairs with expected key name as key and None as the value
+            """
+            record_keys = record.keys()
+            for expected_key in expected_keys:
+                if expected_key not in record_keys:
+                    record[expected_key] = None
+            return record
+
         try:
             log = self.logger
             glueContext = self.glueContext
             spark = self.spark
             whouse_details = self.whouse_details
             _LEVEL = self.env_params["env_name"]
-            log.info("Connecting to Athena and get data from it..")
-            df_file_status = glueContext.create_dynamic_frame.from_catalog(
-                database=input_glue_job_status_db,
-                table_name=input_glue_job_status_table,
-                transformation_ctx="dynFrame1",
-            ).toDF()
-            df_file_broker = glueContext.create_dynamic_frame.from_catalog(
-                database=input_glue_etl_file_broker_db,
+            input_glue_job_status_table = self.env_params["status_table"]
+            input_glue_etl_file_broker = self.env_params["config_table"]
+
+
+            args = getResolvedOptions(sys.argv, ["PASS_FLAG"])
+            if int(args["PASS_FLAG"]) == 1:
+                log.info("Pass flag is set from Glue job, so job is being skipped")
+                return constant.skipped
+
+            log.info("Connecting to DynamoDB via Boto3")
+            attribute_list = ["brand", "feed_name", "data_source"]
+            file_broker_schema = StructType(
+                [
+                    StructField("brand", StringType(), True),
+                    StructField("feed_name", StringType(), True),
+                    StructField("data_source", StringType(), True),
+                ]
+            )
+            file_broker_records = utils_dynamo.get_ddb_attributes(
                 table_name=input_glue_etl_file_broker,
-                transformation_ctx=" dynFrame2",
-            ).toDF()
-            # Persist tables in memory due to multiple subsequent actions being called
+                ddb_region="us-east-1",
+                attribute_list=["brand", "feed_name", "data_source"],
+                log=log,
+            )
             log.info(
-                "Successfully read {0} and {1} from Glue catalogue".format(
-                    input_glue_job_status_table, input_glue_etl_file_broker
+                "Pulled following records from DynamoDB table {0} - {1}".format(
+                    input_glue_etl_file_broker, file_broker_records
                 )
             )
+            log.info("Padding records with missing fields")
+            padded_file_broker_records = list(
+                map(
+                    lambda x: pad_missing_fields(x, attribute_list), file_broker_records
+                )
+            )
+            log.info(
+                "Padded records with missing fields successfully - {0}".format(
+                    padded_file_broker_records
+                )
+            )
+            log.info("Constructing DataFrame out of padded records")
+            df_file_broker = spark.createDataFrame(
+                padded_file_broker_records, schema=file_broker_schema
+            )
+            log.info("Successfully created DataFrame out of padded records")
             log.info("ETL file broker table count: {}".format(df_file_broker.count()))
+
+            ##################
+
+            #            log.info("Connecting to Athena and get data from it..")
+            #            df_file_status = glueContext.create_dynamic_frame.from_catalog(
+            #                database=input_glue_job_status_db,
+            #                table_name=input_glue_job_status_table,
+            #                transformation_ctx="dynFrame1",
+            #            ).toDF()
+            #            df_file_status.persist()
+            #            log.info(
+            #                "Number of records pulled from DynamoDB table {0} - {1}".format(
+            #                    input_glue_job_status_table, df_file_status.count()
+            #                )
+            #            )
+            #            df_file_broker = glueContext.create_dynamic_frame.from_catalog(
+            #                database=input_glue_etl_file_broker_db,
+            #                table_name=input_glue_etl_file_broker,
+            #                transformation_ctx=" dynFrame2",
+            #            ).toDF()
+            # Persist tables in memory due to multiple subsequent actions being called
+
+            #####################
+
+            if status_query_end_date is None:
+                status_query_end_date = str(datetime.datetime.now().date())
+
+            status_attribute_list = [
+                "file_name",
+                "job_end_time",
+                "job_status",
+            ]
+            status_schema = StructType(
+                [
+                    StructField("file_name", StringType(), True),
+                    StructField("job_end_time", StringType(), True),
+                    StructField("job_status", StringType(), True),
+                ]
+            )
+            status_records = []
+            status_day_filter = status_query_end_date
+            for day in range(int(status_query_interval_days) + 1):
+                status_records = utils_dynamo.get_filtered_ddb_attributes(
+                    table_name=input_glue_job_status_table,
+                    ddb_region="us-east-1",
+                    attribute_list=status_attribute_list,
+                    filter_attribute="job_end_time",
+                    begins_with_constraints=[status_day_filter],
+                    log=log,
+                )
+                status_day_filter = str(
+                    datetime.datetime.strptime(status_day_filter, "%Y-%m-%d").date()
+                    - datetime.timedelta(days=1)
+                )
+
+            log.info(
+                "Pulled following records from DynamoDB table {0} - {1}".format(
+                    input_glue_job_status_table, status_records
+                )
+            )
+            log.info("Padding records with missing fields")
+            padded_status_records = list(
+                map(
+                    lambda x: pad_missing_fields(x, status_attribute_list),
+                    status_records,
+                )
+            )
+            log.info(
+                "Padded records with missing fields successfully - {0}".format(
+                    padded_status_records
+                )
+            )
+            log.info("Constructing DataFrame out of padded records")
+            df_file_status = spark.createDataFrame(
+                padded_status_records, schema=status_schema
+            )
+            log.info("Successfully created DataFrame out of padded records")
+
+            ##############################
+
             df_file_status.createOrReplaceTempView("df_file_status_table")
             df_file_broker.createOrReplaceTempView("df_file_broker_table")
 
@@ -4010,10 +4263,11 @@ class Reporting_Job(Core_Job):
             df_broker_status = spark.sql(
                 get_CRM_job_status_query(
                     status_query_end_date=status_query_end_date,
-                    status_query_interval_days=status_query_interval_days,
+                    status_query_interval_days=int(status_query_interval_days),
                     log=log,
                 )
             )
+            log.info("Successfully computed CRM job status")
             log.info("Successfully computed CRM job status")
             df_broker_status.createOrReplaceTempView("df_broker_status_table")
 
@@ -4023,7 +4277,6 @@ class Reporting_Job(Core_Job):
             SELECT df_broker_status.input_config_file_name,
                    df_broker_status.status_file_name,
                    df_broker_status.status_load_date,
-                   
                    df_redshift_daily_data.file_name AS redshift_file_name,
                    df_redshift_daily_data.Brand AS Brand,
                    df_redshift_daily_data.CNT AS CNT
@@ -4038,8 +4291,8 @@ class Reporting_Job(Core_Job):
             df_crm_file_not_present_this_week = spark.sql(
                 """ SELECT 
 A.BRANDS, A.TOTAL_NUMBER_FILES,
-B.TOTAL_RECEIVED_FILES, 
-case when B.TOTAL_RECEIVED_FILES < 15 then 'NO' else 'YES' end as LOAD_FULL_CRM_INDICATOR
+case when B.TOTAL_RECEIVED_FILES is null then 0 else B.TOTAL_RECEIVED_FILES end as TOTAL_RECEIVED_FILES, 
+case when B.TOTAL_RECEIVED_FILES = {0} then 'YES' else 'NO' end as LOAD_FULL_CRM_INDICATOR
 
 FROM 
 (
@@ -4057,7 +4310,9 @@ from df_crm_file_summary_table
 group by 1
 ) B
 
-On upper(A.Brands) = upper(B.Brands)"""
+On upper(A.Brands) = upper(B.Brands)""".format(
+                    crm_file_count_constraint
+                )
             )
 
             # SELECT df_crm_file_summary.input_config_file_name AS files_not_present_this_week
@@ -4067,6 +4322,9 @@ On upper(A.Brands) = upper(B.Brands)"""
             df_crm_file_summary.persist()
             df_crm_file_not_present_this_week.persist()
 
+            crm_file_count_indicator = df_crm_file_not_present_this_week.where(
+                df_crm_file_not_present_this_week.LOAD_FULL_CRM_INDICATOR != "YES"
+            ).count()
             transformed_tables_dict = {
                 redshift_crm_file_summary_table: df_crm_file_summary,
                 redshift_crm_file_not_present_this_week_table: df_crm_file_not_present_this_week,
@@ -4081,7 +4339,7 @@ On upper(A.Brands) = upper(B.Brands)"""
                         )
                     )
                     # TODO: parameterize load mode
-                    transformed_df_to_redshift_table_status = self.write_glue_df_to_redshift(
+                    transformed_df_to_redshift_table_status = self.write_df_to_redshift_table(
                         df=transformed_df,
                         redshift_table=target_table,
                         load_mode="overwrite",
@@ -4115,9 +4373,12 @@ On upper(A.Brands) = upper(B.Brands)"""
                 log=log,
             )
 
+            if crm_file_count_indicator > 0:
+                raise Exception("CRM received file count less than required threshold")
+
             return constant.success
 
-        except Exception as error:
+        except BaseException as error:
             log.error(
                 "Error Occurred While processing run_full_file_checklist due to : {}".format(
                     error

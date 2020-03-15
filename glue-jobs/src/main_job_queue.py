@@ -472,7 +472,7 @@ def get_feeds_and_destinations(
         return response
     except BaseException:
         error_msg = "Failed to pull attributes {0}, {1} from DynamoDB table - {2}".format(
-            feed_name_attribute, target_table_attribute
+            feed_name_attribute, target_table_attribute, table_name
         )
         log.error(error_msg)
         log.error(traceback.format_exc())

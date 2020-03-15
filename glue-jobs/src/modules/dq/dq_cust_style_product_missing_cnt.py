@@ -158,11 +158,21 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 ref_file_params = utils.get_file_config_params(file_to_read, self.logger)
                 structype_schema = utils.convert_dynamodb_json_schema_to_struct_type_schema(ref_file_params["schema"], self.logger)
                 # Read the reference file, if the file is present in the current folder.
-                today_ref_df = super().read_from_s3(
+                
+                obj1 = Core_Job(file_to_read)
+
+                today_ref_df = obj1.read_from_s3(
                     bucket=self.env_params["refined_bucket"],
                     path=current_folder_path + file_to_read,
                     structype_schema=structype_schema
                 )
+
+
+                # today_ref_df = super().read_from_s3(
+                #     bucket=self.env_params["refined_bucket"],
+                #     path=current_folder_path + file_to_read,
+                #     structype_schema=structype_schema
+                # )
                 
                
 
@@ -184,6 +194,12 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                               
                 ref_table = to_find + 'dq'
                 logger.info("writing today's ref table to redshift : {}".format(ref_table))
+
+                # Deleting the staging tables and dq tables we created.
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+ref_table),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+ref_table+self.params["brand"]+'_stage'),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table+self.params["brand"]+'_stage'),self.whouse_details,logger)
                 
                 empty_ref_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+ref_table,whouse_schema+whouse_empty_tbl)
                 utils.execute_query_in_redshift(empty_ref_tbl_qry,self.whouse_details,logger)
@@ -323,6 +339,14 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 final_qry = None
                 
                 ref_table = to_find + 'dq'
+
+                # Deleting the staging tables and dq tables we created.
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+ref_table),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+ref_table+self.params["brand"]+'_stage'),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table),self.whouse_details,logger)
+                utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table+self.params["brand"]+'_stage'),self.whouse_details,logger)
+                
+                
                 
                 create_ref_file_from_whouse_file_qry = """create table {0} as 
                 select * from {1} where file_name = '{2}'""".format(whouse_schema+ref_table,whouse_schema+whouse_empty_tbl,file_to_read)

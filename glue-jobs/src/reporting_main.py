@@ -89,18 +89,6 @@ def driver(file_name, args):
         if file_name == "reporting_crm_file_checklist":
             logger.info("Job reporting_crm_file_checklist started")
             stage_status = reporting_job_obj.reporting_crm_file_checklist(
-                input_glue_job_status_table=reporting_job_obj.params["tr_params"][
-                    "input_glue_job_status_table"
-                ],
-                input_glue_job_status_db=reporting_job_obj.params["tr_params"][
-                    "input_glue_job_status_db"
-                ],
-                input_glue_etl_file_broker=reporting_job_obj.params["tr_params"][
-                    "input_glue_etl_file_broker"
-                ],
-                input_glue_etl_file_broker_db=reporting_job_obj.params["tr_params"][
-                    "input_glue_etl_file_broker_db"
-                ],
                 redshift_crm_file_summary_table=reporting_job_obj.params["tr_params"][
                     "redshift_crm_file_summary_table"
                 ],
@@ -112,6 +100,9 @@ def driver(file_name, args):
                 ],
                 status_query_interval_days=reporting_job_obj.params["tr_params"][
                     "status_query_interval_days"
+                ],
+                crm_file_count_constraint=reporting_job_obj.params["tr_params"][
+                    "crm_file_count_constraint"
                 ],
             )
 
@@ -127,10 +118,6 @@ def driver(file_name, args):
 
         if file_name == "reporting_send_daily_etl_job_status_report":
             stage_status = reporting_job_obj.reporting_send_daily_etl_job_status_report(
-                glue_db=reporting_job_obj.params["tr_params"]["glue_db"],
-                etl_status_table=reporting_job_obj.params["tr_params"][
-                    "etl_status_table"
-                ],
                 etl_status_job_column_id=reporting_job_obj.params["tr_params"][
                     "etl_status_job_column_id"
                 ],
@@ -142,9 +129,6 @@ def driver(file_name, args):
                 ],
                 etl_status_record_count_column_id=reporting_job_obj.params["tr_params"][
                     "etl_status_record_count_column_id"
-                ],
-                etl_parameter_table=reporting_job_obj.params["tr_params"][
-                    "etl_parameter_table"
                 ],
                 etl_parameter_job_column_id=reporting_job_obj.params["tr_params"][
                     "etl_parameter_job_column_id"

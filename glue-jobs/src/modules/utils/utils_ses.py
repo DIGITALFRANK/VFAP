@@ -306,7 +306,7 @@ def _append_spark_table_to_html_string(html_string, title, df, footnote, log):
     """
     # Build an HTML string specifying line and 4 spaces delimited table headers
     cols = df.columns
-    col_string = "\n    ".join(["<th>{0}</th>".format(col) for col in cols])
+    col_string = "\n    ".join(["<th>{0}</th>".format(col.upper()) for col in cols])
     html_string += """
 <p></p>
 <h4>{0}</h4>
@@ -519,10 +519,7 @@ def send_report_email(
         )
 
     html = build_html_summary(
-        dataframes=dataframes,
-        table_titles=table_titles,
-        footnote=footnote,
-        log=log,
+        dataframes=dataframes, table_titles=table_titles, footnote=footnote, log=log
     )
 
     for recipient in recipient_list:
@@ -543,6 +540,7 @@ def send_report_email(
         )
 
     return
+
 
 def send_absent_report_email(
     job_name,
