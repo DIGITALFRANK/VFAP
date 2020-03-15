@@ -703,11 +703,11 @@ class Xref_Job(Core_Job):
 
             cm_session_xref_query = config.CM_SESSION_XREF_QUERY
             cm_session_xref_df = spark.sql(cm_session_xref_query)
-            print(cm_session_xref_df.show())
+            # print(cm_session_xref_df.show())
 
-            print("cm_session_xref : ", cm_reg_view.show())
-            print("email_xref : ", email_view.show())
-            cm_session_xref_df.show(10, truncate=False)
+            # print("cm_session_xref : ", cm_reg_view.show())
+            # print("email_xref : ", email_view.show())
+            # cm_session_xref_df.show(10, truncate=False)
 
             # writing cm_session_xref to target ,need to chnage as per target
             # cm_session_xref_status = self.write_to_tgt(
