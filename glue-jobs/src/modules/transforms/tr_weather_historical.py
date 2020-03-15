@@ -45,14 +45,12 @@ class tr_weather_historical(Core_Job):
             #     redshift_table=params["tgt_dstn_tbl_name"]
             # )
             # add sas_process_dt column having date value from file_name
-            refined_df = df.withColumn(
-                "fs_sk",
-                lit(None)
-                .cast(IntegerType())
+            refined_df = (
+                df.withColumn("fs_sk", lit(None).cast(IntegerType()))
                 .withColumn("sas_brand_id", lit(int(params["sas_brand_id"])))
                 .withColumn("SAS_PROCESS_DT", F.lit(params["file_date"]))
                 .withColumn("process_dtm", F.current_timestamp())
-                .withColumn("file_name", F.lit(self.file_name)),
+                .withColumn("file_name", F.lit(self.file_name))
             )
 
             # renaming columns from I_TNF_WeatherTrends_vf_historical_data file as present at destination
