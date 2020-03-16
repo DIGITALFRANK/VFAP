@@ -2354,14 +2354,13 @@ class Reporting_Job(Core_Job):
                         redshift_table="etl_parm"
                     )
                     logger.info("enter into util_read_etl_parm_table")
-                    today = datetime.datetime.today()
-                    calculated_date = today - datetime.timedelta(
-                        days=(today.weekday() - 1)
-                    )
-                    logger.info("the calculated date is {}".format(calculated_date))
                     _brand_name_prefix = params["brand"]
-                    ##Uncomment this line to run the CSV on a day that is out of the week from where is supposed to run, comment the line above
-                    # calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
+                    today = datetime.datetime.today()
+                    if today.weekday()==0:
+                        calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
+                    else:
+                        calculated_date = today - datetime.timedelta(days=(today.weekday()-1))
+                    logger.info("the calculated date is {}".format(calculated_date))
                     whouse_etl_parm.createOrReplaceTempView("whouse_etl_parm_view")
                     df = spark.sql(
                         """select 
@@ -3106,8 +3105,14 @@ class Reporting_Job(Core_Job):
                         create_x_tmp_tnf_metrics = """Create Table {2}.temp_tnf_{0}_metrics As
                                 select tmp.*,
                                   '{1}'::date - dsince_o_tmp as dsince_o,
-                                   ROUND((freq_o * 100 / freq_s),1) as pct_o,
-                                   1 as pct_c
+                                   CASE
+                                       WHEN freq_s = 0 THEN NULL
+                                   ELSE ROUND((freq_o * 100 / freq_s),1)
+                                   END AS pct_o,
+                                   CASE
+                                       WHEN freq_o = 0 THEN NULL
+                                   ELSE ROUND((freq_c * 100 / freq_o),1)
+                                   END AS pct_c
                                FROM 
                                    (select a.*, b.md2c from
 
@@ -3138,27 +3143,6 @@ class Reporting_Job(Core_Job):
                         utils.execute_query_in_redshift(
                             create_x_tmp_tnf_metrics, self.whouse_details, logger
                         )
-                        #                                    select tmp.*,
-                        #                                    datediff('{}', dsince_o_tmp) as dsince_o,
-                        #                                        ROUND((freq_o * 100 / freq_s),1) as pct_o,
-                        #                                        ROUND((freq_c * 100 / freq_o),1) as pct_c
-                        #                                    FROM
-                        #                                        (SELECT  customer_id, %s,
-                        #                                            percentile_approx(days_to_open,0.5) as md2o,
-                        #                                            percentile_approx(days_to_click,0.5) as md2c,
-                        #                                            max(most_recent_o)as dsince_o_tmp,
-                        #                                            count(*) as freq_s,
-                        #                                            sum(open_ind) as freq_o,
-                        #                                            sum(click_ind) as freq_c
-                        #                                        FROM whouse_x_tmp_tnf_email_inputs
-                        #                                        WHERE %s is not null
-                        #                                        GROUP BY customer_id, %s ) tmp """.format(
-                        #                                _cutoff_date
-                        #                            )
-                        #                            % (i, i, i)
-                        #                        )
-                        #                        table_nm = "temp_tnf_" + i + "_metrics"
-                        #                        df_list.createOrReplaceTempView(table_nm)
 
                         for j in var_list:
                             transpose_query = "call {2}.create_transpose_tables('','','{0}','{1}')".format(
@@ -3379,12 +3363,33 @@ class Reporting_Job(Core_Job):
                     utils.execute_query_in_redshift(
                         create_stage_table_query, self.whouse_details, logger
                     )
+
+                    logger.info("dropping the stage tables")
+                    for i in cat_list:
+                        for j in var_list:
+                            drop_join_tables_query = "drop table  if exists {2}.{0}_csv_{1}".format(
+                                i, j, dbschema
+                            )
+                            drop_table_extra_columns_query = """alter table {2}.{3}_stage
+                            drop column customer_id_{0}_{1}""".format(
+                                i, j, dbschema, target_table
+                            )
+                            utils.execute_query_in_redshift(
+                                drop_join_tables_query, self.whouse_details, logger
+                            )
+                            utils.execute_query_in_redshift(
+                                drop_table_extra_columns_query,
+                                self.whouse_details,
+                                logger,
+                            )
+                    
                     drop_target_table_query = "drop table if exists {0}.{1}".format(
                         dbschema, target_table
                     )
                     utils.execute_query_in_redshift(
                         drop_target_table_query, self.whouse_details, logger
                     )
+                    
                     create_final_tbl_query = """create table {0}.{1} as SELECT *,
                                     CASE WHEN act_dsince_o_WATER is null AND act_dsince_o_SURF > 0
                                         THEN act_dsince_o_SURF
@@ -3420,25 +3425,7 @@ class Reporting_Job(Core_Job):
                     utils.execute_multiple_queries_in_redshift(
                         alter_tbl_query, self.whouse_details, logger
                     )
-                    for i in cat_list:
-                        for j in var_list:
-                            drop_join_tables_query = "drop table  if exists {2}.{0}_csv_{1}".format(
-                                i, j, dbschema
-                            )
-                            drop_table_extra_columns_query = """alter table {2}.{3}
-                            drop column customer_id_{0}_{1}""".format(
-                                i, j, dbschema, target_table
-                            )
-                            utils.execute_query_in_redshift(
-                                drop_join_tables_query, self.whouse_details, logger
-                            )
-                            utils.execute_query_in_redshift(
-                                drop_table_extra_columns_query,
-                                self.whouse_details,
-                                logger,
-                            )
 
-                    logger.info("exiting join")
 
                 except Exception as error:
                     logger.error(
