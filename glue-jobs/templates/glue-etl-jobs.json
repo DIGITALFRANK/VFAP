@@ -100,6 +100,7 @@
 			  "--JOB_PARAM": { "Ref": "JobParamArgument" },
 			  "--JOB_TYPE": { "Ref": "JobTypeArgument" },
 			  "--enable-metrics": "",
+			  "--PASS_FLAG": "0",
 			  "--enable-continuous-cloudwatch-log": "",
 			  "--TempDir": { "Fn::Join": [ "-", [ "s3://vf-datalake", { "Ref": "Environment" }, "refined/temp" ] ] },
 			  "--extra-py-files": "s3://vf-artifacts-bucket/vfap/glue-jobs/src/site-packages.zip,s3://vf-artifacts-bucket/vfap/glue-jobs/src/glue-etl.zip",

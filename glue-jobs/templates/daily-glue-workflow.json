@@ -44,10 +44,6 @@
             "Description": "ETL Report Missing Dates Job name",
             "Type": "String"
         },
-		"CrawlerName": {
-            "Description": "Crawler name",
-            "Type": "String"
-        },
 		"StartOnCreation": {
             "Description": "Start On Creation (true or false)",
             "Type": "String"
@@ -122,14 +118,14 @@
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		},
-		"DDBCrawlerTrigger": {
+		"DailyStatusReportTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "CrawlerName" : { "Ref": "CrawlerName" } }
+				{  "JobName" : { "Ref": "StatusReportJob" } }
 			  ],
-			  "Description" : "DynamoDB crawler trigger",
-			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-ddb-crawler-trigger" ] ] },
+			  "Description" : "daily status trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-status-trigger" ] ] },
 			  "Predicate" : {
 				"Conditions" : [ 
 					{
@@ -144,35 +140,6 @@
 					} 
 				],
 				"Logical" : "AND"
-			  },
-			  "Tags" : {
-				"CostCenter":"118204800",
-				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
-				"Environment":{ "Ref": "Environment" },
-				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
-				"ResourceGroup":{ "Ref": "ResourceGroup" },
-				"Application":{ "Ref": "Application" }
-			  },
-			  "Type" : "CONDITIONAL",
-			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
-			}
-		},
-		"DailyStatusReportTrigger": {
-		  "Type" : "AWS::Glue::Trigger",
-		  "Properties" : {
-			  "Actions" : [ 
-				{  "JobName" : { "Ref": "StatusReportJob" } }
-			  ],
-			  "Description" : "daily status trigger",
-			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-status-trigger" ] ] },
-			  "Predicate" : {
-				"Conditions" : [ 
-					{
-					  "CrawlerName" : { "Ref": "CrawlerName" },
-					  "LogicalOperator" : "EQUALS",
-					  "CrawlState" : "SUCCEEDED"
-					}
-				]
 			  },
 			  "Tags" : {
 				"CostCenter":"118204800",

@@ -40,47 +40,6 @@
   },
   "Mappings": { },
   "Resources": {
-		"CatalogDB": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {	
-					"Environment": { "Ref": "Environment" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-db.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
-                ]
-            }
-        },
-		"DDBCrawlerStack": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "CatalogDB" ],
-			  "Properties": {
-				"Parameters": {	
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Ref": "GlueRole" },
-				  "CatalogDB": { "Ref": "Environment" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-crawler.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
-                ]
-            }
-        },
 		"EmailXRef": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
@@ -686,7 +645,7 @@
                 ]
             }
         },
-		"ReportingFileChecklist": {
+		"ReportingCRMFileChecklist": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
@@ -722,7 +681,7 @@
         },
 		"WeeklyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingFileChecklist", "StatusReportJob", "BuildEmailInputsJob", "DDBCrawlerStack" ],
+			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingCRMFileChecklist", "StatusReportJob", "BuildEmailInputsJob" ],
 			  "Properties": {
 				"Parameters": {
 					"LoyaltyXRef": { "Fn::GetAtt": [ "LoyaltyXRef", "Outputs.JobName" ] },
@@ -737,10 +696,9 @@
 					"CustomShoeMap": { "Fn::GetAtt": [ "CustomShoeMap", "Outputs.JobName" ] },
 					"WCSMap": { "Fn::GetAtt": [ "WCSMap", "Outputs.JobName" ] },
 					"CoremetricsMAP": { "Fn::GetAtt": [ "CoremetricsMAP", "Outputs.JobName" ] },
-					"ReportingFileChecklist": { "Fn::GetAtt": [ "ReportingFileChecklist", "Outputs.JobName" ] },
+					"ReportingCRMFileChecklist": { "Fn::GetAtt": [ "ReportingCRMFileChecklist", "Outputs.JobName" ] },
 					"StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
 					"BuildEmailInputsJob": { "Fn::GetAtt": [ "BuildEmailInputsJob", "Outputs.JobName" ] },
-					"CrawlerName": { "Fn::GetAtt": [ "DDBCrawlerStack", "Outputs.CrawlerName" ] },
 					"StartOnCreation" : { "Ref": "StartOnCreation" },
 				    "Environment": { "Ref": "Environment" },
 				    "ResourceGroup": { "Ref": "ResourceGroup" },
@@ -761,14 +719,13 @@
         },
 		"DailyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "DailyInitJob", "StatusReportJob", "ETLReportMissingDatesJob", "WeekWeatherSumJob", "DDBCrawlerStack" ],
+			  "DependsOn" : [ "DailyInitJob", "StatusReportJob", "ETLReportMissingDatesJob", "WeekWeatherSumJob" ],
 			  "Properties": {
 				"Parameters": {
 				  "DailyInitJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
 				  "StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
 				  "WeekWeatherSumJob": { "Fn::GetAtt": [ "WeekWeatherSumJob", "Outputs.JobName" ] },
 				  "ETLReportMissingDatesJob": { "Fn::GetAtt": [ "ETLReportMissingDatesJob", "Outputs.JobName" ] },
-				  "CrawlerName": { "Fn::GetAtt": [ "DDBCrawlerStack", "Outputs.CrawlerName" ] },
 				  "StartOnCreation" : { "Ref": "StartOnCreation" },
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },

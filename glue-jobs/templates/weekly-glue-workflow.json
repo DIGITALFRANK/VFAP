@@ -76,8 +76,8 @@
             "Description": "CoremetricsMAP job name",
             "Type": "String"
         },
-		"ReportingFileChecklist": {
-            "Description": "ReportingFileChecklist job name",
+		"ReportingCRMFileChecklist": {
+            "Description": "ReportingCRMFileChecklist job name",
             "Type": "String"
         },
 		"BuildEmailInputsJob": {
@@ -86,10 +86,6 @@
         },
 		"StatusReportJob": {
             "Description": "StatusReportJob job name",
-            "Type": "String"
-        },
-		"CrawlerName": {
-            "Description": "Crawler name",
             "Type": "String"
         },
 		"StartOnCreation": {
@@ -118,12 +114,7 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "LoyaltyXRef" } },
-				{  "JobName" : { "Ref": "VansCleanXRef" } },
-				{  "JobName" : { "Ref": "CustomerXRef" } },
-				{  "JobName" : { "Ref": "EmailXRef" } },
-				{  "JobName" : { "Ref": "AdobeMap" } }, 
-				{  "JobName" : { "Ref": "TNFCleanXRef" } }
+				{  "JobName" : { "Ref": "ReportingCRMFileChecklist" } }
 			  ],
 			  "Description" : "Glue workflow Weekly trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
@@ -138,6 +129,40 @@
 				"Application":{ "Ref": "Application" }
 			  },
 			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartXRefTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "LoyaltyXRef" } },
+				{  "JobName" : { "Ref": "VansCleanXRef" } },
+				{  "JobName" : { "Ref": "CustomerXRef" } },
+				{  "JobName" : { "Ref": "EmailXRef" } },
+				{  "JobName" : { "Ref": "AdobeMap" } }, 
+				{  "JobName" : { "Ref": "TNFCleanXRef" } }
+			  ],
+			  "Description" : "Weekly XRef trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-xref-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "ReportingCRMFileChecklist" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		},
@@ -319,15 +344,15 @@
 			  "Type" : "CONDITIONAL",
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
-		},		
-		"DDBCrawlerTrigger": {
+		},
+		"StatusReportJobTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "CrawlerName" : { "Ref": "CrawlerName" } }
+				{  "JobName" : { "Ref": "StatusReportJob" } }
 			  ],
-			  "Description" : "DynamoDB crawler trigger",
-			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-ddb-crawler-trigger" ] ] },
+			  "Description" : "Status report trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
 			  "Predicate" : {
 				"Conditions" : [ 
 					{
@@ -352,35 +377,6 @@
 					} 
 				],
 				"Logical" : "AND"
-			  },
-			  "Tags" : {
-				"CostCenter":"118204800",
-				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
-				"Environment":{ "Ref": "Environment" },
-				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
-				"ResourceGroup":{ "Ref": "ResourceGroup" },
-				"Application":{ "Ref": "Application" }
-			  },
-			  "Type" : "CONDITIONAL",
-			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
-			}
-		},
-		"StatusReportJobTrigger": {
-		  "Type" : "AWS::Glue::Trigger",
-		  "Properties" : {
-			  "Actions" : [ 
-				{  "JobName" : { "Ref": "StatusReportJob" } }
-			  ],
-			  "Description" : "Status report trigger",
-			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
-			  "Predicate" : {
-				"Conditions" : [ 
-					{
-					  "CrawlerName" : { "Ref": "CrawlerName" },
-					  "LogicalOperator" : "EQUALS",
-					  "CrawlState" : "SUCCEEDED"
-					}
-				]
 			  },
 			  "Tags" : {
 				"CostCenter":"118204800",
