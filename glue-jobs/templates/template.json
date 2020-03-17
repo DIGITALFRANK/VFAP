@@ -651,7 +651,7 @@
 				"Parameters": {
 				  "AllocatedCapacity": 10, 
 				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "reporting-file-checklist",
+				  "GlueJobName": "reporting-crm-file-checklist",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 8,
