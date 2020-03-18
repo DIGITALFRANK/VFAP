@@ -15,7 +15,7 @@
 
 set -ue
 
-buildModules="refine-routine,secrets,transform-routine"
+buildModules="transform-routine"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do

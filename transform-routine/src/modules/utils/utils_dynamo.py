@@ -174,7 +174,7 @@ class DynamoUtils():
         return put_db_item_status
 
     @staticmethod
-    def check_record(file_name, params):
+    def check_record(file_name, params, logger=None):
         try:
             filetable = dynamo_db.Table(params['status_table'])
             response = filetable.query(
