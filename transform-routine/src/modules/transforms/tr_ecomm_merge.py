@@ -245,4 +245,5 @@ class tr_ecomm_merge(Dataprocessor_merge):
             full_load_df = None
             logger.info("Error Occurred While processing tr_ecomm_merge due "
                         "to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df

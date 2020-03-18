@@ -39,28 +39,35 @@ class utils:
             classname {[String]} -- [description]
 
         Returns:
-            [class] -- Returns a class which should be defined in modules.transforms or
-            modules.dq
+            [class] -- Returns a class which should be defined in modules.
+            transforms or modules.dq
         """
-        if classname.startswith("tr"):
-            mod = __import__("modules.transforms." +
-                             classname, fromlist=[classname])
-            klass = getattr(mod, classname)
-        elif classname.startswith("dq"):
-            mod = __import__("modules.dq." + classname, fromlist=[classname])
-            klass = getattr(mod, classname)
-        elif classname.startswith("map"):
-            mod = __import__("modules.map." + classname, fromlist=[classname])
-            klass = getattr(mod, classname)
-        else:
-            klass = NotImplemented
-
+        try:
+            if classname.startswith("tr"):
+                mod = __import__("modules.transforms." +
+                                 classname, fromlist=[classname])
+                klass = getattr(mod, classname)
+            elif classname.startswith("dq"):
+                mod = __import__("modules.dq." + classname, fromlist=[
+                    classname])
+                klass = getattr(mod, classname)
+            elif classname.startswith("map"):
+                mod = __import__("modules.map." + classname, fromlist=[
+                    classname])
+                klass = getattr(mod, classname)
+            else:
+                klass = NotImplemented
+        except Exception as error:
+            logger.error(
+                "Error Occurred in Utils due To {}".format(error))
+            raise Exception("{}".format(error))
         return klass
 
     @staticmethod
     def get_file_config_params(filename, logger):
         # import ipdb;ipdb.set_trace()
-        """This function is created to get the params replated to file from dynamodb
+        """This function is created to get the params replated to file from
+        dynamodb
 
         Arguments:
             filename {String} -- filename for which params to be fetched
@@ -70,38 +77,37 @@ class utils:
             [dict] -- Returns a dictionary of parameters from dynamo DB
         """
         file_params = None
-        # try:
-        key = utils.get_parameter_store_key()
-        env_params = utils.get_param_store_configs(key)
+        try:
+            key = utils.get_parameter_store_key()
+            env_params = utils.get_param_store_configs(key)
+            table = env_params["config_table"]
+            file_parts = filename.split("_")
+            # print(file_parts)
+            sort_key = "_".join(file_parts[0:-1]) + "_"
+            partition_key = file_parts[2]
+            print(partition_key)
+            # get date from filename
+            # file_date = datetime.strptime(
+            #     file_parts[-1].split(".")[0], config.FILE_DATE_FORMAT
+            # )
 
-        file_parts = filename.split("_")
-        #print(file_parts)
-        sort_key = "_".join(file_parts[0:-1]) + "_"
-        partition_key = file_parts[2]
-        print(partition_key)
-        # get date from filename
-        # file_date = datetime.strptime(
-        #     file_parts[-1].split(".")[0], config.FILE_DATE_FORMAT
-        # )
+            logger.info("File Broker Params for File : {}".format(filename))
+            logger.info("fetching file broker table with primary key : {} "
+                        "and sort key : {}".format(partition_key, sort_key))
 
-        logger.info("File Broker Params for File : {}".format(filename))
-        logger.info(
-            "fetching file broker table with primary key : {} and sort key : {}".format(
-                partition_key, sort_key
+            file_params = DynamoUtils.get_dndb_item(
+                partition_key_atrr=config.FILE_CONFIG_SORT_KEY_ATTRIBUTE,
+                partition_key_value=sort_key,
+                # sort_key_attr=config.FILE_CONFIG_SORT_KEY_ATTRIBUTE,
+                # sort_key_value=sort_key,
+                table=table,
+                logger=logger
             )
-        )
-
-        file_params = DynamoUtils.get_dndb_item(
-            partition_key_atrr=config.FILE_CONFIG_SORT_KEY_ATTRIBUTE,
-            partition_key_value=sort_key,
-            # sort_key_attr=config.FILE_CONFIG_SORT_KEY_ATTRIBUTE,
-            # sort_key_value=sort_key,
-            table=env_params["config_table"],
-            logger=logger
-        )
-        print(file_params)
-        logger.info(
-            "File parameters for file are as : {}".format(file_params))
+            print(file_params)
+        except Exception as error:
+            logger.info("File parameters for file are as :"
+                        " {}".format(file_params))
+            raise Exception("{}".format(error))
         return file_params
 
     @staticmethod
@@ -109,7 +115,8 @@ class utils:
         """Get Parameters from AWS Parameter store
 
         Arguments:
-            param_name {String} --Name of the Parameter defined in AWS Parameter store
+            param_name {String} --Name of the Parameter defined in AWS
+            Parameter store
 
         Returns:
             dict -- A dictionary of environment parameters
@@ -120,13 +127,15 @@ class utils:
             params = json.loads(response["Parameter"]["Value"])
             print("Environment parameters are : {}".format(params))
         except Exception as error:
-            print("Error occured .Check parameter key name {}".format(error))
+            print("Error occurred .Check parameter key name {}".format(error))
             params = None
+            raise Exception("{}".format(error))
         return params
 
     @staticmethod
     def get_parameter_store_key():
-        """This method parses the config_store.ini file to retrieve param store key
+        """This method parses the config_store.ini file to retrieve param
+        store key
 
         Returns:
             String -- Return key name defined in config_store.ini as string
@@ -135,17 +144,18 @@ class utils:
         config.read("config_store.ini")
         print(config.sections())
         try:
-            print(
-                "Found param store key as {}".format(config["PARAMSTORE"]["StoreKey"])
-            )
+            print("Found param store key as"
+                  " {}".format(config["PARAMSTORE"]["StoreKey"]))
             key = str(config["PARAMSTORE"]["StoreKey"])
         except Exception as e:
             key = None
             print("Failed to parse config_store.ini {}".format(e))
+            raise Exception("{}".format(e))
         return key
 
     @staticmethod
-    def get_secret(secret_name, service_name="secretsmanager", region_name="us-east-1"):
+    def get_secret(secret_name, service_name="secretsmanager",
+                   region_name="us-east-1"):
         """Method to retrieve all the secrets from secrets manager
 
         Arguments:
@@ -165,38 +175,48 @@ class utils:
             e: [description]
 
         Returns:
-            dict -- Returns a  string if single secret is defined in SSM. Else returns a dict
+            dict -- Returns a  string if single secret is defined in SSM.
+            Else returns a dict
         """
-        client = boto3.client(service_name=service_name, region_name=region_name)
+        client = boto3.client(service_name=service_name,
+                              region_name=region_name)
         try:
-            get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+            get_secret_value_response = client.get_secret_value(
+                SecretId=secret_name)
         except ClientError as e:
             if e.response["Error"]["Code"] == "DecryptionFailureException":
-                # Secrets Manager can't decrypt the protected secret text using the
+                # Secrets Manager can't decrypt the protected secret text
+                # using the
                 # provided KMS key.
-                # Deal with the exception here, and/or rethrow at your discretion.
+                # Deal with the exception here, and/or rethrow at your
+                # discretion.
                 raise e
             elif e.response["Error"]["Code"] == "InternalServiceErrorException":
                 # An error occurred on the server side.
-                # Deal with the exception here, and/or rethrow at your discretion.
+                # Deal with the exception here, and/or rethrow at your
+                # discretion.
                 raise e
             elif e.response["Error"]["Code"] == "InvalidParameterException":
                 # You provided an invalid value for a parameter.
-                # Deal with the exception here, and/or rethrow at your discretion.
+                # Deal with the exception here, and/or rethrow at your
+                # discretion.
                 raise e
             elif e.response["Error"]["Code"] == "InvalidRequestException":
-                # You provided a parameter value that is not valid for the current
+                # You provided a parameter value that is not valid for the
+                # current
                 # state of the resource.
-                # Deal with the exception here, and/or rethrow at your discretion.
+                # Deal with the exception here, and/or rethrow at your
+                # discretion.
                 raise e
             elif e.response["Error"]["Code"] == "ResourceNotFoundException":
                 # We can't find the resource that you asked for.
-                # Deal with the exception here, and/or rethrow at your discretion.
+                # Deal with the exception here, and/or rethrow at your
+                # discretion.
                 raise e
         else:
             # Decrypts secret using the associated KMS CMK.
-            # Depending on whether the secret is a string or binary, one of these
-            # fields will be populated.
+            # Depending on whether the secret is a string or binary, one of
+            # these fields will be populated.
             if "SecretString" in get_secret_value_response:
                 secret = json.loads(get_secret_value_response["SecretString"])
             else:
@@ -224,8 +244,9 @@ class utils:
 
             Bool
 
-            This function checks the information_schema metadata store in Redshift for the existence of
-            a user specified table in the public Redshift schema. Table must be qualified with schema.
+            This function checks the information_schema metadata store in
+            Redshift for the existence of a user specified table in the
+            public Redshift schema. Table must be qualified with schema.
         """
         redshift_user = redshift_details["username"]
         redshift_password = redshift_details["password"]
@@ -243,8 +264,9 @@ class utils:
                 redshift_schema, redshift_table
             )
         )
-        query = "SELECT table_name FROM information_schema.tables where  upper(table_schema)='{}' and upper(table_name)='{}'".format(
-            redshift_schema.upper(), redshift_table.upper()
+        query = "SELECT table_name FROM information_schema.tables where  " \
+                "upper(table_schema)='{}' and upper(table_name)=" \
+                "'{}'".format(redshift_schema.upper(), redshift_table.upper()
         )
         logger.info(query)
         tables_df = (
@@ -309,11 +331,10 @@ class utils:
 
         except Exception as Error:
             logger.error(
-                "Error occured while executing the query in the Redshift. :{}".format(
-                    Error
-                ), exc_info=True
-            )
+                "Error occurred while executing the query in the Redshift. "
+                ":{}".format(Error), exc_info=True)
             query_run_status = False
+            raise Exception("{}".format(error))
 
         return query_run_status
 
@@ -321,7 +342,8 @@ class utils:
     def re_run_table(redshift_table, redshift_details, file_name, logger):
         """This will go to the given table and delete the records if they are
             processed today.
-        This will help at the time of processing the file again to avoid redundancy.
+        This will help at the time of processing the file again to avoid
+        redundancy.
         """
         redshift_user = redshift_details["username"]
         redshift_password = redshift_details["password"]
@@ -342,7 +364,8 @@ class utils:
             )
 
             logger.info(
-                "Connecting to redshift table and deleting the data which has processed today in the given table."
+                "Connecting to redshift table and deleting the data which "
+                "has processed today in the given table."
             )
 
             query1 = (
@@ -363,19 +386,16 @@ class utils:
             re_run_delete_status = True
 
         except Exception as Error:
-            logger.error(
-                "Error occured while deleting the data from the table. :{}".format(
-                    Error
-                ), exc_info=True
-            )
+            logger.error("Error occured while deleting the data from the "
+                         "table. :{}".format(Error), exc_info=True)
             re_run_delete_status = False
-
 
         return re_run_delete_status
 
     @staticmethod
     def create_etl_status_record(etl_status_record_parameters, env_params,
-                                 etl_status_tbl_sort_key_as_job_process_dttm, logger=logging):
+                                 etl_status_tbl_sort_key_as_job_process_dttm,
+                                 logger=logging):
         create_etl_status_record_status = config.ETL_STATUS_CREATION_FAILED
         job_process_dttm = None
         try:
@@ -385,11 +405,8 @@ class utils:
             else:
                 job_process_dttm = str(datetime.utcnow())
             etl_status_record_parameters["processing_date"] = job_process_dttm
-            logger.info(
-                "Initializing Record For Status ETL Table With Params : {}".format(
-                    etl_status_record_parameters
-                )
-            )
+            logger.info("Initializing Record For Status ETL Table With Params "
+                        ": {}".format(etl_status_record_parameters))
             DynamoUtils.put_dndb_item(
                 dndb_item=etl_status_record_parameters,
                 table=env_params["status_table"],
@@ -400,11 +417,9 @@ class utils:
         except Exception as error:
             create_etl_status_record_status = config.ETL_STATUS_CREATION_FAILED
             job_process_dttm = None
-            logger.error(
-                "Error ocurred while processing create_etl_status_table_row due to : {}".format(
-                    error
-                ), exc_info=True
-            )
+            logger.error("Error ocurred while processing create_etl_status "
+                         "table_row due to : {}".format(error), exc_info=True)
+            raise Exception("{}".format(error))
 
         return create_etl_status_record_status, job_process_dttm
 
@@ -534,11 +549,8 @@ class utils:
             write_status = True
         except Exception as error:
             write_status = False
-            print(
-                "Error Ocuured While processiong s3_folder_delete due to : {}".format(
-                    error
-                )
-            )
+            print("Error Ocuured While processiong s3_folder_delete due to "
+                  ": {}".format(error))
         return write_status
 
     @staticmethod
@@ -546,25 +558,22 @@ class utils:
         """Method to check if active flag of file in dynamo db
 
         Keyword Arguments:
-            active_status {String} -- is_active flag that is configured in dynamo db
+            active_status {String} -- is_active flag that is configured in
+            dynamo db
              (default: {None})
         """
         if active_status is None:
             logger.info("No parameter active_status received ")
             status = False
         elif active_status.lower() == "true":
-            logger.info(
-                "Received parameter {} .File is preconfigured as active in dynamo db configuration".format(
-                    active_status
-                )
-            )
+            logger.info("Received parameter {} .File is preconfigured as "
+                        "active in dynamo db "
+                        "configuration".format(active_status))
             status = True
         elif active_status.lower() == "false":
-            logger.info(
-                "Received parameter {} .File is preconfigured as inactive in dynamo db configuration".format(
-                    active_status
-                )
-            )
+            logger.info("Received parameter {} .File is preconfigured as "
+                        "inactive in dynamo db "
+                        "configuration".format(active_status))
             logger.info("File will not be processed. Skipping file")
             status = False
         else:

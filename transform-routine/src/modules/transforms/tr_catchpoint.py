@@ -105,6 +105,7 @@ class tr_catchpoint(Dataprocessor_Job):
                 "Transformed DF Count : {}".format(full_load_df.count()))
         except Exception as error:
             full_load_df = None
-            logger.info("Error Occured While processing "
+            logger.info("Error Occurred While processing "
                         "tr_catchpoint due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df, date

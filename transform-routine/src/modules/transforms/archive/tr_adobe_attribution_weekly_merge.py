@@ -32,10 +32,8 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
         qdate1 = datetime.strptime(qdate1, '%Y%m%d')
         qdate = qdate1.strftime('%Y-%m-%d')
         delimiter = params["raw_source_file_delimiter"]
-        rs_schema = redshift_details["dbSchema"]
-        query = "DELETE FROM {}.vfap_attribution WHERE day = '{}';".format(
-            rs_schema, qdate)
-        print(query)
+        query = "DELETE FROM vfap_retail.vfap_attribution WHERE day = '{}';".format(
+            qdate)
         # attribution_weekly = \
         #     'digitallab/common_files/VF_ADOBE_WEEKLY_ATTRIBUTION_CHANNEL.csv'
         attribution_daily = 'digitallab/attribution/' + \
@@ -45,10 +43,12 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
             # reading weekly attribution master file
             master_df = self.redshift_table_to_dataframe(self.env_params[
                                                             "attribution_table"])
+            master_df.show()
             # reading daily attribution file
             attribution_df = self.read_from_s3(
                 delimiter,
                 env_params["transformed_bucket"], attribution_daily)
+            attribution_df.show()
             # Format date columns
             dfdate = df.withColumn("Date", date_format(
                 to_date(col("Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
@@ -83,6 +83,8 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
                               "master.channels and "
                               "df.Brand = master.brand and "
                               "df.Country = master.country")
+
+            df_merge.show()
 
             # Join with daily attribution files
             print("Create weekly merge file")
@@ -124,7 +126,7 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
                                   "from df_merge df_merge left "
                                   "join attribution_df attribution_df "
                                   "on cast(df_merge.Date as Date) = cast("
-                                  "attribution_df.day as Date) "
+                                  "attribution_df.Date as Date) "
                                   "and df_merge.Type_Of_Attribution = "
                                   "attribution_df.Type_Of_Attribution and "
                                   "df_merge.Channels = "
@@ -140,7 +142,7 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
 
         except Exception as error:
             full_load_df = None
-            logger.info("Error Occurred While processing tr adobe "
-                        "attribution weekly merge due to : {}".format(error))
-            raise Exception("{}".format(error))
+            logger.info(
+                "Error Occured While processiong tr adobe attribution merge due to : {}".format(
+                    error))
         return full_load_df
