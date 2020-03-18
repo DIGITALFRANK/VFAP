@@ -721,8 +721,6 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
-            logger.debug("*************Number of records to write**********")
-            logger.debug(cm_session_xref_df.count())
             final_df = cm_session_xref_df.withColumn(
                 "process_dtm", F.current_timestamp()
             )

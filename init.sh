@@ -15,7 +15,7 @@
 
 set -ue
 
-buildModules="transform-routine"
+buildModules="glue-jobs"
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do
