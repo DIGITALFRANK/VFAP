@@ -174,12 +174,12 @@ class DynamoUtils():
         return put_db_item_status
 
     @staticmethod
-    def check_record(file_name, params, logger=None):
+    def check_record(file_name, params):
         try:
             filetable = dynamo_db.Table(params['status_table'])
-            response = filetable.query(
+            file_response = filetable.query(
                 KeyConditionExpression=Key('file_name').eq(file_name))
-            if response['Count'] == 1:
+            if file_response['Count'] == 1:
                 response = filetable.scan(
                     FilterExpression=Attr('file_name').eq(file_name) & Attr(
                         'job_status').eq('Success')
@@ -192,14 +192,14 @@ class DynamoUtils():
                     filetable.delete_item(
                         Key={
                             'file_name': file_name,
-                            'processing_date': response["Items"][0][
+                            'processing_date': file_response["Items"][0][
                                 "processing_date"]
                             }
                     )
+                    print("Record deleted from the DynamoDB table.")
                     return False
             else:
                 return False
 
         except Exception as error:
-            logger.info(
-                "Error Occurred in check_record due to : {}".format(error))
+            raise Exception("{}".format(error))
