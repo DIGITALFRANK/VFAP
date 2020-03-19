@@ -2356,10 +2356,14 @@ class Reporting_Job(Core_Job):
                     logger.info("enter into util_read_etl_parm_table")
                     _brand_name_prefix = params["brand"]
                     today = datetime.datetime.today()
-                    if today.weekday()==0:
-                        calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
+                    if today.weekday() == 0:
+                        calculated_date = today - datetime.timedelta(
+                            days=(today.weekday() + 6)
+                        )
                     else:
-                        calculated_date = today - datetime.timedelta(days=(today.weekday()-1))
+                        calculated_date = today - datetime.timedelta(
+                            days=(today.weekday() - 1)
+                        )
                     logger.info("the calculated date is {}".format(calculated_date))
                     whouse_etl_parm.createOrReplaceTempView("whouse_etl_parm_view")
                     df = spark.sql(
@@ -3382,14 +3386,14 @@ class Reporting_Job(Core_Job):
                                 self.whouse_details,
                                 logger,
                             )
-                    
+
                     drop_target_table_query = "drop table if exists {0}.{1}".format(
                         dbschema, target_table
                     )
                     utils.execute_query_in_redshift(
                         drop_target_table_query, self.whouse_details, logger
                     )
-                    
+
                     create_final_tbl_query = """create table {0}.{1} as SELECT *,
                                     CASE WHEN act_dsince_o_WATER is null AND act_dsince_o_SURF > 0
                                         THEN act_dsince_o_SURF
@@ -3425,9 +3429,10 @@ class Reporting_Job(Core_Job):
                     utils.execute_multiple_queries_in_redshift(
                         alter_tbl_query, self.whouse_details, logger
                     )
-
+                    status = True
 
                 except Exception as error:
+                    status = False
                     logger.error(
                         "Error Occurred while processing run_csv_tnf_build_email_inputs due to : {}".format(
                             error
@@ -3867,7 +3872,7 @@ class Reporting_Job(Core_Job):
         job_parameter_df = spark.createDataFrame(
             padded_file_broker_records, schema=file_broker_schema
         )
-        etl_parameter_table = etl_parameter_table.replace("-","_")
+        etl_parameter_table = etl_parameter_table.replace("-", "_")
         log.info("Successfully created DataFrame out of padded records")
         job_parameter_df.createOrReplaceTempView(etl_parameter_table)
 
@@ -3925,7 +3930,7 @@ class Reporting_Job(Core_Job):
         status_df = spark.createDataFrame(padded_status_records, schema=status_schema)
         log.info("Successfully created DataFrame out of padded records")
 
-        etl_status_table= etl_status_table.replace("-","_")
+        etl_status_table = etl_status_table.replace("-", "_")
         status_df.createOrReplaceTempView(etl_status_table)
 
         get_todays_etl_job_status_report(
@@ -4115,7 +4120,6 @@ class Reporting_Job(Core_Job):
             _LEVEL = self.env_params["env_name"]
             input_glue_job_status_table = self.env_params["status_table"]
             input_glue_etl_file_broker = self.env_params["config_table"]
-
 
             args = getResolvedOptions(sys.argv, ["PASS_FLAG"])
             if int(args["PASS_FLAG"]) == 1:
