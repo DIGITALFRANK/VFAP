@@ -57,8 +57,6 @@ def lambda_handler(event, context):
 			if src_bucket == prod_stage_bucket:
 				print('S3 COPY: {} >>>> {}'.format(src_bucket,prod_raw_bucket))
 				copy_object(src_bucket,src_key,prod_raw_bucket)
-				print('S3 COPY: {} >>>> {}'.format(src_bucket,nonprod_stage_bucket))
-				copy_object(src_bucket,src_key,nonprod_stage_bucket)
 			
 			# If S3-to-S3 copy lambda triggered by production raw bucket
 			# 		Copy the file(s) to non-prod raw bucket with same src_key
