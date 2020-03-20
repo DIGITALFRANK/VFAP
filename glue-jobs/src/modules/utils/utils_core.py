@@ -128,7 +128,9 @@ class utils:
             [dict] -- Returns a dictionary of parameters from dynamo DB
         """
         file_params = None
-        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())['config_table']
+        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())[
+            "config_table"
+        ]
         if filename.__contains__("xref") or filename.__contains__("map"):
             logger.debug("Get Weekly job configuration")
             file_parts = filename.split("_")
@@ -143,7 +145,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=broker_table,
+                table=config.FILE_BROKER_TABLE,
                 logger=logger,
             )
             logger.info("File parameters for weekly job is {}".format(file_params))
@@ -159,7 +161,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=broker_table,
+                table=config.FILE_BROKER_TABLE,
                 logger=logger,
             )
             logger.info("File parameters for file are as : {}".format(file_params))
@@ -196,7 +198,7 @@ class utils:
                     partition_key_value=partition_key,
                     sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                     sort_key_value=None,  # sort_key,
-                    table=config.FILE_BROKER_TABLE,
+                    table=broker_table,
                     logger=logger,
                 )
                 # Adding file_date as attribute to ddb params using in tr_weather_historical
@@ -495,7 +497,9 @@ class utils:
             return False
 
     @staticmethod
-    def move_s3_file_from_current(file_name, src_bucket, tgt_bucket, params, logger):
+    def move_s3_file_from_current(
+        file_name, src_bucket, tgt_bucket, params, logger, tgt_path=None
+    ):
         file_moved_status = False
         try:
             s3_client = boto3.client("s3")
@@ -510,9 +514,12 @@ class utils:
             file_date = datetime.strptime(file_parts[-1].split(".")[0], date_format)
             date_partition = file_parts[-1].split(".")[0][0:8]
             src_path = "{}/{}".format(params["rf_source_dir"], file_name)
-            tgt_path = "{}{}/date={}/{}".format(
-                params["rf_dstn_folder_name"], feed_name, date_partition, file_name
-            )
+            if tgt_path is None:
+                tgt_path = "{}{}/date={}/{}".format(
+                    params["rf_dstn_folder_name"], feed_name, date_partition, file_name
+                )
+            else:
+                tgt_path = tgt_path
             copy_source = {"Bucket": src_bucket, "Key": src_path}
             logger.info("Copying file from  {} to {}".format(src_path, tgt_path))
             file_moved_response = s3_client.copy(
@@ -673,6 +680,60 @@ class utils:
         return query_run_status
 
     @staticmethod
+    def execute_multiple_queries_in_redshift(query, whouse_details, logger):
+        """This method will go and execute the given query.
+        """
+        redshift_user = whouse_details["username"]
+        redshift_password = whouse_details["password"]
+        redshift_schema = whouse_details["dbSchema"]
+        redshift_host = whouse_details["host"]
+        redshift_port = whouse_details["port"]
+        redshift_database = whouse_details["dbCatalog"]
+
+        query_run_status = False
+        try:
+            logger.info("Connecting to Redshift..")
+            conn = pg8000.connect(
+                database=redshift_database,
+                user=redshift_user,
+                password=redshift_password,
+                host=redshift_host,
+                port=redshift_port,
+            )
+
+            logger.info("Connecting to redshift table and executing the given Query.")
+
+            logger.info("Query to Execute: {}".format(query))
+            cur1 = conn.cursor()
+            for i in query:
+                cur1.execute(i)
+                logger.info("Query executed successfully in the Redshift: {}".format(i))
+
+            logger.info("Queries executed successfully in the Redshift..")
+            conn.commit()
+            cur1.close()
+            conn.close()
+            query_run_status = True
+
+        except Exception as Error:
+            logger.error(
+                "Error occured while executing the query in the Redshift. :{}".format(
+                    Error
+                ),
+                exc_info=True,
+            )
+            query_run_status = False
+            raise AppUtilsError(
+                moduleName=constant.CORE_UTILS,
+                exeptionType=constant.CORE_UTILS_EXCEPTION,
+                message="Error occured while re_run_table {}".format(
+                    traceback.format_exc()
+                ),
+            )
+
+        return query_run_status
+
+    @staticmethod
     def re_run_table(redshift_table, whouse_details, file_name, logger):
         """This will go to the given table and delete the records if they are
             processed today.
@@ -759,15 +820,31 @@ class utils:
                 port=redshift_port,
             )
             logger.info("Query Execution in Progress...")
-            query1 = """select case when sas_brand_id = '7' then 'TNF' else 'VANS' end as Brand,'F_'||Brand||'_'||'CLASS' as file_name, trunc(process_dtm) as load_date,count(*) as brand_count from vfapdsmigration.class group by 1,2,3 union all
-                         select  case when sas_brand_id = '7' then 'TNF' else 'VANS' end as Brand,  'F_'||Brand||'_'||'COLOR' as file_name, trunc(process_dtm) as load_date,count(*) as brand_count from vfapdsmigration.class group by 1,2,3"""
+            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT 
+from 
+(select file_name as FILE_NAME,count(*) as CNT from {0}.CLASS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.COLOR group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.DEPT group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.PRODUCTXREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.REGION group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.ADDRESS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.STORE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.STYLE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ALT_KEY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_CATEGORY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ATTRIBUTE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_XREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_DETAIL group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
+""".format(redshift_schema)
             cur1 = conn.cursor()
             df_redshift_daily_data = cur1.execute(query1)
             logger.info("Query executed successfully")
             results = df_redshift_daily_data.fetchall()
             logger.info("Results : {}".format(results))
             df_redshift = spark.createDataFrame(
-                results, ["Brand", "file_name", "load_date", "brand_count"]
+                results, ["file_name", "Brand", "CNT"]
             )
             logger.info("df_redshift created.. {} ".format(type(df_redshift)))
             conn.commit()

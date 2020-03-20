@@ -34,11 +34,13 @@ class tr_googleanalytics_ecomm(Dataprocessor_Job):
         file_date_obj = datetime.strptime(file_part, '%Y-%m-%d')
         date = file_date_obj.strftime('%Y%m%d')
         try:
+            df.createOrReplaceTempView("google")
+            google_df = spark.sql("SELECT DISTINCT * FROM google")
             # reading google analytics profile file
             profile_lookup = self.read_from_s3(
                 params["raw_source_file_delimiter"],
                 env_params["refined_bucket"], env_params["profilel_file"])
-            df_casa = df.filter("profile_id like '82395699'")
+            df_casa = google_df.filter("profile_id like '82395699'")
             df_casa = df_casa.withColumn(
                 "profile_id", lit("82395666"))
             df_google = df.union(df_casa)
@@ -173,6 +175,7 @@ class tr_googleanalytics_ecomm(Dataprocessor_Job):
                 full_load_df.count()))
         except Exception as error:
             full_load_df = None
-            logger.info("Error Occured While processing "
+            logger.info("Error Occurred While processing "
                         "tr_googleanalytics_ecomm due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df, date

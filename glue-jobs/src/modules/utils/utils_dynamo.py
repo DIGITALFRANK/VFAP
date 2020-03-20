@@ -6,6 +6,7 @@ from modules.exceptions.AppUtilsException import AppUtilsError
 from modules.constants import constant
 import traceback
 from time import sleep
+from boto3.dynamodb.conditions import Attr
 
 # craete dynamodb client
 dynamodb_client = boto3.client("dynamodb", region_name=config.REGION)
@@ -42,6 +43,164 @@ def convert_dict_to_dynamodb(data_dict):
     serializer = TypeSerializer()
     dndb_item = {k: serializer.serialize(v) for k, v in data_dict.items()}
     return dndb_item
+
+
+def get_ddb_attributes(table_name, ddb_region, attribute_list, log):
+    """
+    Parameters:
+
+    table_name: str - name of DynamoDB table to get data from
+    ddb_region: str - region of DynamoDB table to get data from
+    attribute_list: List[str] - list of DynamoDB attributes to get
+    log: logging.Logger
+
+    Returns:
+
+    response - List[Dict[str, Any]] - contains the feed names and destination table names for each job in the DynamoDB table
+
+    This function reads the specified attributes from the specified dynamodb table and returns the
+    results as a list of dictionaries with each element representing a record in DynamoDB
+    """
+    log.info("Connecting with DynamoDB...")
+    try:
+        dynamodb = boto3.resource("dynamodb", region_name=ddb_region)
+        table = dynamodb.Table(table_name)
+    except BaseException:
+        error_msg = "Failed to connect/retrieve table object for DynamoDB table {0} - please check whether table exists or permission is enabled".format(
+            table_name
+        )
+        log.error(error_msg)
+        log.error(traceback.format_exc())
+        raise Exception(error_msg)
+    try:
+        result = []
+        response = {"LastEvaluatedKey": None}
+        ddb_page = 0
+        while "LastEvaluatedKey" in response.keys():
+            log.info(
+                "Scanning DynamoDB table - {0} from region - {1} for attributes - {2}".format(
+                    table_name, ddb_region, attribute_list
+                )
+            )
+            if ddb_page == 0:
+                response = table.scan(
+                    AttributesToGet=attribute_list, Select="SPECIFIC_ATTRIBUTES"
+                )
+            else:
+                response = table.scan(
+                    ExclusiveStartKey=response["LastEvaluatedKey"],
+                    AttributesToGet=attribute_list,
+                    Select="SPECIFIC_ATTRIBUTES",
+                )
+            log.info(
+                "Captured data from page {0} of DynamoDB table {1} - {2} records".format(
+                    ddb_page, table_name, len(response["Items"])
+                )
+            )
+            result += response["Items"]
+            ddb_page += 1
+        return result
+    except BaseException:
+        error_msg = "Failed to pull attributes {0} from DynamoDB table - {1}".format(
+            attribute_list, table_name
+        )
+        log.error(error_msg)
+        log.error(traceback.format_exc())
+        raise Exception(error_msg)
+
+
+def get_filtered_ddb_attributes(
+    table_name,
+    ddb_region,
+    attribute_list,
+    filter_attribute,
+    begins_with_constraints,
+    log,
+):
+    """
+    Parameters:
+
+    table_name: str - name of DynamoDB table to get data from
+    ddb_region: str - region of DynamoDB table to get data from
+    attribute_list: List[str] - list of DynamoDB attributes to get
+    filter_attribute: str
+    begins_with_constraints: List[Any]
+    log: logging.Logger
+
+    Returns:
+
+    response - List[Dict[str, Any]] - contains the feed names and destination table names for each job in the DynamoDB table
+
+    This function reads the specified attributes from the specified dynamodb table and returns the
+    results as a list of dictionaries with each element representing a record in DynamoDB
+    """
+    log.info("Connecting with DynamoDB...")
+    try:
+        dynamodb = boto3.resource("dynamodb", region_name=ddb_region)
+        table = dynamodb.Table(table_name)
+    except BaseException:
+        error_msg = "Failed to connect/retrieve table object for DynamoDB table {0} - please check whether table exists or permission is enabled".format(
+            table_name
+        )
+        log.error(error_msg)
+        log.error(traceback.format_exc())
+        raise Exception(error_msg)
+    try:
+        result = []
+        for begins_with_constraint in begins_with_constraints:
+            response = {"LastEvaluatedKey": None}
+            ddb_page = 0
+            while "LastEvaluatedKey" in response.keys():
+                log.info(
+                    "Scanning DynamoDB table - {0} from region - {1} for attributes - {2}".format(
+                        table_name, ddb_region, attribute_list
+                    )
+                )
+                if ddb_page == 0:
+                    response = table.scan(
+                        FilterExpression=Attr(filter_attribute).begins_with(
+                            begins_with_constraint
+                        )
+                    )
+                else:
+                    response = table.scan(
+                        ExclusiveStartKey=response["LastEvaluatedKey"],
+                        FilterExpression=Attr(filter_attribute).begins_with(
+                            begins_with_constraint
+                        ),
+                    )
+                log.info(
+                    "Captured data from page {0} of DynamoDB table {1} - {2} records for {3} matching {4}".format(
+                        ddb_page,
+                        table_name,
+                        len(response["Items"]),
+                        filter_attribute,
+                        begins_with_constraint,
+                    )
+                )
+                selected_attributes = lambda row, attributes: {
+                    key: value for key, value in row.items() if key in attributes
+                }
+                filtered_page = [
+                    selected_attributes(row, attribute_list)
+                    for row in response["Items"]
+                ]
+                result += filtered_page
+                ddb_page += 1
+        if len(result) == 0:
+            raise Exception(
+                "Found 0 results from DynamoDB table {0} where {1} begins with any of {2}, please check attribute and begins-with constraints for errors".format(
+                    table_name, filter_attribute, begins_with_constraints
+                )
+            )
+        return result
+    except BaseException:
+        error_msg = "Failed to pull attributes {0} from DynamoDB table - {1}".format(
+            attribute_list, table_name
+        )
+        log.error(error_msg)
+        log.error(traceback.format_exc())
+        raise Exception(error_msg)
 
 
 class DynamoUtils:

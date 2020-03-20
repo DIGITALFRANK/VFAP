@@ -29,7 +29,6 @@ class Dataprocessor_Job:
         print("Found parameter store key as : {}".format(self.key))
         self.env_params = utils.get_param_store_configs(self.key)
         self.redshift_details = utils.get_secret(self.env_params["secret_manager_key"])
-        # print("Using Redshift credentials as {}".format(self.redshift_details))
         self.spark = glueContext.spark_session
         logger = get_logger(__name__)
         self.logger = logger
@@ -48,7 +47,6 @@ class Dataprocessor_Job:
         """
         logger = self.logger
         params = self.params
-
 
         try:
             spark = self.spark
@@ -71,7 +69,9 @@ class Dataprocessor_Job:
 
         except Exception as error:
             df = None
-            print("Could not read dataframe ", error)
+            print("Could not read data frame ", error)
+            raise Exception("{}".format(error))
+
         self.df = df
         return df
 
@@ -112,6 +112,7 @@ class Dataprocessor_Job:
                     path, error
                 )
             )
+            raise Exception("{}".format(error))
         return write_status
 
     def redshift_table_to_dataframe(self, redshift_table):
@@ -173,6 +174,7 @@ class Dataprocessor_Job:
                     redshift_schema, redshift_table, exception
                 )
             )
+            raise Exception("{}".format(exception))
         return df
 
     def write_df_to_redshift_table(self, df, redshift_table, load_mode):
@@ -247,6 +249,7 @@ class Dataprocessor_Job:
                     df, schema_qualified_table, exception
                 )
             )
+            raise Exception("{}".format(exception))
         return status
 
     def update_stage_status(
@@ -280,8 +283,10 @@ class Dataprocessor_Job:
             )
             stage_update_status = True
         except Exception as error:
-            logger.error("Error Occured update_stage_status {}".format(error),exc_info=True)
+            logger.error("Error Occurred update_stage_status {}".format(
+                error), exc_info=True)
             stage_update_status = False
+            raise Exception("{}".format(error))
 
         return stage_update_status
 
@@ -341,11 +346,10 @@ class Dataprocessor_Job:
                 job_status_params_to_be_updated,
                 etl_status_sort_key_as_job_process_dttm, )
 
-
         except Exception as error:
             logger.error(
                 "Error Occurred in Core Class due To {}".format(error))
-            status = "failed"
+            raise Exception("{}".format(error))
 
         finally:
             # D1 = Dataprocessor_Job(file_name, job_run_id)

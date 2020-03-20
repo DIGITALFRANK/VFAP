@@ -1,0 +1,427 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Refine routine lambda cloud formation stack",
+    "Parameters": {
+        "Environment": {
+            "Description": "The Environment type",
+            "Type": "String",
+            "AllowedValues": [
+                "dev",
+                "prod",
+                "qa"
+            ],
+            "ConstraintDescription": "must be a dev, test or prod"
+        },
+        "ResourceGroup": {
+            "Description": "The ResourceGroup Name",
+            "Type": "String"
+        },
+        "Application": {
+            "Description": "The Application Name",
+            "Type": "String"
+        },
+        "BusinessOwnerEmail": {
+            "Description": "The Business Owner Email",
+            "Type": "String"
+        },
+		"TechOwnerEmail": {
+            "Description": "The Technical Owner Email",
+            "Type": "String"
+        },
+		"LoyaltyXRef": {
+            "Description": "LoyaltyXRef job name",
+            "Type": "String"
+        },
+		"VansCleanXRef": {
+            "Description": "VansCleanXRef job name",
+            "Type": "String"
+        },
+		"CustomerXRef": {
+            "Description": "CustomerXRef job name",
+            "Type": "String"
+        },
+		"EmailXRef": {
+            "Description": "EmailXRef job name",
+            "Type": "String"
+        },
+		"AdobeMap": {
+            "Description": "AdobeMap job name",
+            "Type": "String"
+        },
+		"TNFCleanXRef": {
+            "Description": "TNFCleanXRef job name",
+            "Type": "String"
+        },
+		"EmailResponsysMap": {
+            "Description": "EmailResponsysMap job name",
+            "Type": "String"
+        },
+		"ExperianGoldMap": {
+            "Description": "ExperianGoldMap job name",
+            "Type": "String"
+        },
+		"CMSessionXRef": {
+            "Description": "CMSessionXRef job name",
+            "Type": "String"
+        },
+		"CustomShoeMap": {
+            "Description": "CustomShoeMap job name",
+            "Type": "String"
+        },
+		"WCSMap": {
+            "Description": "WCSMap job name",
+            "Type": "String"
+        },
+		"CoremetricsMAP": {
+            "Description": "CoremetricsMAP job name",
+            "Type": "String"
+        },
+		"ReportingFileChecklist": {
+            "Description": "ReportingFileChecklist job name",
+            "Type": "String"
+        },
+		"BuildEmailInputsJob": {
+            "Description": "BuildEmailInputsJob job name",
+            "Type": "String"
+        },
+		"StatusReportJob": {
+            "Description": "StatusReportJob job name",
+            "Type": "String"
+        },
+		"CrawlerName": {
+            "Description": "Crawler name",
+            "Type": "String"
+        },
+		"StartOnCreation": {
+            "Description": "Start On Creation (true or false)",
+            "Type": "String"
+        }
+    },
+    "Mappings": { },
+    "Resources": {
+		"GlueWorkFlow": {
+		  "Type" : "AWS::Glue::Workflow",
+		  "Properties" : {
+			  "Description" : "Glue weekly workflow",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-workflow" ] ] },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  }
+			}
+		},
+		"WorkflowTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "ReportingFileChecklist" } }
+			  ],
+			  "Description" : "Glue workflow Weekly trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
+			  "Schedule" : "cron(0 0 ? * SAT *)",
+			  "StartOnCreation" : { "Ref": "StartOnCreation" },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartXRefTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "LoyaltyXRef" } },
+				{  "JobName" : { "Ref": "VansCleanXRef" } },
+				{  "JobName" : { "Ref": "CustomerXRef" } },
+				{  "JobName" : { "Ref": "EmailXRef" } },
+				{  "JobName" : { "Ref": "AdobeMap" } }, 
+				{  "JobName" : { "Ref": "TNFCleanXRef" } }
+			  ],
+			  "Description" : "Weekly XRef trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-xref-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "ReportingFileChecklist" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartMapTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "EmailResponsysMap" } }
+			  ],
+			  "Description" : "Weekly Map trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-map-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "EmailXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "CustomerXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartMapExpGoldTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "ExperianGoldMap" } }
+			  ],
+			  "Description" : "Weekly Map experian gold trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-map-expgold-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "CustomerXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"SessionXRefTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "CMSessionXRef" } },
+				{  "JobName" : { "Ref": "CustomShoeMap" } },
+				{  "JobName" : { "Ref": "WCSMap" } }
+			  ],
+			  "Description" : "Weekly Session XRef trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-session-xref-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "EmailXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"CoremetricsMapTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "CoremetricsMAP" } }
+			  ],
+			  "Description" : "Weekly coremetrics map trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-cm-map-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "CMSessionXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"BuildEmailInputsTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "BuildEmailInputsJob" } }
+			  ],
+			  "Description" : "Build Email Inputs trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "build-email-inputs-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "ExperianGoldMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "EmailResponsysMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "AdobeMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "WCSMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "CoremetricsMAP" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "CustomShoeMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}					
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},		
+		"DDBCrawlerTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "CrawlerName" : { "Ref": "CrawlerName" } }
+			  ],
+			  "Description" : "DynamoDB crawler trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-ddb-crawler-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "BuildEmailInputsJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "VansCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "TNFCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "LoyaltyXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StatusReportJobTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  ],
+			  "Description" : "Status report trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "CrawlerName" : { "Ref": "CrawlerName" },
+					  "LogicalOperator" : "EQUALS",
+					  "CrawlState" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		}
+	}
+}

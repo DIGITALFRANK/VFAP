@@ -76,8 +76,16 @@
             "Description": "CoremetricsMAP job name",
             "Type": "String"
         },
-		"ReportingFileChecklist": {
-            "Description": "ReportingFileChecklist job name",
+		"ReportingCRMFileChecklist": {
+            "Description": "ReportingCRMFileChecklist job name",
+            "Type": "String"
+        },
+		"BuildEmailInputsJob": {
+            "Description": "BuildEmailInputsJob job name",
+            "Type": "String"
+        },
+		"StatusReportJob": {
+            "Description": "StatusReportJob job name",
             "Type": "String"
         },
 		"StartOnCreation": {
@@ -106,7 +114,7 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "ReportingFileChecklist" } }
+				{  "JobName" : { "Ref": "ReportingCRMFileChecklist" } }
 			  ],
 			  "Description" : "Glue workflow Weekly trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
@@ -140,7 +148,7 @@
 			  "Predicate" : {
 				"Conditions" : [ 
 					{
-					  "JobName" : { "Ref": "WorkflowTrigger" },
+					  "JobName" : { "Ref": "ReportingCRMFileChecklist" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
 					} 
@@ -269,6 +277,106 @@
 					  "State" : "SUCCEEDED"
 					}
 				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"BuildEmailInputsTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "BuildEmailInputsJob" } }
+			  ],
+			  "Description" : "Build Email Inputs trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "build-email-inputs-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "ExperianGoldMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "EmailResponsysMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "AdobeMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "WCSMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "CoremetricsMAP" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "CustomShoeMap" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}					
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StatusReportJobTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  ],
+			  "Description" : "Status report trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "BuildEmailInputsJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "VansCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "TNFCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "LoyaltyXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				],
+				"Logical" : "AND"
 			  },
 			  "Tags" : {
 				"CostCenter":"118204800",

@@ -15,5 +15,10 @@ class rf_adobe_attribution:
         sr3.Bucket(source_bucket).download_file(file_name, local_file_name)
         date_part = file_name.rsplit("_", 1)
         date = date_part[1].strip('.csv')
-        final_date = date[-10:]
+
+        if file_name.lower().find('weekly') != -1:
+            final_date = date[15:]
+        else:
+            final_date = date[-8:]
+        final_date = datetime.strptime(final_date, '%Y%m%d').strftime('%Y-%m-%d')
         return local_file_name, final_date

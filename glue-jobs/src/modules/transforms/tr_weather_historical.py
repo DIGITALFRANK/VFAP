@@ -6,6 +6,9 @@ from pyspark.sql.types import *
 from modules.exceptions.CustomAppException import CustomAppError
 from modules.constants import constant
 import traceback
+from pyspark.sql.types import IntegerType
+from modules.utils.utils_core import utils
+
 
 class tr_weather_historical(Core_Job):
     def __init__(self, file_name):
@@ -35,69 +38,111 @@ class tr_weather_historical(Core_Job):
             spark = self.spark
             params = self.params
             logger = self.logger
+            redshift_schema = self.whouse_details["dbSchema"]
             logger.info("Applying tr_weather_historical")
-            warehouse_df = self.redshift_table_to_dataframe(redshift_table=params['tgt_dstn_tbl_name'])
+            target_table_stage = params["tgt_dstn_tbl_name"] + "_stage"
+            # warehouse_df = self.redshift_table_to_dataframe(
+            #     redshift_table=params["tgt_dstn_tbl_name"]
+            # )
             # add sas_process_dt column having date value from file_name
-            refined_df = df.withColumn("SAS_PROCESS_DT", F.lit(params["file_date"])).withColumn("sas_brand_id", lit(int(params["sas_brand_id"]))).withColumn("process_dtm", F.current_timestamp()).withColumn("file_name", F.lit(self.file_name))
+            refined_df = (
+                df.withColumn("fs_sk", lit(None).cast(IntegerType()))
+                .withColumn("sas_brand_id", lit(int(params["sas_brand_id"])))
+                .withColumn("SAS_PROCESS_DT", F.lit(params["file_date"]))
+                .withColumn("process_dtm", F.current_timestamp())
+                .withColumn("file_name", F.lit(self.file_name))
+            )
 
             # renaming columns from I_TNF_WeatherTrends_vf_historical_data file as present at destination
             logger.info("Schema After Adding SAS_PROCESS_DT : ")
             refined_df.printSchema()
 
-            # create temp view for refined data
             logger.info(
-                "Creating Temp View weather_refined_source: {}".format(
-                    config.TR_WEATHER_REFINED_TEMP_VIEW
+                "Writing refined df to redshift table!!! : {}".format(
+                    target_table_stage
                 )
             )
-            refined_df.createOrReplaceTempView(config.TR_WEATHER_REFINED_TEMP_VIEW)
 
-            # create temp view for warehouse data
-            logger.info(
-                "Creating Temp View weather_warehouse_source: {}".format(
-                    config.TR_WEATHER_WAREHOUSE_TEMP_VIEW
-                )
+            # refined_df_to_redshift_table_status = self.write_df_to_redshift_table(
+            #             df=refined_df,
+            #             redshift_table=target_table_stage,
+            #             load_mode="overwrite",
+            #         )
+
+            drp_stg_tbl_qry = "drop table if exists {0}".format(
+                redshift_schema + "." + target_table_stage
             )
-            warehouse_df.createOrReplaceTempView(config.TR_WEATHER_WAREHOUSE_TEMP_VIEW)
+            utils.execute_query_in_redshift(
+                drp_stg_tbl_qry, self.whouse_details, logger
+            )
+            create_stg_tabl_qry = "create table {0} as select * from {1} where 1=2".format(
+                redshift_schema + "." + target_table_stage,
+                redshift_schema + "." + params["tgt_dstn_tbl_name"],
+            )
+            utils.execute_query_in_redshift(
+                create_stg_tabl_qry, self.whouse_details, logger
+            )
+            status = self.write_glue_df_to_redshift(
+                df=refined_df, redshift_table=target_table_stage, load_mode="overwrite",
+            )
+            logger.info("Refined DF copied to redshift successfully...")
 
-            # getting changed records refined left join warehouse
-            logger.info("Getting Changed records........")
-            changed_records_df = spark.sql(config.chnaged_records_query)
-            changed_records_df.createOrReplaceTempView(
-                config.TR_WEATHER_CHANGED_RECORDS_TEMP_VIEW
+            changed_records_qry = """create temp table changed_records as
+                                        select a.* from {0} as a left outer join {1} as b
+                                        on
+                                        trim(b.location) = trim(a.location) and a.dt = b.dt
+                                        where
+                                        b.dt is null or (b.dt is not null and a.sas_process_dt >   b.sas_process_dt)""".format(
+                redshift_schema + "." + target_table_stage,
+                redshift_schema + "." + params["tgt_dstn_tbl_name"],
             )
 
-            logger.info("Changed Records : ")
-            changed_records_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            retained_records_qry = """create temp table retained_records  as
+                                        select warehouse.* from  {0} as warehouse
+                                        left outer join changed_records as change
+                                        on
+                                        trim(warehouse.location)=trim(change.location)
+                                        and
+                                        warehouse.dt = change.dt
+                                        where
+                                        change.dt is null""".format(
+                redshift_schema + "." + params["tgt_dstn_tbl_name"]
+            )
 
-            # getting retained records
-            retained_records_df = spark.sql(config.retained_records_query)
-            logger.info("Retained Records : ")
-            retained_records_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            truncate_tgt_tbl_qry = "truncate table {0}".format(
+                redshift_schema + "." + params["tgt_dstn_tbl_name"]
+            )
+            insert_into_tgt_tbl_qry = """insert into {0} 
+                                         (select * from changed_records union 
+                                          select * from retained_records)""".format(
+                redshift_schema + "." + params["tgt_dstn_tbl_name"]
+            )
 
-            # Union Retained and Changed Records
-            full_load_df = retained_records_df.unionByName(changed_records_df)
-            logger.info("Full Load  Records For Target: ")
-            full_load_df.select(
-                "LOCATION", "Municipality", "STATE", "COUNTY", "DT", "SAS_PROCESS_DT"
-            ).show(10, truncate=False)
+            execute_above_queries_list = [
+                changed_records_qry,
+                retained_records_qry,
+                truncate_tgt_tbl_qry,
+                insert_into_tgt_tbl_qry,
+            ]
+            utils.execute_multiple_queries_in_redshift(
+                execute_above_queries_list, self.whouse_details, logger
+            )
 
-            # returning transformed_data_dict df
-            transformed_df_dict={
-                params["tgt_dstn_tbl_name"]: full_load_df
-            }
+            logger.info("Executed All queries successfully!!!")
+
+            full_load_df = refined_df
+
+            transformed_df_dict = {target_table_stage: full_load_df}
 
         except Exception as error:
             full_load_df = None
-            transformed_df_dict={}
-            logger.error(
-                " : {}".format(
-                    error
-                ),exc_info=True
+            transformed_df_dict = {}
+            logger.error(" : {}".format(error), exc_info=True)
+            raise CustomAppError(
+                moduleName=constant.TR_WEARHER_HISTORICAL,
+                exeptionType=constant.TRANSFORMATION_EXCEPTION,
+                message="Error Ocurred in tr_weather_historical due to : {}".format(
+                    traceback.format_exc()
+                ),
             )
-            raise CustomAppError(moduleName=constant.TR_WEARHER_HISTORICAL, exeptionType=constant.TRANSFORMATION_EXCEPTION, message="Error Ocurred in tr_weather_historical due to : {}".format(traceback.format_exc()))
         return transformed_df_dict

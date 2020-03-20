@@ -47,5 +47,7 @@ class tr_snapchat(Dataprocessor_Job):
 
         except Exception as error:
             df_full_load = None
-            logger.info("Error Occured While processing tr_snapchat due to : {}".format(error))
+            logger.info("Error Occurred While processing tr_snapchat due to "
+                        ": {}".format(error))
+            raise Exception("{}".format(error))
         return df_full_load, final_date

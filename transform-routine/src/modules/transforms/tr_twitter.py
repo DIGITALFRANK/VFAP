@@ -87,6 +87,7 @@ class tr_twitter(Dataprocessor_Job):
                 "Transformed DF Count : {}".format(full_load_df.count()))
         except Exception as error:
             full_load_df = None
-            logger.info("Error Occured While processing "
-                        "tr_googleanalytics_ecomm due to : {}".format(error))
+            logger.info("Error Occurred While processing "
+                        "tr_twitter due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df, date
