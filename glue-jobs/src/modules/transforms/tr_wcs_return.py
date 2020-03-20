@@ -47,13 +47,13 @@ class tr_wcs_return(Core_Job):
                     "*",
                     F.when(
                         F.length(df.date) == 8,
-                        F.to_date(df.date, "yyyyMMdd"),
+                        F.to_timestamp(df.date, "yyyyMMdd"),
                     )
                         .when(
                         F.length(df.date) == 10,
-                        F.to_date(df.date, "yyyy-MM-dd"),
+                        F.to_timestamp(df.date, "yyyy-MM-dd"),
                     )
-                        .otherwise(F.to_date(df.date, "yyyy-MM-dd"))
+                        .otherwise(F.to_timestamp(df.date, "yyyy-MM-dd"))
                         .alias("dt"),
                     F.when(df.productid.startswith("NF:"), F.split(df.productid, ":")[1])
                         .when(df.productid.startswith("VN:"), F.split(df.productid, ":")[1])

@@ -53,4 +53,5 @@ class tr_youtube(Dataprocessor_Job):
             full_load_df = None
             logger.info("Error Occurred While processiong "
                         "tr_youtube due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df, date

@@ -53,8 +53,11 @@ def driver(file_name, args):
     # Attempt job run
     try:
         if file_name == "reporting_week_weather_sum":
-            # Only runs on Mondays
-            if datetime.datetime.utcnow().weekday() == 0:
+            # Only runs on Mondays - 0
+            if (
+                datetime.datetime.utcnow().weekday()
+                == reporting_job_obj.params["tr_params"]["run_on_day_of_week"]
+            ):
                 stage_status = reporting_job_obj.reporting_week_weather_sum(
                     input_weather_table=reporting_job_obj.params["tr_params"][
                         "input_tables"
@@ -86,24 +89,21 @@ def driver(file_name, args):
         if file_name == "reporting_crm_file_checklist":
             logger.info("Job reporting_crm_file_checklist started")
             stage_status = reporting_job_obj.reporting_crm_file_checklist(
-                input_glue_job_status_table=reporting_job_obj.params["tr_params"][
-                    "input_glue_job_status_table"
-                ],
-                input_glue_job_status_db=reporting_job_obj.params["tr_params"][
-                    "input_glue_job_status_db"
-                ],
-                input_glue_etl_file_broker=reporting_job_obj.params["tr_params"][
-                    "input_glue_etl_file_broker"
-                ],
-                input_glue_etl_file_broker_db=reporting_job_obj.params["tr_params"][
-                    "input_glue_etl_file_broker_db"
-                ],
                 redshift_crm_file_summary_table=reporting_job_obj.params["tr_params"][
                     "redshift_crm_file_summary_table"
                 ],
                 redshift_crm_file_not_present_this_week_table=reporting_job_obj.params[
                     "tr_params"
                 ]["redshift_crm_file_not_present_this_week_table"],
+                status_query_end_date=reporting_job_obj.params["tr_params"][
+                    "status_query_end_date"
+                ],
+                status_query_interval_days=reporting_job_obj.params["tr_params"][
+                    "status_query_interval_days"
+                ],
+                crm_file_count_constraint=reporting_job_obj.params["tr_params"][
+                    "crm_file_count_constraint"
+                ],
             )
 
         if file_name == "reporting_etl_rpt_missing_dates":
@@ -114,16 +114,10 @@ def driver(file_name, args):
 
         if file_name == "reporting_csv_build_email_inputs":
             logger.info("Job reporting_csv_build_email_inputs started")
-            stage_status = reporting_job_obj.reporting_csv_build_email_inputs(
-                load_mode=reporting_job_obj.params["write_mode"]
-            )
+            stage_status = reporting_job_obj.reporting_csv_build_email_inputs()
 
         if file_name == "reporting_send_daily_etl_job_status_report":
             stage_status = reporting_job_obj.reporting_send_daily_etl_job_status_report(
-                glue_db=reporting_job_obj.params["tr_params"]["glue_db"],
-                etl_status_table=reporting_job_obj.params["tr_params"][
-                    "etl_status_table"
-                ],
                 etl_status_job_column_id=reporting_job_obj.params["tr_params"][
                     "etl_status_job_column_id"
                 ],
@@ -135,9 +129,6 @@ def driver(file_name, args):
                 ],
                 etl_status_record_count_column_id=reporting_job_obj.params["tr_params"][
                     "etl_status_record_count_column_id"
-                ],
-                etl_parameter_table=reporting_job_obj.params["tr_params"][
-                    "etl_parameter_table"
                 ],
                 etl_parameter_job_column_id=reporting_job_obj.params["tr_params"][
                     "etl_parameter_job_column_id"
@@ -170,7 +161,9 @@ def driver(file_name, args):
         status_params["job_status"] = stage_status
 
     except Exception as error:
-        logger.error("Error occurred in reporting_main driver: {}".format(error))
+        logger.error(
+            "Error occurred in reporting_main driver: {}".format(error), exc_info=True
+        )
         stage_status = constant.failure
         status_params["reporting_status"] = {
             "error_info": str(error),
@@ -211,7 +204,9 @@ def driver(file_name, args):
                 )
 
             raise Exception(
-                "Job failed gracefully - check log and/or email notification for details"
+                "Job failed gracefully - check log and/or email notification for details - {0}".format(
+                    job_exception
+                )
             )
         else:
             utils_ses.send_job_status_email(

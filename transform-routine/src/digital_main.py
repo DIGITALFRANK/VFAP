@@ -12,7 +12,8 @@ import boto3
 
 
 def driver(file_name, job_run_id):
-    """This driver function is created to trigger the ETL job for any given file.
+    """This driver function is created to trigger the ETL job for any given
+    file.
 
     Arguments:
         file_name {String} -- Name of the file that needs to be processed.
@@ -28,38 +29,50 @@ def driver(file_name, job_run_id):
 
     try:
         response = DynamoUtils.check_record(file_name, params)
-        if response==False:
+        if response == False:
             # initializing etl status table record
             print("Initiating data load")
             create_etl_status_record_status, job_process_dttm = \
                 utils.create_etl_status_record(
-                etl_status_record_parameters=utils.get_etl_status_tbl_initilize_params(
-                    file_name),
-                etl_status_tbl_sort_key_as_job_process_dttm=str(job_process_dttm),
-                env_params=params
-            )
+                    etl_status_record_parameters=
+                    utils.get_etl_status_tbl_initilize_params(file_name),
+                    etl_status_tbl_sort_key_as_job_process_dttm=
+                    str(job_process_dttm),
+                    env_params=params
+                )
             status = Dataprocessor_Job.process(file_name, job_run_id,
                                                job_process_dttm)
             driver_end_time = str(datetime.utcnow())
             print("Job exited with status : {}".format(status))
-            log_file_upload_status, log_file_path = utils.upload_file(
-                config.LOG_FILE, params["log_bucket"])
-            job_status_params = utils.get_glue_job_params(job_status=status,
-                                                          log_file_path=log_file_path)
-            job_status_params.update({'error_traceback': job_exception})
-            Dataprocessor_Job(file_name, job_run_id).update_stage_status(
-                stages_to_be_updated=job_status_params,
-                etl_status_sort_key_as_job_process_dttm=str(job_process_dttm))
+            if status == 'Success':
+                log_file_upload_status, log_file_path = utils.upload_file(
+                    config.LOG_FILE, params["log_bucket"])
+                job_status_params = utils.get_glue_job_params(
+                    job_status=status, log_file_path=log_file_path)
+                job_status_params.update({'error_traceback': job_exception})
+                Dataprocessor_Job(file_name, job_run_id).update_stage_status(
+                    stages_to_be_updated=job_status_params,
+                    etl_status_sort_key_as_job_process_dttm=str(
+                        job_process_dttm))
         else:
             sc = SparkContext.getOrCreate()
             print("Record already exist in status table")
-            status="FALSE"
+            status = "FALSE"
     except Exception as error:
-        print("Error Occurred Main {}".format(error))
+        status = 'failed'
+        log_file_upload_status, log_file_path = utils.upload_file(
+            config.LOG_FILE, params["log_bucket"])
+        job_status_params = utils.get_glue_job_params(
+            job_status=status, log_file_path=log_file_path)
+        Dataprocessor_Job(file_name, job_run_id).update_stage_status(
+            stages_to_be_updated=job_status_params,
+            etl_status_sort_key_as_job_process_dttm=str(
+                job_process_dttm))
+        print("Error Occurred: {}".format(error))
+        raise Exception("{}".format(error))
 
 
 if __name__ == "__main__":
-
     # access the arguments that are passed to script when job is initiated
     args = getResolvedOptions(sys.argv, ["JOB_NAME", "FILE_NAME"])
     file_name = args["FILE_NAME"]

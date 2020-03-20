@@ -144,7 +144,7 @@ class Core_Job:
             )
             df.show()
             control_file_row_count = df.count()
-            if control_file_row_count > 1:
+            if control_file_row_count != 1:
                 log.error(
                     "Control file has {0} rows - expecting only 1".format(
                         control_file_row_count
@@ -161,24 +161,72 @@ class Core_Job:
         log.info("Collecting stored row count from control file")
         # Subtract 1 if header row included in control count
         if is_header_included_in_count.lower() == "true":
-            if control_file_row_count == 0:
-                log.info("Control file from s3 has 0 records")
-                row_count = 0
-            else:
+            row_count = df.select(df.Count).collect()[0][0] - 1
+                log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0] - 1
         else:
-            if control_file_row_count == 0:
-                log.info("Control file from s3 has 0 records")
-                row_count = 0
-            else:
+            row_count = df.select(df.Count).collect()[0][0]
+                log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0]
         log.debug("Successfully collected row count - {0}".format(row_count))
         return row_count
 
+    def read_from_s3_without_multilines(self, bucket, path, structype_schema):
+        """This function reads data from s3 using spark.read method in Pyspark without multiline option so that if we reading a feed file with multiline feed, we can get physical count of the number of records in the feed
+
+        Arguments:
+            bucket {[String]} -- Name of the bucket in S3
+            path {String} -- s3 object key
+        Returns:
+            [spark.dataframe] -- Returns a spark dataframe count
+        """
+        logger = self.logger
+        params = self.params
+        delimiter = params["raw_source_file_delimiter"]
+        if params["custom_s3_read_params"]["null_value"] is None:
+            null_value = ""
+        else:
+            null_value = params["custom_s3_read_params"]["null_value"]
+        try:
+            spark = self.spark
+
+            s3_obj = "s3://{}/{}".format(bucket, path)
+            logger.info("Reading file : {} from s3...".format(s3_obj))
+            logger.debug("Reading dataframe")
+
+            raw_df = (
+                spark.read.format("csv")
+                .option("header", "true")
+                .option("delimiter", delimiter)
+                .option(
+                    "timestampFormat",
+                    params["custom_s3_read_params"]["timestamp_format"],
+                )
+                .option("nullValue", null_value)
+                .option("mode", params["custom_s3_read_params"]["mode_value"])
+                .option("escape", params["custom_s3_read_params"]["escape_value"])
+                .schema(structype_schema)
+                .load(s3_obj)
+            )
+            logger.info("Dataframe without multiline read successfully")
+            logger.info("Showing sample records \n")
+            raw_df.persist()
+            raw_df.show()
+
+        except Exception as error:
+            raw_df = None
+            logger.error("Could not read file {}".format(error), exc_info=True)
+            raise IOException.IOError(
+                moduleName=constant.CORE_JOB,
+                exeptionType=constant.IO_S3_READ_OBJECT_EXCEPTION,
+                message=constant.S3_READ_FAILED_MESSAGE.format(error),
+            )
+        return raw_df.count()
+
     # **Need to update this method with params
 
     def read_from_s3(self, bucket, path, structype_schema):
-        """This function reads data from s3 using spark.read method in Pyspark
+        """This function reads data from s3 using spark.read method with various read options in Pyspark
 
         Arguments:
             bucket {[String]} -- Name of the bucket in S3
@@ -230,10 +278,45 @@ class Core_Job:
             )
 
         # Addition of row count check
-        self.feed_row_count = df.count()
+        if params["custom_s3_read_params"]["multiline_value"] == "true":
+            logger.info(
+                "Reading file without multiline to get physical count of the file from s3..."
+            )
+            try:
+                self.feed_row_count = self.read_from_s3_without_multilines(
+                    bucket=self.env_params["refined_bucket"],
+                    path=params["rf_source_dir"] + "/" + self.file_name,
+                    structype_schema=self.structype_schema,
+                )
+                logger.info(
+                    "The physical count of feed file (without multiline) is - {}".format(
+                        self.feed_row_count
+                    )
+                )
+            except Exception as error:
+                self.feed_row_count = None
+                logger.error(
+                    "Could not read feed-file without multiline{}".format(error),
+                    exc_info=True,
+                )
+                raise IOException.IOError(
+                    moduleName=constant.CORE_JOB,
+                    exeptionType=constant.IO_S3_READ_OBJECT_EXCEPTION,
+                    message=constant.S3_READ_FAILED_MESSAGE.format(error),
+                )
+        else:
+            logger.info(
+                "Reading file with multiline to get physical count of the file from s3..."
+            )
+            self.feed_row_count = df.count()
+            logger.info(
+                "The actual count of feed file is - {}".format(self.feed_row_count)
+            )
+
         control_row_count = self.get_control_row_count(
             s3_directory="/".join(s3_obj.split("/")[:-1])
         )
+
         if self.feed_row_count != control_row_count:
             logger.error(
                 "Inconsistent row count:  number of rows loaded from {0} - {1}, control file row count -{2}".format(
@@ -950,6 +1033,93 @@ class Core_Job:
             )
         return status
 
+    def write_df_to_redshift_table(self, df, redshift_table, load_mode):
+        """
+            Parameters:
+
+            df: pyspark.sql.DataFrame
+            redshift_table: str,
+            load_mode: str,
+
+            Returns:
+
+            None
+
+            This function loads a DataFrame from memory into a table in AWS Redshift.
+             The three possible
+            modes for loading are:
+
+                append - appends data to table
+
+                overwrite - deletes all data in table and appends
+
+                errorIfExists - throws an error and fails if the table exists
+
+                ignore - if the table exists, do nothing
+            """
+        logger = self.logger
+        redshift_user = self.whouse_details["username"]
+        redshift_password = self.whouse_details["password"]
+        redshift_schema = self.whouse_details["dbSchema"]
+        logger.info("Attempting to create jdbc url for redshift")
+
+        env_params = self.env_params
+        temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
+
+        #!Commented code is needed for running write to redshift with databricks driver
+        # env_params = self.env_params
+        # temp_bucket = "s3://{}/{}/".format(env_params["refined_bucket"], "temp")
+
+        redshift_url = "jdbc:{}://{}:{}/{}".format(
+            self.whouse_details["engine"],
+            self.whouse_details["host"],
+            self.whouse_details["port"],
+            self.whouse_details["dbCatalog"],
+        )
+        logger.info(
+            "Attempting to write DataFrame {} to Redshift table {}.{}".format(
+                df, redshift_schema, redshift_table
+            )
+        )
+        schema_qualified_table = redshift_schema + "." + redshift_table
+        try:
+
+            df.write.format("com.databricks.spark.redshift").option(
+                "url",
+                redshift_url
+                + "?user="
+                + redshift_user
+                + "&password="
+                + redshift_password,
+            ).option("dbtable", schema_qualified_table).option(
+                "tempdir", temp_bucket
+            ).option(
+                "aws_iam_role", env_params["redshift_iam_role"]
+            ).save(
+                mode=load_mode
+            )
+            logger.info(
+                "Successfully wrote DataFrame {} to Redshift table {}".format(
+                    df, schema_qualified_table
+                )
+            )
+            status = True
+
+        except Exception as exception:
+            status = False
+            logger.error(
+                "Unable to write DataFrame {0} to Redshift table {1}: {2}".format(
+                    df, schema_qualified_table, exception
+                ),
+                exc_info=True,
+            )
+            raise IOException.IOError(
+                moduleName=constant.CORE_JOB,
+                exeptionType=constant.IO_WRITE_REDSHIFT_EXCEPTION,
+                message=constant.DF_TO_REDSHIFT_WRITE_FAILED.format(exception),
+            )
+        return status
+
     def query_to_redshift(self):
         """This method will query a redshift table and return query results in spark dataframe
         """
@@ -1078,6 +1248,31 @@ class Core_Job:
                 logger.error(
                     "Error Occurred in Core Class due To {}".format(error), exc_info=1
                 )
+                logger.error(
+                    "Moving Feed_file and CTNL files in the failed folder".format(
+                        error
+                    ),
+                    exc_info=1,
+                )
+                file_moved_status = utils.move_s3_file_from_current(
+                    file_name=file_name,
+                    src_bucket=core_job.env_params["refined_bucket"],
+                    tgt_bucket=core_job.env_params["refined_bucket"],
+                    params=params,
+                    logger=logger,
+                    tgt_path="{}/{}".format(params["failed_dest_folder_nm"], file_name),
+                )
+                utils.move_s3_file_from_current(
+                    file_name=control_file_name,
+                    src_bucket=core_job.env_params["refined_bucket"],
+                    tgt_bucket=core_job.env_params["refined_bucket"],
+                    params=params,
+                    logger=logger,
+                    tgt_path="{}/{}".format(
+                        params["failed_dest_folder_nm"], control_file_name
+                    ),
+                )
+
                 process_status = constant.failure
                 raise CustomAppException.CustomAppError(
                     moduleName=error.moduleName,

@@ -20,7 +20,9 @@ class rf_adobe:
             sr3.Bucket(source_bucket).download_file(file_name, local_file_name)
             date_part = file_name.rsplit("_", 1)
             date = date_part[1].strip('.csv')
+            final_date = datetime.strptime(date, '%Y%m%d').strftime('%Y-%m-%d')
+            
         except Exception as error:
             print(error)
         #returning the file stored in /tmp and date
-        return local_file_name, date
+        return local_file_name, final_date
