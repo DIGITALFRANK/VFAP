@@ -2298,7 +2298,9 @@ class Reporting_Job(Core_Job):
                         log=logger,
                         footnote=footnote_str,
                     )
+                    status = True
                 except Exception as error:
+                    status = False
                     logger.info(
                         "Error Occurred While processing etl_rpt_missing_dates due to : {}".format(
                             error
@@ -4076,10 +4078,10 @@ class Reporting_Job(Core_Job):
             FROM (SELECT brand, feed_name, data_source from df_file_broker_table
                   WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL' ) AS file_broker
             LEFT JOIN (SELECT file_name,
-                              SPLIT(job_end_time,' ')[1] AS LOAD_DATE,
-                              REGEXP_REPLACE(file_name,'[0-9]','')  AS file_name_wo_date
+                              SPLIT(job_end_time,' ')[0] AS LOAD_DATE,
+                              SUBSTRING(REGEXP_REPLACE(file_name,'[0-9]',''),0,length(REGEXP_REPLACE(file_name,'[0-9]',''))-5)  AS file_name_wo_date
                        FROM df_file_status_table
-                       WHERE job_status = '{2}' AND job_end_time BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'%Y-%m-%d') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'%Y-%m-%d')
+                       WHERE job_status = '{2}' AND job_end_time BETWEEN DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '{1}' DAY),'YYYY-MM-dd') AND DATE_FORMAT((CAST('{0}' AS DATE) - INTERVAL '0' DAY),'YYYY-MM-dd')
                        ORDER BY file_name, load_date) AS file_status
             ON upper(file_broker.feed_name) = upper(file_status.file_name_wo_date)
             """.format(
@@ -4190,11 +4192,7 @@ class Reporting_Job(Core_Job):
             if status_query_end_date is None:
                 status_query_end_date = str(datetime.datetime.now().date())
 
-            status_attribute_list = [
-                "file_name",
-                "job_end_time",
-                "job_status",
-            ]
+            status_attribute_list = ["file_name", "job_end_time", "job_status"]
             status_schema = StructType(
                 [
                     StructField("file_name", StringType(), True),
@@ -4205,7 +4203,7 @@ class Reporting_Job(Core_Job):
             status_records = []
             status_day_filter = status_query_end_date
             for day in range(int(status_query_interval_days) + 1):
-                status_records = utils_dynamo.get_filtered_ddb_attributes(
+                status_records += utils_dynamo.get_filtered_ddb_attributes(
                     table_name=input_glue_job_status_table,
                     ddb_region="us-east-1",
                     attribute_list=status_attribute_list,
@@ -4281,27 +4279,24 @@ class Reporting_Job(Core_Job):
             df_crm_file_summary.createOrReplaceTempView("df_crm_file_summary_table")
             df_crm_file_not_present_this_week = spark.sql(
                 """ SELECT 
-A.BRANDS, A.TOTAL_NUMBER_FILES,
-case when B.TOTAL_RECEIVED_FILES is null then 0 else B.TOTAL_RECEIVED_FILES end as TOTAL_RECEIVED_FILES, 
-case when B.TOTAL_RECEIVED_FILES = {0} then 'YES' else 'NO' end as LOAD_FULL_CRM_INDICATOR
-
-FROM 
-(
-SELECT 
-brand as Brands, count(*) as TOTAL_NUMBER_FILES
-from df_file_broker_table WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL'
-group by 1
-) A 
-
-LEFT JOIN 
-(
-SELECT 
-Brand as brands, count(CNT) as TOTAL_RECEIVED_FILES
-from df_crm_file_summary_table
-group by 1
-) B
-
-On upper(A.Brands) = upper(B.Brands)""".format(
+                    A.BRANDS, A.TOTAL_NUMBER_FILES,
+                    case when B.TOTAL_RECEIVED_FILES is null then 0 else B.TOTAL_RECEIVED_FILES end as TOTAL_RECEIVED_FILES, 
+                    case when B.TOTAL_RECEIVED_FILES = {0} then 'YES' else 'NO' end as LOAD_FULL_CRM_INDICATOR
+                    FROM 
+                        (
+                            SELECT 
+                            brand as Brands, count(*) as TOTAL_NUMBER_FILES
+                            from df_file_broker_table WHERE upper(data_source) = 'CRM' and feed_name <> 'F_VANS_COUPON_DETAIL'
+                            group by 1
+                        ) A 
+                    LEFT JOIN 
+                        (
+                            SELECT 
+                            Brand as brands, count(CNT) as TOTAL_RECEIVED_FILES
+                            from df_crm_file_summary_table
+                            group by 1
+                        ) B
+                    On upper(A.Brands) = upper(B.Brands)""".format(
                     crm_file_count_constraint
                 )
             )

@@ -161,7 +161,9 @@ def driver(file_name, args):
         status_params["job_status"] = stage_status
 
     except Exception as error:
-        logger.error("Error occurred in reporting_main driver: {}".format(error))
+        logger.error(
+            "Error occurred in reporting_main driver: {}".format(error), exc_info=True
+        )
         stage_status = constant.failure
         status_params["reporting_status"] = {
             "error_info": str(error),
@@ -202,7 +204,9 @@ def driver(file_name, args):
                 )
 
             raise Exception(
-                "Job failed gracefully - check log and/or email notification for details"
+                "Job failed gracefully - check log and/or email notification for details - {0}".format(
+                    job_exception
+                )
             )
         else:
             utils_ses.send_job_status_email(

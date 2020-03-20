@@ -322,6 +322,7 @@ class Array_Job_Queue:
     EMPTY_STATUS = 0
     ACTIVE_QUEUE_COUNT_THRESHOLD = 0
     ARRAY_QUEUE_COMPLETION = 1
+    ITERATION_INTERVAL = 0.5
 
     def __init__(self, job_queue_list, iteration_pause):
         """
@@ -340,9 +341,12 @@ class Array_Job_Queue:
         If a single queue is non-empty, the array of job queues is considered non-empty.
         If all queues are empty, the array of job queues is considered empty.
         """
-        active_queue_count = [
-            job_queue.check_queue(log) for job_queue in self.parallel_queues
-        ].count(Job_Queue.NON_EMPTY_STATUS)
+        active_queue_count = 0
+        for job_queue in self.parallel_queues:
+            queue_status = job_queue.check_queue(log)
+            if queue_status is Job_Queue.NON_EMPTY_STATUS:
+                active_queue_count += 1
+            time.sleep(Array_Job_Queue.ITERATION_INTERVAL)
         log.info("Active queue count - {0}".format(active_queue_count))
         if active_queue_count == Array_Job_Queue.ACTIVE_QUEUE_COUNT_THRESHOLD:
             self.status = Array_Job_Queue.EMPTY_STATUS
@@ -453,8 +457,7 @@ def get_feeds_and_destinations(
         error_msg = "Failed to connect/retrieve table object for DynamoDB table {0} - please check whether table exists or permission is enabled".format(
             table_name
         )
-        log.error(error_msg)
-        log.error(traceback.format_exc())
+        log.error(error_msg, exc_info=True)
         raise Exception(error_msg)
     try:
         log.info(
