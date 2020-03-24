@@ -145,7 +145,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=config.FILE_BROKER_TABLE,
+                table=broker_table,
                 logger=logger,
             )
             logger.info("File parameters for weekly job is {}".format(file_params))
@@ -161,7 +161,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=config.FILE_BROKER_TABLE,
+                table=broker_table,
                 logger=logger,
             )
             logger.info("File parameters for file are as : {}".format(file_params))
@@ -981,4 +981,3 @@ select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
                 "job_id": utils.get_glue_job_run_id(),
                 "job_start_time": str(datetime.utcnow()),
             }
-

@@ -1604,7 +1604,7 @@ class Reporting_Job(Core_Job):
                 if bulk_begin_dt == "Null":
                     bulk_begin_dt = None
                 else:
-                    bulk_begin_dt = datetime.datetime.fromisoformat(bulk_begin_dt)
+                    bulk_begin_dt = datetime.datetime.strptime(bulk_begin_dt, "%Y-%m-%d %H:%M:%S")
             except Exception as error:
                 log.error(
                     "Encountered error while interpreting time interval flags: {0}".format(
@@ -2348,37 +2348,14 @@ class Reporting_Job(Core_Job):
         try:
 
             def util_read_etl_parm_table():
-                spark = self.spark
-                params = self.params
-                logger = self.logger
-                whouse_etl_parm = self.redshift_table_to_dataframe(
-                    redshift_table="etl_params_test"
-                )
-                logger.info("enter into util_read_etl_parm_table")
-                today = datetime.datetime.today()
-                calculated_date = today - datetime.timedelta(days=(today.weekday() - 1))
-                logger.info("the calculated date is {}".format(calculated_date))
-                _brand_name_prefix = params["brand"]
-                ##Uncomment this line to run the CSV on a day that is out of the week from where is supposed to run, comment the line above
-                # calculated_date = today - datetime.timedelta(days=(today.weekday()+6))
-                whouse_etl_parm.createOrReplaceTempView("whouse_etl_parm_view")
-                df = spark.sql(
-                    """select 
-                        case when UPPER(TRIM(CHAR_VALUE))= "CURRENT" then date_format('{}',"yyyy-MM-dd")
-                        else date_format(CHAR_VALUE,"yyyy-MM-dd")
-                        end as cutoff_date
-                    from whouse_etl_parm_view
-                    where LOWER(KEY2)="cutoff_date"
-                    AND LOWER(KEY1) = LOWER('{}')
-                    AND CHAR_VALUE IS NOT NULL
-                    AND NUM_VALUE=1""".format(
-                        calculated_date, _brand_name_prefix
+                try:
+                    spark = self.spark
+                    params = self.params
+                    logger = self.logger
+                    whouse_etl_parm = self.redshift_table_to_dataframe(
                         redshift_table="etl_parm"
                     )
-                )
-                df.show()
-                logger.info("end of util_read_etl_parm_table")
-                df.createOrReplaceTempView("date_table")
+                    logger.info("enter into util_read_etl_parm_table")
                     _brand_name_prefix = params["brand"]
                     today = datetime.datetime.today()
                     if today.weekday() == 0:
@@ -2407,14 +2384,7 @@ class Reporting_Job(Core_Job):
                     logger.info("end of util_read_etl_parm_table")
                     df.createOrReplaceTempView("date_table")
 
-                cutoff_date_df = spark.sql(
-                    """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
-                )
-                cutoff_date_df.show()
-                cut_off_list = cutoff_date_df.select("cutoff_date").collect()
-                _cutoff_date = cut_off_list[0].cutoff_date
-                logger.info("the cutoff date is {}".format(_cutoff_date))
-
+                    cutoff_date_df = spark.sql(
                         """select date_format(cutoff_date,"ddMMMyyyy") as cutoff_date from date_table where cutoff_date BETWEEN 
                            date_format('2000-01-01',"yyyy-MM-dd") AND date_format(current_date(),"yyyy-MM-dd") AND cutoff_date IS NOT NULL"""
                     )
@@ -2433,7 +2403,6 @@ class Reporting_Job(Core_Job):
             def run_csv_tnf_build_email_inputs():
                 """ Builds email responsys as cap CSV
                 """
-                transformed_df_dict = {}
 
                 try:
                     transformed_df = None
@@ -2579,177 +2548,177 @@ class Reporting_Job(Core_Job):
                                     ELSE null
                                     END AS email_ssn,
 
-                                    CASE WHEN INSTR(campaign_name,"GO-VACA") > 0 OR 
-                                                INSTR(campaign_name,"_NATL_PARKS") > 0 OR 
-                                                INSTR(subject,"EXPLORE IN") > 0 OR 
-                                                INSTR(campaign_name,"NATIONALPARK") > 0 OR 
-                                                INSTR(campaign_name,"BEST-OF-THE-BAY") > 0 
-                                            THEN  "TRAVEL"
-                                        WHEN INSTR(campaign_name,"RUN") > 0 OR  
-                                                INSTR(campaign_name,"_ECS_") > 0 OR 
-                                                INSTR(campaign_name,"GOLIATHON") > 0 OR 
-                                                INSTR(subject,"MARATHON") > 0 OR 
-                                                INSTR(subject,"RUN") > 0 OR 
-                                                INSTR(campaign_name,"OE_FUND") > 0 OR 
-                                                INSTR(subject,"ENDURAN") > 0 OR 
-                                                INSTR(subject,"LACE UP FOR") > 0 
-                                            THEN  "RUN"
-                                        WHEN INSTR(campaign_name,"TRAIN") > 0 OR 
-                                                INSTR(subject,"GYM") > 0 OR 
-                                                INSTR(subject,"EQUIPPED") > 0 OR 
-                                                INSTR(campaign_name,"WORKOUT") > 0 OR 
-                                                INSTR(subject,"CROSS FIT")  > 0 OR 
-                                                INSTR(subject,"XFITMN") > 0 
-                                            THEN  "TRN"
-                                        WHEN INSTR(campaign_name,"HIK") > 0 OR 
-                                                INSTR(subject,"HIK") > 0 OR 
-                                                INSTR(subject,"TRAIL") > 0 
-                                            THEN  "HIK"
-                                        WHEN INSTR(campaign_name,"WATER") > 0 OR 
-                                                INSTR(campaign_name,"GO-SF") > 0 
-                                            THEN "SURF"
-                                        WHEN INSTR(campaign_name,"CLIMB") > 0 OR 
-                                                INSTR(subject,"PREPARED FOR THE MOUNTAIN") > 0 OR 
-                                                INSTR(campaign_name,"SUMMIT") > 0 OR 
-                                                INSTR(campaign_name,"NEPAL")> 0 OR 
-                                                INSTR(campaign_name,"MERU") > 0    OR 
-                                                INSTR(campaign_name,"BANFF") > 0 OR 
-                                                INSTR(campaign_name,"MTN-D-DOW") > 0 OR 
-                                                INSTR(campaign_name,"ANGOLA") > 0 OR  
-                                                INSTR(campaign_name,"ALPINE") > 0 OR 
-                                                INSTR(subject,"ALPINE") > 0 OR 
-                                                INSTR(subject,"CLIMB") > 0 OR 
-                                                INSTR(subject,"CONRAD ANKER") > 0 OR 
-                                                INSTR(subject,"ALEX HONNOLD") > 0 
-                                            THEN  "MTNCLM"
-                                        WHEN INSTR(campaign_name,"HIPCAMP") > 0 OR 
-                                                INSTR(campaign_name,"CAMPING") > 0 OR 
-                                                INSTR(campaign_name,"BACKPACK") > 0 OR 
-                                                INSTR(subject,"BACKPACK") > 0 OR 
-                                                INSTR(subject,"TENT") > 0 OR 
-                                                INSTR(subject,"HOMESTEAD") > 0 OR 
-                                                INSTR(campaign_name,"HOMESTEAD") > 0 OR 
-                                                INSTR(subject,"CAMP") > 0 
-                                            THEN  "BCPKCAMP"
-                                        WHEN INSTR(campaign_name,"SKI") > 0 OR  
-                                                INSTR(campaign_name,"ALL-MTN") > 0 OR 
-                                                INSTR(subject,"MEET INGRID") > 0 OR 
-                                                INSTR(subject,"DESLAURIERS") > 0 OR 
-                                                INSTR(subject,"SKI") > 0 OR 
-                                                INSTR(campaign_name,"SNOWSPORTS") > 0 OR 
-                                                INSTR(SUBJECT,"SLOPE") > 0 OR
-                                                INSTR(SUBJECT,"STEEP") > 0 
-                                            THEN  "SKI"
-                                        WHEN INSTR(campaign_name,"SNOW") > 0 OR 
-                                                INSTR(campaign_name,"SNOWSPORTS") > 0 OR 
-                                                INSTR(subject,"KAITLYN FARRINGTON") > 0 
-                                            THEN  "SNWB"
-                                        WHEN INSTR(campaign_name,"YOGA") > 0 OR 
-                                                INSTR(subject,"YOGA") > 0 
-                                            THEN  "YOGA"
-                                        WHEN INSTR(campaign_name,"BOXING") > 0 OR 
-                                                INSTR(SUBJECT,"BOXING") > 0 
-                                        THEN  "BOXING"
-                                        WHEN INSTR(subject,"HUNT-SEA") > 0 OR 
-                                                INSTR(campaign_name,"HUNT-SEA") > 0 
-                                        THEN  "WATER"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('GO-VACA',campaign_name) > 0 OR 
+                                                CHARINDEX('_NATL_PARKS',campaign_name) > 0 OR 
+                                                CHARINDEX('EXPLORE IN',subject) > 0 OR 
+                                                CHARINDEX('NATIONALPARK',campaign_name) > 0 OR 
+                                                CHARINDEX('BEST-OF-THE-BAY',campaign_name) > 0 
+                                            THEN  'TRAVEL'
+                                        WHEN CHARINDEX('RUN',campaign_name) > 0 OR  
+                                                CHARINDEX('_ECS_',campaign_name) > 0 OR 
+                                                CHARINDEX('GOLIATHON',campaign_name) > 0 OR 
+                                                CHARINDEX('MARATHON',subject) > 0 OR 
+                                                CHARINDEX('RUN',subject) > 0 OR 
+                                                CHARINDEX('OE_FUND',campaign_name) > 0 OR 
+                                                CHARINDEX('ENDURAN',subject) > 0 OR 
+                                                CHARINDEX('LACE UP FOR',subject) > 0 
+                                            THEN  'RUN'
+                                        WHEN CHARINDEX('TRAIN',campaign_name) > 0 OR 
+                                                CHARINDEX('GYM',subject) > 0 OR 
+                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                                CHARINDEX('WORKOUT',campaign_name) > 0 OR 
+                                                CHARINDEX('CROSS FIT',subject)  > 0 OR 
+                                                CHARINDEX('XFITMN',subject) > 0 
+                                            THEN  'TRN'
+                                        WHEN CHARINDEX('HIK',campaign_name) > 0 OR 
+                                                CHARINDEX('HIK',subject) > 0 OR 
+                                                CHARINDEX('TRAIL',subject) > 0 
+                                            THEN  'HIK'
+                                        WHEN CHARINDEX('WATER',campaign_name) > 0 OR 
+                                                CHARINDEX('GO-SF',campaign_name) > 0 
+                                            THEN 'SURF'
+                                        WHEN CHARINDEX('CLIMB',campaign_name) > 0 OR 
+                                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0 OR 
+                                                CHARINDEX('SUMMIT',campaign_name) > 0 OR 
+                                                CHARINDEX('NEPAL',campaign_name)> 0 OR 
+                                                CHARINDEX('MERU',campaign_name) > 0    OR 
+                                                CHARINDEX('BANFF',campaign_name) > 0 OR 
+                                                CHARINDEX('MTN-D-DOW',campaign_name) > 0 OR 
+                                                CHARINDEX('ANGOLA',campaign_name) > 0 OR  
+                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                                CHARINDEX('ALPINE',subject) > 0 OR 
+                                                CHARINDEX('CLIMB',subject) > 0 OR 
+                                                CHARINDEX('CONRAD ANKER',subject) > 0 OR 
+                                                CHARINDEX('ALEX HONNOLD',subject) > 0 
+                                            THEN  'MTNCLM'
+                                        WHEN CHARINDEX('HIPCAMP',campaign_name) > 0 OR 
+                                                CHARINDEX('CAMPING',campaign_name) > 0 OR 
+                                                CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                CHARINDEX('BACKPACK',subject) > 0 OR 
+                                                CHARINDEX('TENT',subject) > 0 OR 
+                                                CHARINDEX('HOMESTEAD',subject) > 0 OR 
+                                                CHARINDEX('HOMESTEAD',campaign_name) > 0 OR 
+                                                CHARINDEX('CAMP',subject) > 0 
+                                            THEN  'BCPKCAMP'
+                                        WHEN CHARINDEX('SKI',campaign_name) > 0 OR  
+                                                CHARINDEX('ALL-MTN',campaign_name) > 0 OR 
+                                                CHARINDEX('MEET INGRID',subject) > 0 OR 
+                                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
+                                                CHARINDEX('SKI',subject) > 0 OR 
+                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                                CHARINDEX('SLOPE',SUBJECT) > 0 OR
+                                                CHARINDEX('STEEP',SUBJECT) > 0 
+                                            THEN  'SKI'
+                                        WHEN CHARINDEX('SNOW',campaign_name) > 0 OR 
+                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                                CHARINDEX('KAITLYN FARRINGTON',subject) > 0 
+                                            THEN  'SNWB'
+                                        WHEN CHARINDEX('YOGA',campaign_name) > 0 OR 
+                                                CHARINDEX('YOGA',subject) > 0 
+                                            THEN  'YOGA'
+                                        WHEN CHARINDEX('BOXING',campaign_name) > 0 OR 
+                                                CHARINDEX('BOXING',SUBJECT) > 0 
+                                        THEN  'BOXING'
+                                        WHEN CHARINDEX('HUNT-SEA',subject) > 0 OR 
+                                                CHARINDEX('HUNT-SEA',campaign_name) > 0 
+                                        THEN  'WATER'
+                                    ELSE null
                                     END AS email_activity,
 
-                                    CASE WHEN INSTR(campaign_name,"-MEN") > 0 THEN "M"
-                                        WHEN INSTR(campaign_name,"-WOMEN") > 0 THEN "F"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'
+                                        WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'
+                                    ELSE null
                                     END AS email_gender,
 
-                                    CASE WHEN INSTR(campaign_name,"RETAIL") > 0 OR  
-                                                INSTR(subject,"RETAIL") > 0 
-                                            THEN  "RETAIL"
-                                            WHEN INSTR(campaign_name,"ECOM") > 0 OR 
-                                                    INSTR(subject,"ECOM") > 0 OR  
-                                                    INSTR(campaign_name,"NEW_SITE") > 0 
-                                                THEN "ECOM"					
-                                            WHEN INSTR(campaign_name,"OUTLET") > 0 OR  
-                                                    INSTR(subject,"OUTLET") > 0  
-                                                THEN "OUTLET"
-                                    ELSE ""
+                                    CASE WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+                                                CHARINDEX('RETAIL',subject) > 0 
+                                            THEN  'RETAIL'
+                                            WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                                                    CHARINDEX('ECOM',subject) > 0 OR  
+                                                    CHARINDEX('NEW_SITE',campaign_name) > 0 
+                                                THEN 'ECOM'					
+                                            WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                                                    CHARINDEX('OUTLET',subject) > 0  
+                                                THEN 'OUTLET'
+                                    ELSE null
                                     END AS email_channel,
 
-                                    CASE WHEN  INSTR(campaign_name,"EQUIPMENT") > 0 OR 
-                                                INSTR(subject,"EQUIPPED") > 0 OR 
-                                                INSTR(subject,"GEAR") > 0 
-                                            THEN  "EQUIP"
-                                        WHEN INSTR(campaign_name,"JACKET") > 0 OR 
-                                                INSTR(subject,"JACKET") > 0 OR 
-                                                INSTR(campaign_name,"WATSON") > 0 
-                                            THEN  "JKT"
-                                        WHEN INSTR(campaign_name,"BOOT") > 0 OR 
-                                                INSTR(campaign_name,"XTRAFOAM") > 0 OR 
-                                                INSTR(subject,"FOOTWEAR") > 0 
-                                            THEN  "FW"
-                                        WHEN INSTR(campaign_name,"BACKPACK") > 0 OR 
-                                                INSTR(campaign_name,"DAY-PACK") > 0 OR 
-                                                INSTR(subject,"DAY-PACK") > 0 OR 
-                                                INSTR(subject,"BACKPACK") > 0 
-                                            THEN  "BCPK"
-                                        WHEN INSTR(campaign_name,"ASCENTIAL") > 0 THEN "ASCNTL"		
-                                        WHEN INSTR(campaign_name,"THERM") > 0 OR  
-                                                INSTR(subject,"3 WAYS") > 0 OR  
-                                                INSTR(subject,"COLD") > 0 OR 
-                                                INSTR(campaign_name,"COLD") > 0 OR 
-                                                INSTR(campaign_name,"WINTERJACKET") > 0 OR 
-                                                INSTR(campaign_name,"DOWN_JACKET") > 0 OR 
-                                                INSTR(campaign_name,"SUMMIT") > 0	OR 
-                                                INSTR(campaign_name,"_FUSE_CHI_") > 0 OR 
-                                                INSTR(campaign_name,"_FUSE_SEATTLE") > 0 OR 
-                                                INSTR(campaign_name,"_FUSE_BOSTON_") > 0 OR 
-                                                INSTR(campaign_name,"APEX-FLEX") > 0 OR 
-                                                INSTR(SUBJECT,"FAR-NORTH") > 0 OR 
-                                                INSTR(SUBJECT,"FAR NORTH") > 0 OR 
-                                                INSTR(campaign_name,"FARNORTHERN") > 0 OR 
-                                                INSTR(campaign_name,"INSULATED") > 0 OR 
-                                                INSTR(campaign_name,"URBAN_INS") > 0 OR  
-                                                INSTR(campaign_name,"ALPINE") > 0 OR 
-                                                INSTR(campaign_name,"_SOFT_") > 0 OR 
-                                                INSTR(campaign_name,"URBAN-INS") > 0 OR 
-                                                INSTR(campaign_name,"CORE") > 0 OR 
-                                                INSTR(campaign_name,"TBALL") > 0 OR 
-                                                INSTR(subject,"TBALL") > 0 OR 
-                                                INSTR(subject,"THERMOBALL") > 0 OR 
-                                                INSTR(campaign_name,"ARCTIC") > 0 OR 
-                                                INSTR(subject,"ARCTIC") > 0 OR  
-                                                INSTR(subject,"NEW DIMENSION TO WARMTH") > 0 OR  
-                                                INSTR(subject,"NEW DIMENSION OF WARMTH") > 0 
-                                            THEN "INS"
-                                        WHEN INSTR(campaign_name,"FLEECE") > 0 OR 
-                                                INSTR(campaign_name,"URBAN_EXP") > 0 OR 
-                                                INSTR(campaign_name,"TRICLIM") > 0 OR 
-                                                INSTR(campaign_name,"VILLAGEWEAR") > 0 OR 
-                                                INSTR(campaign_name,"OSITO") > 0 OR 
-                                                INSTR(campaign_name,"WARMTH") > 0 OR 
-                                                INSTR(campaign_name,"FAVES") > 0 OR 
-                                                INSTR(subject,"FLEECE PONCHO") > 0 OR 
-                                                INSTR(subject,"LIGHTER JACKET") > 0 OR 
-                                                INSTR(campaign_name,"DENALI") > 0 
-                                            THEN  "MILDJKT"
-                                        WHEN INSTR(campaign_name,"_FUSEFORM_") > 0 OR 
-                                                INSTR(campaign_name,"_VENTURE_") > 0 OR 
-                                                (INSTR(campaign_name,"RAIN") > 0 AND INSTR(campaign_name,"TRAIN") <= 0) OR
-                                                (INSTR(subject,"RAIN") > 0 AND INSTR(subject,"TRAIN") <= 0) 
-                                            THEN "RAIN_WR"
-                                        WHEN INSTR(subject,"HAT") > 0 OR 
-                                                INSTR(subject,"BEANIE") > 0 OR 
-                                                INSTR(subject,"EAR GEAR") > 0 OR 
-                                                INSTR(subject,"MITTEN") > 0 OR 
-                                                INSTR(subject,"SCARF") > 0 OR 
-                                                INSTR(subject,"VISOR") > 0 OR 
-                                                INSTR(subject," CAP ") > 0  OR 
-                                                INSTR(subject,"GLOVES") > 0   OR 
-                                                INSTR(subject,"SOCKS") > 0 OR 
-                                                (INSTR(subject,"PACK") > 0 AND INSTR(subject,"BACKPACK") <= 0 ) OR 
-                                                INSTR(subject," BAG") > 0 OR 
-                                                INSTR(subject,"BOTTLE") > 0 
-                                            THEN "ACCSR"			
-                                    ELSE ""
+                                    CASE WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                                CHARINDEX('GEAR',subject) > 0 
+                                            THEN  'EQUIP'
+                                        WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('JACKET',subject) > 0 OR 
+                                                CHARINDEX('WATSON',campaign_name) > 0 
+                                            THEN  'JKT'
+                                        WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
+                                                CHARINDEX('XTRAFOAM',campaign_name) > 0 OR 
+                                                CHARINDEX('FOOTWEAR',subject) > 0 
+                                            THEN  'FW'
+                                        WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                CHARINDEX('DAY-PACK',campaign_name) > 0 OR 
+                                                CHARINDEX('DAY-PACK',subject) > 0 OR 
+                                                CHARINDEX('BACKPACK',subject) > 0 
+                                            THEN  'BCPK'
+                                        WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'		
+                                        WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
+                                                CHARINDEX('3 WAYS',subject) > 0 OR  
+                                                CHARINDEX('COLD',subject) > 0 OR 
+                                                CHARINDEX('COLD',campaign_name) > 0 OR 
+                                                CHARINDEX('WINTERJACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('DOWN_JACKET',campaign_name) > 0 OR 
+                                                CHARINDEX('SUMMIT',campaign_name) > 0	OR 
+                                                CHARINDEX('_FUSE_CHI_',campaign_name) > 0 OR 
+                                                CHARINDEX('_FUSE_SEATTLE',campaign_name) > 0 OR 
+                                                CHARINDEX('_FUSE_BOSTON_',campaign_name) > 0 OR 
+                                                CHARINDEX('APEX-FLEX',campaign_name) > 0 OR 
+                                                CHARINDEX('FAR-NORTH',SUBJECT) > 0 OR 
+                                                CHARINDEX('FAR NORTH',SUBJECT) > 0 OR 
+                                                CHARINDEX('FARNORTHERN',campaign_name) > 0 OR 
+                                                CHARINDEX('INSULATED',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN_INS',campaign_name) > 0 OR  
+                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                                CHARINDEX('_SOFT_',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN-INS',campaign_name) > 0 OR 
+                                                CHARINDEX('CORE',campaign_name) > 0 OR 
+                                                CHARINDEX('TBALL',campaign_name) > 0 OR 
+                                                CHARINDEX('TBALL',subject) > 0 OR 
+                                                CHARINDEX('THERMOBALL',subject) > 0 OR 
+                                                CHARINDEX('ARCTIC',campaign_name) > 0 OR 
+                                                CHARINDEX('ARCTIC',subject) > 0 OR  
+                                                CHARINDEX('NEW DIMENSION TO WARMTH',subject) > 0 OR  
+                                                CHARINDEX('NEW DIMENSION OF WARMTH',subject) > 0 
+                                            THEN 'INS'
+                                        WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
+                                                CHARINDEX('URBAN_EXP',campaign_name) > 0 OR 
+                                                CHARINDEX('TRICLIM',campaign_name) > 0 OR 
+                                                CHARINDEX('VILLAGEWEAR',campaign_name) > 0 OR 
+                                                CHARINDEX('OSITO',campaign_name) > 0 OR 
+                                                CHARINDEX('WARMTH',campaign_name) > 0 OR 
+                                                CHARINDEX('FAVES',campaign_name) > 0 OR 
+                                                CHARINDEX('FLEECE PONCHO',subject) > 0 OR 
+                                                CHARINDEX('LIGHTER JACKET',subject) > 0 OR 
+                                                CHARINDEX('DENALI',campaign_name) > 0 
+                                            THEN  'MILDJKT'
+                                        WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
+                                                CHARINDEX('_VENTURE_',campaign_name) > 0 OR 
+                                                (CHARINDEX('RAIN',campaign_name) > 0 AND CHARINDEX('TRAIN',campaign_name) <= 0) OR
+                                                (CHARINDEX('RAIN',subject) > 0 AND CHARINDEX('TRAIN',subject) <= 0) 
+                                            THEN 'RAIN_WR'
+                                        WHEN CHARINDEX('HAT',subject) > 0 OR 
+                                                CHARINDEX('BEANIE',subject) > 0 OR 
+                                                CHARINDEX('EAR GEAR',subject) > 0 OR 
+                                                CHARINDEX('MITTEN',subject) > 0 OR 
+                                                CHARINDEX('SCARF',subject) > 0 OR 
+                                                CHARINDEX('VISOR',subject) > 0 OR 
+                                                CHARINDEX(' CAP ',subject) > 0  OR 
+                                                CHARINDEX('GLOVES',subject) > 0   OR 
+                                                CHARINDEX('SOCKS',subject) > 0 OR 
+                                                (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
+                                                CHARINDEX(' BAG',subject) > 0 OR 
+                                                CHARINDEX('BOTTLE',subject) > 0 
+                                            THEN 'ACCSR'
+                                    ELSE null
                                     END AS Product_category_tmp
                                 FROM {0}.x_tmp_tnf_email_launch_clean_stage2
                                     """.format(
@@ -2942,57 +2911,7 @@ class Reporting_Job(Core_Job):
                                             AND st.launch_id = lh.launch_id
                                             AND st.list_id = lh.list_id
                                         WHERE 
-                                                op.event_captured_dt IS NOT NULL
-                                                AND to_date(op.event_captured_dt , 'dd-MMM-yyyy') <= to_date('{}', 'ddMMMyyyy')
-                                        GROUP BY 
-                                                op.campaign_id,
-                                                op.launch_id,
-                                                op.list_id,
-                                                op.riid
-                                        """.format(
-                            _cutoff_date
-                        )
-                    )
-                    x_tmp_tnf_email_open_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_open_clean"
-                    )
-                    logger.info(
-                        "count of records in x_tmp_tnf_email_open_clean_df {}".format(
-                            x_tmp_tnf_email_open_clean_df.count()
-                        )
-                    )
-
-                    x_tmp_tnf_email_click_clean_df = spark.sql(
-                        """
-                                    SELECT 
-                                        distinct
-                                            cl.campaign_id,
-                                            cl.launch_id,
-                                            cl.list_id,
-                                            cl.riid,
-                                            MIN (to_date(cl.event_captured_dt , 'dd-MMM-yyyy')) AS click_date
-                                        FROM whouse_tnf_email_click_view cl
-                                            INNER JOIN whouse_x_tmp_tnf_email_launch_clean lh
-                                                ON cl.campaign_id = lh.campaign_id
-                                                AND cl.launch_id  = lh.launch_id
-                                                AND cl.list_id = lh.list_id
-                                        WHERE 
-                                                LOWER(trim(cl.offer_name)) <> 'unsubscribe_footer'
-                                                AND to_date(cl.event_captured_dt , 'dd-MMM-yyyy') <= to_date('{}', 'ddMMMyyyy')
-                                        GROUP BY cl.campaign_id,
-                                                cl.launch_id,
-                                                cl.list_id,
-                                                cl.riid
-                                    """.format(
-                            _cutoff_date
-                        )
-                    )
-                    x_tmp_tnf_email_click_clean_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_click_clean"
-                    )
-                    logger.info(
-                        "count of records in x_tmp_tnf_email_click_clean_df {}".format(
-                            x_tmp_tnf_email_click_clean_df.count()
+                                            LOWER(TRIM(st.email_ISP))  <> 'vfc.com' 
                                             AND st.event_captured_dt::date <= '{2}'
                                     """.format(
                         dbschema, sent_view, _cutoff_date
@@ -3111,25 +3030,29 @@ class Reporting_Job(Core_Job):
                                             t4.click_date::date as click_date,
                                             t4.click_date::date - t3.open_date::date AS days_to_click ,
                                             CASE
-                                                WHEN t2.open_date IS NOT NULL THEN 1
+                                                WHEN t4.click_date IS NOT NULL THEN 1
                                             ELSE 0
-                                            END AS open_ind
-                                        FROM whouse_x_tmp_tnf_email_sent_clean t1
-                                        LEFT JOIN whouse_x_tmp_tnf_email_open_clean t2
-                                                ON t1.campaign_id = t2.campaign_id
-                                                AND t1.list_id = t2.list_id
-                                                AND t1.launch_id = t2.launch_id
-                                                AND t1.riid = t2.riid 
-                                        ) t3
-                                    LEFT JOIN whouse_x_tmp_tnf_email_click_clean t4
-                                    ON t4.campaign_id = t3.campaign_id
-                                        AND t4.list_id = t3.list_id
-                                        AND t4.launch_id = t3.launch_id
-                                        AND t4.riid = t3.riid 
-                                    """
-                    )
-                    whouse_x_tmp_tnf_email_inputs_df.createOrReplaceTempView(
-                        "whouse_x_tmp_tnf_email_inputs"
+                                            END AS click_ind
+                                        FROM
+                                            (SELECT t1.ACT,
+                                                t1.CAMPAIGN_ID,
+                                                t1.CHNL,
+                                                t1.CUSTOMER_ID,
+                                                t1.GEN,
+                                                t1.LAUNCH_ID,
+                                                t1.LIST_ID,
+                                                t1.PCAT,
+                                                t1.PRS,
+                                                t1.RIID,
+                                                t1.SENT_DATE::date as SENT_DATE,
+                                                t1.SSN,
+                                                t2.open_date::date as open_date,
+                                                t2.open_date::date - t1.sent_date::date AS days_to_open ,
+                                                t2.most_recent_o::date as most_recent_o,
+                                                CASE
+                                                    WHEN t2.open_date IS NOT NULL THEN 1
+                                                ELSE 0
+                                                END AS open_ind
                                             FROM {0}.x_tmp_tnf_email_sent_clean t1
                                             LEFT JOIN {0}.x_tmp_tnf_email_open_clean t2
                                                     ON t1.campaign_id = t2.campaign_id
@@ -3178,29 +3101,7 @@ class Reporting_Job(Core_Job):
                     logger.info("entering outer loop")
                     # loops through all category and var lists to create median days to open, median days to click, #sent, #open, #click, %open and %click
                     for i in cat_list:
-                        df_list = spark.sql(
-                            """
-                                    select tmp.*,
-                                    datediff(to_date('{}', 'ddMMMyyyy'), dsince_o_tmp) as dsince_o,
-                                        ROUND((freq_o * 100 / freq_s),1) as pct_o,
-                                        ROUND((freq_c * 100 / freq_o),1) as pct_c
-                                    FROM 
-                                        (SELECT  customer_id, %s, 
-                                            percentile_approx(days_to_open,0.5) as md2o,
-                                            percentile_approx(days_to_click,0.5) as md2c,
-                                            max(most_recent_o)as dsince_o_tmp,
-                                            count(*) as freq_s,
-                                            sum(open_ind) as freq_o,
-                                            sum(click_ind) as freq_c					
-                                        FROM whouse_x_tmp_tnf_email_inputs
-                                        WHERE %s is not null
-                                        GROUP BY customer_id, %s ) tmp """.format(
-                                _cutoff_date
-                            )
-                            % (i, i, i)
-                        )
-                        table_nm = "temp_tnf_" + i + "_metrics"
-                        df_list.createOrReplaceTempView(table_nm)
+                        logger.info("the value of i is :{}".format(i))
                         drop_metrics_table_query = "drop table if exists {1}.temp_tnf_{0}_metrics".format(
                             i, dbschema
                         )
@@ -3221,21 +3122,20 @@ class Reporting_Job(Core_Job):
                                FROM 
                                    (select a.*, b.md2c from
 
-                        logger.info("count is {}".format(df_list.count()))
+                                     (SELECT  customer_id, {0},MEDIAN(days_to_open)  as md2o,
+                                       max(most_recent_o)as dsince_o_tmp,
+                                       count(*) as freq_s,
+                                       sum(open_ind) as freq_o,
+                                       sum(click_ind) as freq_c
                                    FROM {2}.x_tmp_tnf_email_inputs
                                    WHERE {0} is not null
                                    GROUP BY customer_id, {0} ) a
 
-                        var_list = [
-                            "md2o",
-                            "md2c",
-                            "dsince_o",
-                            "freq_s",
-                            "freq_o",
-                            "freq_c",
-                            "pct_o",
-                            "pct_c",
-                        ]
+                                   left join 
+                                   (SELECT  customer_id, {0},                                                                            
+
+                                      MEDIAN(days_to_click)  as md2c
+
                                    FROM {2}.x_tmp_tnf_email_inputs
                                    WHERE {0} is not null
                                    GROUP BY customer_id, {0} 
@@ -3545,7 +3445,7 @@ class Reporting_Job(Core_Job):
                             error
                         )
                     )
-                return transformed_df_dict
+                return status
 
             def process():
                 """
@@ -3565,34 +3465,7 @@ class Reporting_Job(Core_Job):
                 logger.info("reporting csv build email inputs program started")
                 params = self.params
 
-                transformed_df_data_dict = run_csv_tnf_build_email_inputs()
-                #            if len(transformed_df_data_dict) == 0:
-                #                transformed_df_to_redshift_table_status = False
-                #            else:
-                status = True
-                for (target_table, transformed_df) in transformed_df_data_dict.items():
-                    if status:
-                        logger.info(
-                            "Inside datadict loop writing transformed_df to : {}".format(
-                                target_table
-                            )
-                        )
-                        status = self.write_df_to_redshift_table(
-                            df=transformed_df,
-                            redshift_table=target_table,
-                            load_mode=load_mode,
-                        )
-                        logger.info(
-                            "Response from writing to redshift is {}".format(status)
-                        )
-
-                    else:
-                        status = False
-                        logger.info("Failed to Load Transformed Data Dict To Redshift")
-
-                logger.info("Response from writing to redshift is {}".format(status))
-                if status == False:
-                    raise Exception("Unable to write the data to the table in Redshift")
+                run_csv_tnf_build_email_inputs()
                 return constant.success
 
         except Exception as error:
@@ -3604,13 +3477,10 @@ class Reporting_Job(Core_Job):
 
     def reporting_send_daily_etl_job_status_report(
         self,
-        glue_db,
-        etl_status_table,
         etl_status_job_column_id,
         etl_status_dttm_column_id,
         etl_status_job_status_column_id,
         etl_status_record_count_column_id,
-        etl_parameter_table,
         etl_parameter_job_column_id,
         etl_parameter_target_column_id,
         redshift_output_table,
@@ -3870,7 +3740,6 @@ class Reporting_Job(Core_Job):
             etl_status_dttm_column_id,
             etl_status_job_status_column_id,
             etl_status_record_count_column_id,
-            etl_parameter_target_column_id,
             etl_status_table,
             etl_parameter_table,
             etl_parameter_target_column_id,
@@ -3887,8 +3756,6 @@ class Reporting_Job(Core_Job):
             etl_status_job_status_column_id: str
             etl_status_record_count_column_id: str
             etl_parameter_target_column_id: str
-            etl_status_table: str
-            etl_parameter_table: str
             etl_parameter_job_column_id: str
 
             Returns:
@@ -4077,8 +3944,6 @@ class Reporting_Job(Core_Job):
             log=log,
         )
 
-        spark.sql("select * from {0}".format(etl_status_table)).show()
-
         remove_timestamp_csv_file_extension(
             table_id=etl_status_table,
             job_column_id=etl_status_job_column_id,
@@ -4088,8 +3953,6 @@ class Reporting_Job(Core_Job):
             log=log,
         )
 
-        spark.sql("select * from {0}".format(etl_status_table)).show()
-
         remove_trailing_underscore(
             table_id=etl_status_table,
             job_column_id=etl_status_job_column_id,
@@ -4107,15 +3970,12 @@ class Reporting_Job(Core_Job):
             record_count_column_id=etl_status_record_count_column_id,
             log=log,
         )
-
-        spark.sql("select * from {0}".format(etl_status_table)).show()
 
         daily_etl_job_status_report_df = enrich_etl_job_status_report(
             etl_status_job_column_id=etl_status_job_column_id,
             etl_status_dttm_column_id=etl_status_dttm_column_id,
             etl_status_job_status_column_id=etl_status_job_status_column_id,
             etl_status_record_count_column_id=etl_status_record_count_column_id,
-            etl_parameter_target_column_id=etl_parameter_target_column_id,
             etl_status_table=etl_status_table,
             etl_parameter_table=etl_parameter_table,
             etl_parameter_target_column_id=etl_parameter_target_column_id,
@@ -4124,8 +3984,6 @@ class Reporting_Job(Core_Job):
         )
 
         daily_etl_job_status_report_df.show()
-
-        spark.sql("select * from {0}".format(etl_status_table)).show()
 
         # Send report via email
         log.info("Sending todays ETL job status report by email")
@@ -4158,10 +4016,6 @@ class Reporting_Job(Core_Job):
 
     def reporting_crm_file_checklist(
         self,
-        input_glue_job_status_table,
-        input_glue_job_status_db,
-        input_glue_etl_file_broker,
-        input_glue_etl_file_broker_db,
         redshift_crm_file_summary_table,
         redshift_crm_file_not_present_this_week_table,
         status_query_end_date,
@@ -4171,10 +4025,6 @@ class Reporting_Job(Core_Job):
         """
         Parameters:
 
-        input_glue_job_status_table: str
-        input_glue_job_status_db: str
-        input_glue_etl_file_broker: str
-        input_glue_etl_file_broker_db: str
         redshift_crm_file_summary_table: str
         redshift_crm_file_not_present_this_week_table: str
         status_query_end_date: str

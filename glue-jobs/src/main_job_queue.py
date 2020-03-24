@@ -157,14 +157,12 @@ def trigger_glue_job(job_name, file_name, log):
     """
     client = boto3.client("glue", region_name=Constants.AWS_REGION)
     log.info("Trigger job - {0} with file name - {1}".format(job_name, file_name))
-    print("Trigger job - {0} with file name - {1}".format(job_name, file_name))
     response = client.start_job_run(
         JobName=job_name, Arguments={"--FILE_NAME": file_name}, Timeout=2880
     )
     log.info(
         "Job successfully triggered. Job run ID - {0}".format(response["JobRunId"])
     )
-    print("Job successfully triggered. Job run ID - {0}".format(response["JobRunId"]))
     return response["JobRunId"]
 
 
@@ -178,7 +176,6 @@ def get_glue_job_run_status(job_name, job_run_id, log):
     )
     response = client.get_job_run(JobName=job_name, RunId=job_run_id)
     log.info("Job run status - {0}".format(response["JobRun"]["JobRunState"]))
-    print("Job run status - {0}".format(response["JobRun"]["JobRunState"]))
     return response["JobRun"]["JobRunState"]
 
 
@@ -204,7 +201,6 @@ class Job:
         job_name: str - the name of the AWS Glue job
         file_name: str - the file name of the feed file which has arrived
         """
-        # TODO: Configure job name
         self.file_name = file_name
         self.status = self.READY_STATUS
         self.job_name = job_name

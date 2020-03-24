@@ -42,6 +42,7 @@ class Xref_Job(Core_Job):
     def clean_tnf_style_xref(row):
         try:
             sas_product_category = row.tnf___clm_description_for_sas
+            clm_description_for_sas = row.tnf___clm_description_for_sas
             sas_style_description = row.style_description.strip()
             product_gender = None
             product_age_group = None
@@ -58,7 +59,7 @@ class Xref_Job(Core_Job):
                         product_age_group = xref_global_config.clean_tnf_xref_basic[
                             key
                         ]["result"]["age_group"]
-                        sas_product_category = row.tnf___clm_description_for_sas[
+                        sas_product_category = sas_product_category[
                             xref_global_config.clean_tnf_xref_basic[key]["result"][
                                 "product_category_index"
                             ] :
@@ -68,14 +69,14 @@ class Xref_Job(Core_Job):
                 if key.startswith("TNF___CLM_DESCRIPTION_FOR_SAS_indexof_"):
                     try:
                         if (
-                            row.tnf___clm_description_for_sas.index(
+                            sas_product_category.index(
                                 xref_global_config.clean_tnf_xref_basic[key][
                                     "condition"
                                 ]
                             )
                             >= 0
                         ):
-                            sas_product_category = row.tnf___clm_description_for_sas.replace(
+                            sas_product_category = sas_product_category.replace(
                                 xref_global_config.clean_tnf_xref_basic[key]["result"][
                                     "product_category_replace"
                                 ][0],
@@ -83,6 +84,12 @@ class Xref_Job(Core_Job):
                                     "product_category_replace"
                                 ][1],
                             )
+                            product_gender = xref_global_config.clean_tnf_xref_basic[
+                                key
+                            ]["result"]["gender"]
+                            product_age_group = xref_global_config.clean_tnf_xref_basic[
+                                key
+                            ]["result"]["age_group"]
                         else:
                             pass
                     except Exception as error:
@@ -103,12 +110,12 @@ class Xref_Job(Core_Job):
                             "end_part"
                         ]:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "substring"
                                 ]
-                                + row.style_description[
+                                + sas_style_description[
                                     position
                                     + 1
                                     + len(
@@ -120,23 +127,23 @@ class Xref_Job(Core_Job):
                             )
                         else:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "substring"
                                 ]
                             )
                 if key.startswith("JKT"):
-                    position = row.style_description.find(
+                    position = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring"]
                     )
                     if position >= 0:
                         sas_style_description = (
-                            row.style_description[0:position]
+                            sas_style_description[0:position]
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
-                            + row.style_description[
+                            + sas_style_description[
                                 position
                                 + len(
                                     xref_global_config.clean_tnf_xref_basic[key][
@@ -146,31 +153,31 @@ class Xref_Job(Core_Job):
                             ]
                         )
                 if key.startswith("SWEATS"):
-                    pos1 = row.style_description.find(
+                    pos1 = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring1"]
                     )
-                    pos2 = row.style_description.find(
+                    pos2 = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring2"]
                     )
                     if pos1 >= 0 and pos2 < 0:
                         sas_style_description = (
-                            row.style_description[0:pos1]
+                            sas_style_description[0:pos1]
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
                         )
                 if key.startswith("TRIJACKET"):
-                    position = row.style_description.find(
+                    position = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring"]
                     )
                     if position >= 0:
                         sas_style_description = (
-                            row.style_description[0:position]
+                            sas_style_description[0:position]
                             + " "
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
-                            + row.style_description[
+                            + sas_style_description[
                                 position
                                 + 1
                                 + len(
@@ -185,15 +192,15 @@ class Xref_Job(Core_Job):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
                         "substring"
                     ]:
-                        position = row.style_description.find(search_term)
+                        position = sas_style_description.find(search_term)
                         if position >= 0:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "replace_with"
                                 ]
-                                + row.style_description[
+                                + sas_style_description[
                                     position
                                     + 1
                                     + len(
@@ -208,20 +215,20 @@ class Xref_Job(Core_Job):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
                         "substring"
                     ]:
-                        position = row.style_description.find(search_term)
+                        position = sas_style_description.find(search_term)
                         if position >= 0:
-                            sas_style_description = row.style_description.replace(
+                            sas_style_description = sas_style_description.replace(
                                 search_term,
                                 xref_global_config.clean_tnf_xref_basic[key][
                                     "replace_with"
                                 ],
                             )
 
-                if key.startswith("GLOVESCLIMBING"):
+                if key.startswith("GLOVES"):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
                         "substring"
                     ]:
-                        pos_style = row.style_description.find(search_term)
+                        pos_style = sas_style_description.find(search_term)
                         pos_sas_product = row.tnf___clm_description_for_sas.find(
                             search_term
                         )
@@ -229,7 +236,7 @@ class Xref_Job(Core_Job):
                             search_term
                         )
                         if pos_style >= 0:
-                            sas_style_description = row.style_description.replace(
+                            sas_style_description = sas_style_description.replace(
                                 search_term,
                                 xref_global_config.clean_tnf_xref_basic[key][
                                     "replace_with"
@@ -249,32 +256,61 @@ class Xref_Job(Core_Job):
                                     "replace_with"
                                 ],
                             )
+                            clm_description_for_sas = row.tnf___clm_description_for_sas.replace(
+                                search_term,
+                                xref_global_config.clean_tnf_xref_basic[key][
+                                    "replace_with"
+                                ],
+                            )
 
-            return {
-                "department_code": row.department_code,
-                "department_description": row.department_description,
-                "class_code": row.class_code,
-                "class_description": row.class_description,
-                "style_id": row.style_id,
-                "vendor_style": row.vendor_style,
-                "style_description": row.style_description,
-                "vendor_cd_4": row.vendor_cd_4,
-                "vendor_cd_6": row.vendor_cd_6,
-                "cnodeid": row.cnodeid,
-                "style_description_short": row.style_description_short,
-                "style_description_long": row.style_description_long,
-                "product_line": row.product_line,
-                "sbu": row.sbu,
-                "series": row.series,
-                "newconsumersegmentterritory": row.newconsumersegmentterritory,
-                "newendusesport": row.newendusesport,
-                "newproductcollectionfamily": row.newproductcollectionfamily,
-                "tnf___clm_description_for_sas": row.tnf___clm_description_for_sas,
-                "tnf_sas_product_category": sas_product_category,
-                "product_gender": product_gender,
-                "product_age_group": product_age_group,
-                "sas_style_description": sas_style_description,
-            }
+            return (
+                # "department_code":
+                row.department_code,
+                # "department_description":
+                row.department_description,
+                # "class_code":
+                row.class_code,
+                # "class_description":
+                row.class_description,
+                # "style_id":
+                row.style_id,
+                # "vendor_style":
+                row.vendor_style,
+                # "style_description":
+                row.style_description,
+                # "vendor_cd_4":
+                row.vendor_cd_4,
+                # "vendor_cd_6":
+                row.vendor_cd_6,
+                # "cnodeid":
+                row.cnodeid,
+                # "style_description_short":
+                row.style_description_short,
+                # "style_description_long":
+                row.style_description_long,
+                # "product_line":
+                row.product_line,
+                # "sbu":
+                row.sbu,
+                # "series":
+                row.series,
+                # "newconsumersegmentterritory":
+                row.newconsumersegmentterritory,
+                # "newendusesport":
+                row.newendusesport,
+                # "newproductcollectionfamily":
+                row.newproductcollectionfamily,
+                # "tnf___clm_description_for_sas":
+                clm_description_for_sas,
+                # "tnf_sas_product_category":
+                sas_product_category,
+                # "product_gender":
+                product_gender,
+                # "product_age_group":
+                product_age_group,
+                # "sas_style_description":
+                sas_style_description,
+            )
         except Exception as error:
             print("Error encountered while running xref {}".format(error))
             raise CustomAppError(
@@ -423,7 +459,9 @@ class Xref_Job(Core_Job):
             gender_age = (
                 row.product_gender.strip() + "_" + row.product_age_group.strip()
             )
-            sas_product_category = None
+            sas_product_category = row.tnf_sas_product_category
+            newendusesport = row.newendusesport
+            vendor_cd_4 = row.vendor_cd_4
             # NEWENDUSESPORT = None
             TRGT_MA_FLAG = 0
             TRGT_MS_FLAG = 0
@@ -431,17 +469,7 @@ class Xref_Job(Core_Job):
             TRGT_UE_FLAG = 0
 
             for key in xref_global_config.clean_tnf_xref_final.keys():
-                if key.endswith("product_category"):
-                    for item in xref_global_config.clean_tnf_xref_final[key][
-                        "replacements"
-                    ]:
-                        replace_with = xref_global_config.clean_tnf_xref_final[key][
-                            "replacements"
-                        ][item]
-                        sas_product_category = row.tnf_sas_product_category.rstrip().replace(
-                            item, replace_with
-                        )
-                elif key.startswith("VENDER_CD"):
+                if key.startswith("VENDER_CD"):
                     if (
                         row.vendor_cd_4
                         in xref_global_config.clean_tnf_xref_final[key]["substring"]
@@ -449,14 +477,25 @@ class Xref_Job(Core_Job):
                         sas_product_category = xref_global_config.clean_tnf_xref_final[
                             key
                         ]["result"]
-                elif key.endswith("new_end_use_sport"):
+                if key.endswith("product_category"):
                     for item in xref_global_config.clean_tnf_xref_final[key][
                         "replacements"
                     ]:
                         replace_with = xref_global_config.clean_tnf_xref_final[key][
                             "replacements"
                         ][item]
-                        sas_product_category = row.newendusesport.rstrip().replace(
+                        sas_product_category = sas_product_category.rstrip().replace(
+                            item, replace_with
+                        )
+
+                if key.endswith("new_end_use_sport"):
+                    for item in xref_global_config.clean_tnf_xref_final[key][
+                        "replacements"
+                    ]:
+                        replace_with = xref_global_config.clean_tnf_xref_final[key][
+                            "replacements"
+                        ][item]
+                        newendusesport = newendusesport.rstrip().replace(
                             item, replace_with
                         )
                 elif key.startswith("condition"):
@@ -489,36 +528,64 @@ class Xref_Job(Core_Job):
                     ):
                         TRGT_UE_FLAG = 1
 
-            return {
-                "department_code": row.department_code,
-                "department_description": row.department_description,
-                "class_code": row.class_code,
-                "class_description": row.class_description,
-                "style_id": row.style_id,
-                "vendor_style": row.vendor_style,
-                "style_description": row.style_description,
-                "vendor_cd_4": row.vendor_cd_4,
-                "vendor_cd_6": row.vendor_cd_6,
-                "cnodeid": row.cnodeid,
-                "style_description_short": row.style_description_short,
-                "style_description_long": row.style_description_long,
-                "product_line": row.product_line,
-                "sbu": row.sbu,
-                "series": row.series,
-                "newconsumersegmentterritory": row.newconsumersegmentterritory,
-                "newendusesport": row.newendusesport,
-                "newproductcollectionfamily": row.newproductcollectionfamily,
-                "tnf___clm_description_for_sas": row.tnf___clm_description_for_sas,
-                "tnf_sas_product_category": sas_product_category,
-                "product_gender": row.product_gender,
-                "product_age_group": row.product_age_group,
-                "sas_style_description": row.sas_style_description,
-                "TRGT_MA_FLAG": TRGT_MA_FLAG,
-                "TRGT_MS_FLAG": TRGT_MS_FLAG,
-                "TRGT_ML_FLAG": TRGT_ML_FLAG,
-                "TRGT_UE_FLAG": TRGT_UE_FLAG,
-                "gender_age": gender_age,
-            }
+            return (
+                # "department_code":
+                row.department_code,
+                # "department_description":
+                row.department_description,
+                # "class_code":
+                row.class_code,
+                # "class_description":
+                row.class_description,
+                # "style_id":
+                row.style_id,
+                # "vendor_style":
+                row.vendor_style,
+                # "style_description":
+                row.style_description,
+                # "vendor_cd_4":
+                vendor_cd_4,
+                # "vendor_cd_6":
+                row.vendor_cd_6,
+                # "cnodeid":
+                row.cnodeid,
+                # "style_description_short":
+                row.style_description_short,
+                # "style_description_long":
+                row.style_description_long,
+                # "product_line":
+                row.product_line,
+                # "sbu":
+                row.sbu,
+                # "series":
+                row.series,
+                # "newconsumersegmentterritory":
+                row.newconsumersegmentterritory,
+                # "newendusesport":
+                newendusesport,
+                # "newproductcollectionfamily":
+                row.newproductcollectionfamily,
+                # "tnf___clm_description_for_sas":
+                row.tnf___clm_description_for_sas,
+                # "tnf_sas_product_category":
+                sas_product_category.replace(" ", "_"),
+                # "product_gender":
+                row.product_gender,
+                # "product_age_group":
+                row.product_age_group,
+                # "sas_style_description":
+                row.sas_style_description,
+                # "TRGT_MA_FLAG":
+                TRGT_MA_FLAG,
+                # "TRGT_MS_FLAG":
+                TRGT_MS_FLAG,
+                # "TRGT_ML_FLAG":
+                TRGT_ML_FLAG,
+                # "TRGT_UE_FLAG":
+                TRGT_UE_FLAG,
+                # "gender_age":
+                gender_age,
+            )
         except Exception as error:
             print("Error encountered while running xref {}".format(error))
             raise CustomAppError(
@@ -578,17 +645,22 @@ class Xref_Job(Core_Job):
                     "xref_input_tnf_footwear_style_id"
                 ]
             )
-            rdd1 = TNF_STYLE_XREF.rdd.map(
-                lambda x: Row(**Xref_Job.clean_tnf_style_xref(x))
-            )
+            rdd1 = []
+            for x in TNF_STYLE_XREF.collect():
+                rdd1.append(Xref_Job.clean_tnf_style_xref(x))
+            # rdd1 = TNF_STYLE_XREF.rdd.map(lambda x: Xref_Job.clean_tnf_style_xref(x))
             style_xref_clean = spark.createDataFrame(rdd1, schema=style_xref_schema_1)
+            # logger.info("style_xref_clean is {}".format(style_xref_clean.show()))
             # Replace Null value with 'B'
             style_xref_clean = style_xref_clean.na.fill(
                 {"product_gender": "B", "product_age_group": "B"}
             )
-            rdd2 = style_xref_clean.rdd.map(
-                lambda x: Row(**Xref_Job.clean_tnf_xref_final(x))
-            )
+            # rdd2 = style_xref_clean.rdd.map(
+            #     lambda x: Row(**Xref_Job.clean_tnf_xref_final(x))
+            # )
+            rdd2 = []
+            for x in style_xref_clean.collect():
+                rdd2.append(Xref_Job.clean_tnf_xref_final(x))
 
             style_xref_clean = spark.createDataFrame(
                 rdd2, schema=schema_style_xref_clean
@@ -786,7 +858,7 @@ class Xref_Job(Core_Job):
             #     mode="overwrite",
             # )
             final_df = loyalty_xref_df.withColumn("process_dtm", F.current_timestamp())
-            loyalty_xref_status = self.write_df_to_redshift_table(
+            loyalty_xref_status = self.write_glue_df_to_redshift(
                 df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
@@ -959,15 +1031,29 @@ class Xref_Job(Core_Job):
         try:
             print("enter into try block")
 
-            whouse_style_df = self.whouse_style_df
-            whouse_class_df = self.whouse_class_df
-            whouse_sku_df = self.whouse_sku_df
-            whouse_us_item_master_df = self.whouse_us_item_master_df
-            whouse_prod_xref_df = self.whouse_prod_xref_df
-            whouse_vans_mte_style_id_df = self.whouse_vans_mte_style_id_df
-            whouse_vans_peanuts_style_df = self.whouse_vans_peanuts_style_df
-            whouse_whouse_vans_prod_seg_past_recom_df = (
-                self.whouse_vans_prod_seg_past_recom_df
+            whouse_style_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_style"]
+            )
+            whouse_class_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_class"]
+            )
+            whouse_sku_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_sku"]
+            )
+            whouse_us_item_master_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_vans_item_master"]
+            )
+            whouse_prod_xref_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_productxref"]
+            )
+            whouse_vans_mte_style_id_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_vans_mte_style"]
+            )
+            whouse_vans_peanuts_style_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_peanuts"]
+            )
+            whouse_whouse_vans_prod_seg_past_recom_df = self.redshift_table_to_dataframe(
+                redshift_table=response["xref_params"]["xref_input_vans_prod_seg"]
             )
 
             whouse_whouse_vans_prod_seg_past_recom_df.printSchema()
@@ -996,75 +1082,75 @@ class Xref_Job(Core_Job):
 
             prodxref_clean_1_df = spark.sql(
                 """
-                	SELECT *,
-                		CASE 
-                		WHEN class_code IN (1108,1120,1008,1020,1107,
-                		4403,4000,4003,4100,4201,4203,4300,4400,4401,4402,4500,4504,4002,4004, 4200,4501,4502,4503, 4600,4602,5002,5000,5001,5003,5004,5005,5101) THEN 'VANS_AS_SKATE_U'
-                		WHEN class_code = 1208 THEN 'VANS_AS_SKATE_W'
-                		WHEN class_code IN (1007,1012) THEN 'VANS_AS_SKATE_M'
-                		WHEN class_code IN (1308,1320) THEN 'VANS_AS_SKATE_Y'
-                		WHEN class_code IN (1030,1130,1230,3600,3605,3610,3615,3620,3625,3630,3635,1109,1112) THEN 'VANS_AS_SNOW'
-                		WHEN class_code IN (1006,1209,1106,1306) THEN 'VANS_AS_SURF'
-                		WHEN class_code IN (1009,1010,1013,1014,1015) THEN 'VANS_FL_FT_M'
-                		WHEN class_code IN (1110,1113,1114,1115) THEN 'VANS_FL_FT_U'
-                		WHEN class_code IN (1206,1207,1210,1214) THEN 'VANS_FL_FT_W'
-                		WHEN class_code IN (1310,1410,1406,1408,1506,1507,1509,1510,1512,1606,1608,1610,1415) THEN 'VANS_FL_FT_Y'
-                		WHEN class_code IN (2100,2104,2105,2106,2107,2108,2301,2302,2304,2306,2350,2901,2902,3700,3705,3710,3715,3720,3725,3730,3735,3740,3745,3750,3755,3760,3765,3770,3775,3799,9920) AND
-                		instr(style_aka,'3700000010911') = 0 AND
-                		instr(style_aka,'3705000011018') = 0 AND
-                		instr(style_aka,'3710000011510') = 0 THEN 'VANS_FL_AP_M' 
-                		WHEN class_code IN (2102,3800,3805,3810,3815,3820,3825,3830,3835,3840,3845,3850,3855,3860,3865,3868,3870,3875,3880) THEN 'VANS_FL_AP_W'
-                		WHEN class_code IN (2110,3900,3905,3910,3915,3920,3925,3930,3935,3940,3945,3955,3960,3965,3970) THEN 'VANS_FL_AP_YB'
-                		WHEN class_code IN (2005,2006,2007,2207,2208,2210,2212,2409,2410,2495,2509,3788,2930,2508,2411,2408,2404,2213,2209,2510,2865) THEN 'VANS_FL_AC_M'
-                		WHEN class_code IN (2950,2951,2952,2953,2956,2957,2958,2009,2954,2855,2870) THEN 'VANS_FL_AC_W'
-                		WHEN class_code IN (2706,2805,2806,2205,2875) THEN 'VANS_FL_AC_U'
-                		WHEN class_code = 1011 THEN 'VANS_BS_FT_M'
-                		WHEN class_code = 1111 THEN 'VANS_BS_FT_U'
-                		WHEN class_code IN (1211,1212,1213) THEN 'VANS_BS_FT_W'
-                		WHEN class_code IN (1311,1411,1409,1511,1520,1306,1307,1309,1312) THEN 'VANS_BS_FT_Y'
-                		WHEN instr(style_aka,'3700000010911') > 0  or
-                		instr(style_aka,'3705000011018') > 0 or
-                		instr(style_aka,'3710000011510') > 0 THEN 'VANS_BS_AP_M'
-                		WHEN class_code IN (2505,2506) THEN 'VANS_BS_AC_M'
-                		WHEN class_code = 2507 THEN 'VANS_BS_AC_YB'
-                		WHEN class_code = 2955 THEN 'VANS_BS_AC_W'
-                		WHEN class_code IN (2512,2511,2513) THEN 'VANS_BS_AC_Y'
-                		WHEN class_code = 2705 THEN 'VANS_BS_AC_U'
-                		WHEN class_code IN (1005,3099) THEN 'VANS_MO_FT_M'
-                		WHEN class_code IN (1205,3299) THEN 'VANS_MO_FT_W'
-                		WHEN class_code IN (1105,3199) THEN 'VANS_MO_FT_U'
-                		WHEN class_code IN (1305,1405,1505,1508,3399,3499,3599,3699) THEN 'VANS_MO_FT_Y'		
-                		WHEN class_code IN (9970,9971,2407,9960,9990,9950,2860,2850,9910,1315,1515,1408,1309,1107,1109,1007,9900,3009,3640,3645,3650) THEN 'VANS_OT'
-                		WHEN class_code = 9980 THEN 'VANS_OT_EXCLUDE'
-                		WHEN class_code IN (6000,6001,6002,6003,6005,7000,7100,7110,7200,7210,7500,7510,7520,8201,8208,8495,8202) THEN 'VANS_OT_NOTUSED'
-                		WHEN style_id = 1 or  class_code=1215 THEN 'VANS_UNSPECIFIED'
-                		else ''
-                		end as VANS_PRODCAT
-                	FROM whouse_style
-                	WHERE sas_brand_id = 7 """
+                    SELECT *,
+                        CASE 
+                        WHEN class_code IN (1108,1120,1008,1020,1107,
+                        4403,4000,4003,4100,4201,4203,4300,4400,4401,4402,4500,4504,4002,4004, 4200,4501,4502,4503, 4600,4602,5002,5000,5001,5003,5004,5005,5101) THEN 'VANS_AS_SKATE_U'
+                        WHEN class_code = 1208 THEN 'VANS_AS_SKATE_W'
+                        WHEN class_code IN (1007,1012) THEN 'VANS_AS_SKATE_M'
+                        WHEN class_code IN (1308,1320) THEN 'VANS_AS_SKATE_Y'
+                        WHEN class_code IN (1030,1130,1230,3600,3605,3610,3615,3620,3625,3630,3635,1109,1112) THEN 'VANS_AS_SNOW'
+                        WHEN class_code IN (1006,1209,1106,1306) THEN 'VANS_AS_SURF'
+                        WHEN class_code IN (1009,1010,1013,1014,1015) THEN 'VANS_FL_FT_M'
+                        WHEN class_code IN (1110,1113,1114,1115) THEN 'VANS_FL_FT_U'
+                        WHEN class_code IN (1206,1207,1210,1214) THEN 'VANS_FL_FT_W'
+                        WHEN class_code IN (1310,1410,1406,1408,1506,1507,1509,1510,1512,1606,1608,1610,1415) THEN 'VANS_FL_FT_Y'
+                        WHEN class_code IN (2100,2104,2105,2106,2107,2108,2301,2302,2304,2306,2350,2901,2902,3700,3705,3710,3715,3720,3725,3730,3735,3740,3745,3750,3755,3760,3765,3770,3775,3799,9920) AND
+                        instr(style_aka,'3700000010911') = 0 AND
+                        instr(style_aka,'3705000011018') = 0 AND
+                        instr(style_aka,'3710000011510') = 0 THEN 'VANS_FL_AP_M' 
+                        WHEN class_code IN (2102,3800,3805,3810,3815,3820,3825,3830,3835,3840,3845,3850,3855,3860,3865,3868,3870,3875,3880) THEN 'VANS_FL_AP_W'
+                        WHEN class_code IN (2110,3900,3905,3910,3915,3920,3925,3930,3935,3940,3945,3955,3960,3965,3970) THEN 'VANS_FL_AP_YB'
+                        WHEN class_code IN (2005,2006,2007,2207,2208,2210,2212,2409,2410,2495,2509,3788,2930,2508,2411,2408,2404,2213,2209,2510,2865) THEN 'VANS_FL_AC_M'
+                        WHEN class_code IN (2950,2951,2952,2953,2956,2957,2958,2009,2954,2855,2870) THEN 'VANS_FL_AC_W'
+                        WHEN class_code IN (2706,2805,2806,2205,2875) THEN 'VANS_FL_AC_U'
+                        WHEN class_code = 1011 THEN 'VANS_BS_FT_M'
+                        WHEN class_code = 1111 THEN 'VANS_BS_FT_U'
+                        WHEN class_code IN (1211,1212,1213) THEN 'VANS_BS_FT_W'
+                        WHEN class_code IN (1311,1411,1409,1511,1520,1306,1307,1309,1312) THEN 'VANS_BS_FT_Y'
+                        WHEN instr(style_aka,'3700000010911') > 0  or
+                        instr(style_aka,'3705000011018') > 0 or
+                        instr(style_aka,'3710000011510') > 0 THEN 'VANS_BS_AP_M'
+                        WHEN class_code IN (2505,2506) THEN 'VANS_BS_AC_M'
+                        WHEN class_code = 2507 THEN 'VANS_BS_AC_YB'
+                        WHEN class_code = 2955 THEN 'VANS_BS_AC_W'
+                        WHEN class_code IN (2512,2511,2513) THEN 'VANS_BS_AC_Y'
+                        WHEN class_code = 2705 THEN 'VANS_BS_AC_U'
+                        WHEN class_code IN (1005,3099) THEN 'VANS_MO_FT_M'
+                        WHEN class_code IN (1205,3299) THEN 'VANS_MO_FT_W'
+                        WHEN class_code IN (1105,3199) THEN 'VANS_MO_FT_U'
+                        WHEN class_code IN (1305,1405,1505,1508,3399,3499,3599,3699) THEN 'VANS_MO_FT_Y'		
+                        WHEN class_code IN (9970,9971,2407,9960,9990,9950,2860,2850,9910,1315,1515,1408,1309,1107,1109,1007,9900,3009,3640,3645,3650) THEN 'VANS_OT'
+                        WHEN class_code = 9980 THEN 'VANS_OT_EXCLUDE'
+                        WHEN class_code IN (6000,6001,6002,6003,6005,7000,7100,7110,7200,7210,7500,7510,7520,8201,8208,8495,8202) THEN 'VANS_OT_NOTUSED'
+                        WHEN style_id = 1 or  class_code=1215 THEN 'VANS_UNSPECIFIED'
+                        else ''
+                        end as VANS_PRODCAT
+                    FROM whouse_style
+                    WHERE sas_brand_id = 7 """
             )
 
             prodxref_clean_1_df.createOrReplaceTempView("prodxref_clean_1")
 
             prodxref_clean_2_df = spark.sql(
                 """
-                				SELECT DISTINCT a.class_code as class_class_code,
-                				                b.department_code as class_department_code, 
-                								b.class_description as class_class_description, 
-                								a.*
-                				FROM prodxref_clean_1 a 
-                				LEFT JOIN ( SELECT * FROM whouse_class WHERE sas_brand_id = 7) as b
-                					ON a.class_code  = b.class_code
-                				order by a.style_id """
+                                SELECT DISTINCT a.class_code as class_class_code,
+                                                b.department_code as class_department_code, 
+                                                b.class_description as class_class_description, 
+                                                a.*
+                                FROM prodxref_clean_1 a 
+                                LEFT JOIN ( SELECT * FROM whouse_class WHERE sas_brand_id = 7) as b
+                                    ON a.class_code  = b.class_code
+                                order by a.style_id """
             ).drop("class_code")
 
             prodxref_clean_2_df.createOrReplaceTempView("prodxref_clean_2")
 
             mte_df = spark.sql(
                 """
-                				SELECT  DISTINCT style_id, 
-                					1 as MTE_IND 
-                				FROM whouse_vans_mte_style_id """
+                                SELECT  DISTINCT style_id, 
+                                    1 as MTE_IND 
+                                FROM whouse_vans_mte_style_id """
             )
             mte_df.createOrReplaceTempView("mte")
 
@@ -1072,8 +1158,8 @@ class Xref_Job(Core_Job):
                 """ 
                         SELECT class_department_code,
                             class_class_code,
-                            class_class_description, 
-                            vendor_code,
+                            class_class_description,
+                            a.sas_brand_id,
                             a.style_id,
                             vendor_code,
                             a.subclass_code,
@@ -1109,113 +1195,113 @@ class Xref_Job(Core_Job):
             prodxref_clean_df_tmp_2 = spark.sql(
                 """ 
                         SELECT * , 
-                			CASE WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "M" THEN  "M"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "W" THEN "F"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "YB" THEN "M"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "YG" THEN "F"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "U" THEN "U"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "WOMEN") > 0 THEN "F"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "MEN") > 0 THEN "M"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "BOY") > 0 THEN  "M"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "GIRL") > 0 THEN "F"
-                				WHEN INSTR(VANS_PRODCAT, 'UNSPECIFIED') > 0 or INSTR(VANS_PRODCAT, 'EXCLUDE') > 0 or INSTR(VANS_PRODCAT, 'NOTUSED') > 0 THEN 'B'
-                				ELSE 'B'
-                			END AS product_gender,
-                			CASE WHEN INSTR(SAS_STYLE_DESCRIPTION, "WOMEN") > 0 THEN "ADULT"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "MEN") > 0 THEN "ADULT"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "BOY") > 0 THEN "KID"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "GIRL") > 0 THEN  "KID"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "TODDLER") > 0 THEN "KID"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "INFANT") > 0 THEN "KID"
-                				WHEN INSTR(SAS_STYLE_DESCRIPTION, "KID") > 0 THEN "KID"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "M" THEN "ADULT"
-                				WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "W" THEN "ADULT"
-                				WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "YB") > 0 THEN "KID"
-                				WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "YG") > 0 THEN "KID"
-                				WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "Y") > 0 THEN "KID"
-                				WHEN INSTR(VANS_PRODCAT, 'UNSPECIFIED') > 0 or INSTR(VANS_PRODCAT, 'EXCLUDE') > 0 or INSTR(VANS_PRODCAT, 'NOTUSED') > 0 THEN 'B'
-                				ELSE 'B'
-                			END AS product_age_group,
+                            CASE WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "M" THEN  "M"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "W" THEN "F"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "YB" THEN "M"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "YG" THEN "F"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "U" THEN "U"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "WOMEN") > 0 THEN "F"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "MEN") > 0 THEN "M"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "BOY") > 0 THEN  "M"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "GIRL") > 0 THEN "F"
+                                WHEN INSTR(VANS_PRODCAT, 'UNSPECIFIED') > 0 or INSTR(VANS_PRODCAT, 'EXCLUDE') > 0 or INSTR(VANS_PRODCAT, 'NOTUSED') > 0 THEN 'B'
+                                ELSE 'B'
+                            END AS product_gender,
+                            CASE WHEN INSTR(SAS_STYLE_DESCRIPTION, "WOMEN") > 0 THEN "ADULT"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "MEN") > 0 THEN "ADULT"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "BOY") > 0 THEN "KID"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "GIRL") > 0 THEN  "KID"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "TODDLER") > 0 THEN "KID"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "INFANT") > 0 THEN "KID"
+                                WHEN INSTR(SAS_STYLE_DESCRIPTION, "KID") > 0 THEN "KID"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "M" THEN "ADULT"
+                                WHEN TRIM(SPLIT(VANS_PRODCAT, "_")[3]) = "W" THEN "ADULT"
+                                WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "YB") > 0 THEN "KID"
+                                WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "YG") > 0 THEN "KID"
+                                WHEN INSTR(SPLIT(VANS_PRODCAT, "_")[3], "Y") > 0 THEN "KID"
+                                WHEN INSTR(VANS_PRODCAT, 'UNSPECIFIED') > 0 or INSTR(VANS_PRODCAT, 'EXCLUDE') > 0 or INSTR(VANS_PRODCAT, 'NOTUSED') > 0 THEN 'B'
+                                ELSE 'B'
+                            END AS product_age_group,
 
-                			CASE WHEN (char_length(VANS_PRODCAT)) - (char_length(replace(VANS_PRODCAT, "_", ""))) >= 2 
-                				THEN CONCAT(SPLIT(VANS_PRODCAT,'_')[1],'_',SPLIT(VANS_PRODCAT,'_')[2])
-                				WHEN (char_length(VANS_PRODCAT)) - (char_length(replace(VANS_PRODCAT, "_", ""))) = 1 
-                				THEN SPLIT(VANS_PRODCAT,'_')[1]
-                				ELSE ""
-                			END AS family_type,
+                            CASE WHEN (char_length(VANS_PRODCAT)) - (char_length(replace(VANS_PRODCAT, "_", ""))) >= 2 
+                                THEN CONCAT(SPLIT(VANS_PRODCAT,'_')[1],'_',SPLIT(VANS_PRODCAT,'_')[2])
+                                WHEN (char_length(VANS_PRODCAT)) - (char_length(replace(VANS_PRODCAT, "_", ""))) = 1 
+                                THEN SPLIT(VANS_PRODCAT,'_')[1]
+                                ELSE ""
+                            END AS family_type,
 
-                			CASE WHEN (INSTR(SAS_STYLE_DESCRIPTION,"SKATE")> 0 OR 
-                					INSTR(VANS_PRODCAT,"SKATE") > 0) THEN  1 ELSE 0
-                			END AS SKATE_IND,
+                            CASE WHEN (INSTR(SAS_STYLE_DESCRIPTION,"SKATE")> 0 OR 
+                                    INSTR(VANS_PRODCAT,"SKATE") > 0) THEN  1 ELSE 0
+                            END AS SKATE_IND,
 
-                			CASE WHEN  (INSTR(SAS_STYLE_DESCRIPTION,"SURF") >0  OR INSTR(VANS_PRODCAT,"SURF") >0 ) THEN 1 ELSE 0
-                			END AS SURF_IND,
+                            CASE WHEN  (INSTR(SAS_STYLE_DESCRIPTION,"SURF") >0  OR INSTR(VANS_PRODCAT,"SURF") >0 ) THEN 1 ELSE 0
+                            END AS SURF_IND,
 
-                			CASE WHEN (INSTR(SAS_STYLE_DESCRIPTION,"SNOWBOARD")> 0 OR
-                					INSTR(CLASS_CLASS_DESCRIPTION,"SNOWBOARD") > 0 OR INSTR(VANS_PRODCAT,"SNOW") > 0) 
-                				THEN 1
-                				else 0
-                			END AS SNWB_IND
-                		FROM prodxref_clean_tmp_1 """
+                            CASE WHEN (INSTR(SAS_STYLE_DESCRIPTION,"SNOWBOARD")> 0 OR
+                                    INSTR(CLASS_CLASS_DESCRIPTION,"SNOWBOARD") > 0 OR INSTR(VANS_PRODCAT,"SNOW") > 0) 
+                                THEN 1
+                                else 0
+                            END AS SNWB_IND
+                        FROM prodxref_clean_tmp_1 """
             )
 
             prodxref_clean_df_tmp_2.createOrReplaceTempView("prodxref_clean_tmp_2")
 
             prodxref_clean_df_tmp_3 = spark.sql(
                 """
-                		SELECT *, 
-                			CONCAT(product_gender,"_",product_age_group) as gen_age,			
-                			CASE WHEN class_class_code = 1011 THEN "MENS CORE CLASSIC"
-                				WHEN instr(style_aka,'3700000010911') > 0
-                					or instr(style_aka,'3705000011018') > 0
-                					or instr(style_aka,'3710000011510') > 0
-                					or instr(style_aka,'3700000012937') > 0
-                					or instr(style_aka,'3700000017008') > 0
-                					or instr(style_aka,'3700000017500') > 0
-                					or instr(style_aka,'3700000017510') > 0
-                					or instr(style_aka,'3700000018012') > 0
-                					or instr(style_aka,'3700000019006') > 0
-                					or instr(style_aka,'3700005000911') > 0
-                					or instr(style_aka,'3705000010002') > 0
-                					or instr(style_aka,'3705000010063') > 0
-                					or instr(style_aka,'3735000010016') > 0
-                					or instr(style_aka,'3735000018017') > 0
-                					or instr(style_aka,'3735000019756') > 0
-                					or instr(style_aka,'3740000010004') > 0
-                					or instr(style_aka,'3700000019029') > 0
-                					or instr(style_aka,'3700000019031') > 0
-                					or instr(style_aka,'3705000017524') > 0
-                					or instr(style_aka,'3735000010020') > 0
-                					or instr(style_aka,'3700000010268') > 0
-                					or instr(style_aka,'3715000010012') > 0
-                					or instr(style_aka,'3710000010008') > 0 THEN "MENS BRAND AFFINITY" 
-                				WHEN class_class_code IN (1206, 1207, 1210, 1214, 2950, 2951, 2952, 2953, 2956, 2957, 2958) 
-                					or class_department_code = 380 
-                					or (product_family = "FL" AND product_gender = "F") THEN "WOMEN FASHION"
-                				WHEN class_class_code IN (1308,1320,1310,1410,1311,1411,1409,1511,1520,2512,2511,2513,1305,1405,1505,1508,3399,3499,3599) 
-                				or product_age_group = "KID" THEN "KIDS PRODUCTS"
-                				ELSE "" 
-                				END AS VANS_SAS_PRODUCT_CATEGORY
-                		FROM prodxref_clean_tmp_2	
-                			"""
+                        SELECT *, 
+                            CONCAT(product_gender,"_",product_age_group) as gen_age,			
+                            CASE WHEN class_class_code = 1011 THEN "MENS CORE CLASSIC"
+                                WHEN instr(style_aka,'3700000010911') > 0
+                                    or instr(style_aka,'3705000011018') > 0
+                                    or instr(style_aka,'3710000011510') > 0
+                                    or instr(style_aka,'3700000012937') > 0
+                                    or instr(style_aka,'3700000017008') > 0
+                                    or instr(style_aka,'3700000017500') > 0
+                                    or instr(style_aka,'3700000017510') > 0
+                                    or instr(style_aka,'3700000018012') > 0
+                                    or instr(style_aka,'3700000019006') > 0
+                                    or instr(style_aka,'3700005000911') > 0
+                                    or instr(style_aka,'3705000010002') > 0
+                                    or instr(style_aka,'3705000010063') > 0
+                                    or instr(style_aka,'3735000010016') > 0
+                                    or instr(style_aka,'3735000018017') > 0
+                                    or instr(style_aka,'3735000019756') > 0
+                                    or instr(style_aka,'3740000010004') > 0
+                                    or instr(style_aka,'3700000019029') > 0
+                                    or instr(style_aka,'3700000019031') > 0
+                                    or instr(style_aka,'3705000017524') > 0
+                                    or instr(style_aka,'3735000010020') > 0
+                                    or instr(style_aka,'3700000010268') > 0
+                                    or instr(style_aka,'3715000010012') > 0
+                                    or instr(style_aka,'3710000010008') > 0 THEN "MENS BRAND AFFINITY" 
+                                WHEN class_class_code IN (1206, 1207, 1210, 1214, 2950, 2951, 2952, 2953, 2956, 2957, 2958) 
+                                    or class_department_code = 380 
+                                    or (product_family = "FL" AND product_gender = "F") THEN "WOMEN FASHION"
+                                WHEN class_class_code IN (1308,1320,1310,1410,1311,1411,1409,1511,1520,2512,2511,2513,1305,1405,1505,1508,3399,3499,3599) 
+                                or product_age_group = "KID" THEN "KIDS PRODUCTS"
+                                ELSE "" 
+                                END AS VANS_SAS_PRODUCT_CATEGORY
+                        FROM prodxref_clean_tmp_2	
+                            """
             )
             prodxref_clean_df_tmp_3.createOrReplaceTempView("prodxref_clean_tmp_3")
 
             prodxref_clean_df_3 = (
                 spark.sql(
                     """
-                				SELECT *,
-                					CASE WHEN  ((MTE_IND = 1) OR (VANS_SAS_PRODUCT_CATEGORY IN ('MENS CORE CLASSIC', 'KIDS PRODUCTS', 'WOMEN FASHION', 'MEN BRAND AFFINITY'))) THEN 0 ELSE 1
-                					END AS nonsegment_ind,
-                					0 as TRGT_Peanuts_FLAG,
-                					0 as TRGT_Peanuts_like_FLAG,
-                					0 as Peanuts_ind,
-                					0 as Peanuts_like_ind,
-                					0 as TRGT_UltRngLS_FLAG,
-                					0 as TRGT_UltRngPro_FLAG,
-                					0 as TRGT_bTS_FLAG
-                				FROM prodxref_clean_tmp_3 
-                				"""
+                                SELECT *,
+                                    CASE WHEN  ((MTE_IND = 1) OR (VANS_SAS_PRODUCT_CATEGORY IN ('MENS CORE CLASSIC', 'KIDS PRODUCTS', 'WOMEN FASHION', 'MEN BRAND AFFINITY'))) THEN 0 ELSE 1
+                                    END AS nonsegment_ind,
+                                    0 as TRGT_Peanuts_FLAG,
+                                    0 as TRGT_Peanuts_like_FLAG,
+                                    0 as Peanuts_ind,
+                                    0 as Peanuts_like_ind,
+                                    0 as TRGT_UltRngLS_FLAG,
+                                    0 as TRGT_UltRngPro_FLAG,
+                                    0 as TRGT_bTS_FLAG
+                                FROM prodxref_clean_tmp_3 
+                                """
                 )
                 .withColumnRenamed("class_department_code", "department_code")
                 .withColumnRenamed("class_class_code", "class_code")
@@ -1227,20 +1313,20 @@ class Xref_Job(Core_Job):
             Peanuts_ind_df = (
                 spark.sql(
                     """ 
-                					SELECT  
-                						A.*,
-                						CASE WHEN default is null then 0 else default 
-                						end as TRGT_Peanuts_FLAG_tmp,
-                						CASE WHEN default is null then 0 else default 
-                						end as Peanuts_ind_tmp
-                					FROM 
-                						prodxref_clean_3 A LEFT JOIN 
-                						(SELECT A.style_id as style_style_id,1 as default 
-                						FROM 
-                						prodxref_clean_3 A join whouse_vans_peanuts_style B
-                						ON A.style_id = B.style_id 
-                						) sub 
-                						ON A.style_id = sub.style_style_id """
+                                    SELECT  
+                                        A.*,
+                                        CASE WHEN default is null then 0 else default 
+                                        end as TRGT_Peanuts_FLAG_tmp,
+                                        CASE WHEN default is null then 0 else default 
+                                        end as Peanuts_ind_tmp
+                                    FROM 
+                                        prodxref_clean_3 A LEFT JOIN 
+                                        (SELECT A.style_id as style_style_id,1 as default 
+                                        FROM 
+                                        prodxref_clean_3 A join whouse_vans_peanuts_style B
+                                        ON A.style_id = B.style_id 
+                                        ) sub 
+                                        ON A.style_id = sub.style_style_id """
                 )
                 .drop("TRGT_Peanuts_FLAG", "Peanuts_ind")
                 .withColumnRenamed("TRGT_Peanuts_FLAG_tmp", "TRGT_Peanuts_FLAG")
@@ -1347,25 +1433,25 @@ class Xref_Job(Core_Job):
             trgt_bts_flag_df = (
                 spark.sql(
                     """ 
-                					SELECT 
-                						A.*,
-                						CASE WHEN default is null then 0 else default 
-                						end as trgt_bts_flag_tmp
-                						FROM 	trgt_ultrngpro_flag_vw A LEFT JOIN 		
-                						(SELECT CAST(B.class as int) as class_class,
-                								CAST(B.vendor as int) as vendor_vendor,
-                								style,
-                								1 as default
-                						FROM trgt_ultrngpro_flag_vw A JOIN whouse_vans_prod_seg_past_recom B
-                						ON A.class_code = CAST(B.class as int)
-                						AND A.vendor_code = CAST(B.vendor as int)
-                						AND B.tab = "BTS"
-                						AND ((substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = B.style)
-                						or (UPPER(B.style) = 'ALL'))) sub	
-                						ON A.class_code = sub.class_class
-                						AND A.vendor_code = sub.vendor_vendor 
-                						AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style
-                						"""
+                                    SELECT 
+                                        A.*,
+                                        CASE WHEN default is null then 0 else default 
+                                        end as trgt_bts_flag_tmp
+                                        FROM 	trgt_ultrngpro_flag_vw A LEFT JOIN 		
+                                        (SELECT CAST(B.class as int) as class_class,
+                                                CAST(B.vendor as int) as vendor_vendor,
+                                                style,
+                                                1 as default
+                                        FROM trgt_ultrngpro_flag_vw A JOIN whouse_vans_prod_seg_past_recom B
+                                        ON A.class_code = CAST(B.class as int)
+                                        AND A.vendor_code = CAST(B.vendor as int)
+                                        AND B.tab = "BTS"
+                                        AND ((substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = B.style)
+                                        or (UPPER(B.style) = 'ALL'))) sub	
+                                        ON A.class_code = sub.class_class
+                                        AND A.vendor_code = sub.vendor_vendor 
+                                        AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style
+                                        """
                 )
                 .drop("trgt_bts_flag")
                 .withColumnRenamed("trgt_bts_flag_tmp", "trgt_bts_flag")
@@ -1375,20 +1461,23 @@ class Xref_Job(Core_Job):
 
             tmp_df = spark.sql(
                 """	
-                					SELECT a.*, 
-                							b.style_id
-                					FROM whouse_sku a 
-                					LEFT JOIN ( SELECT  * 
-                								FROM  whouse_prod_xref 
-                								WHERE sas_brand_id = 7 
-                								) b
-                					ON  a.IP_UPC = b.product_code """
+                                    SELECT a.*, 
+                                            b.style_id
+                                    FROM whouse_sku a 
+                                    LEFT JOIN ( SELECT  * 
+                                                FROM  whouse_prod_xref 
+                                                WHERE sas_brand_id = 7 
+                                                ) b
+                                    ON  a.IP_UPC = b.product_code """
             )
             tmp_df.createOrReplaceTempView("tmp")
 
             full_load_df = spark.sql(
                 """ 
-                                SELECT a.*, 
+                                SELECT a.department_code,a.class_code,a.class_description,a.sas_brand_id,a.style_id,a.vendor_code,a.subclass_code,a.vendor_style,a.style_aka,
+                                a.style_description,a.retail,a.cost,a.vans_prodcat,a.mte_ind,a.vans_sas_product_category,a.product_family,a.product_type,a.product_gender,
+                                a.product_age_group,a.sas_style_description,a.gen_age,a.family_type,a.skate_ind,a.surf_ind,a.snwb_ind,a.nonsegment_ind,a.trgt_peanuts_flag,
+                                a.trgt_peanuts_like_flag,a.peanuts_ind,a.peanuts_like_ind,a.trgt_ultrngls_flag,a.trgt_ultrngpro_flag,a.trgt_bts_flag,
                                     CASE 
                                         WHEN b.style is not null THEN 1 else 0 
                                     END AS TRGT_NEW_ULTRARANGE_FLAG

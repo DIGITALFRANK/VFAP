@@ -144,7 +144,7 @@ class Core_Job:
             )
             df.show()
             control_file_row_count = df.count()
-            if control_file_row_count != 1:
+            if control_file_row_count > 1:
                 log.error(
                     "Control file has {0} rows - expecting only 1".format(
                         control_file_row_count
@@ -161,11 +161,17 @@ class Core_Job:
         log.info("Collecting stored row count from control file")
         # Subtract 1 if header row included in control count
         if is_header_included_in_count.lower() == "true":
-            row_count = df.select(df.Count).collect()[0][0] - 1
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
                 log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0] - 1
         else:
-            row_count = df.select(df.Count).collect()[0][0]
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
                 log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0]
         log.debug("Successfully collected row count - {0}".format(row_count))
@@ -943,6 +949,13 @@ class Core_Job:
                                     UPDATE {0} SET gndr = ' ' WHERE gndr = '"';
                                     UPDATE {0} SET new_repeat_visitor = ' ' WHERE new_repeat_visitor = '"';
                                     UPDATE {0} SET new_repeat_buyer = ' ' WHERE new_repeat_buyer = '"';""".format(
+                        stage_table
+                    ) + ";".join(
+                        post_query.split(";")[1:]
+                    )
+                if self.file_name.upper().startswith("F_TNF_STORE"):
+                    post_query = """begin;
+                                    UPDATE {0} SET store_post_code = ' ' WHERE store_post_code = '"';""".format(
                         stage_table
                     ) + ";".join(
                         post_query.split(";")[1:]

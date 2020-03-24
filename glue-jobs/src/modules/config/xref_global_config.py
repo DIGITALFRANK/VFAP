@@ -2,19 +2,19 @@
 clean_tnf_xref_basic = {
     "TNF___CLM_DESCRIPTION_FOR_SAS_startswith_M": {
         "condition": "M ",
-        "result": {"gender": "M", "age_group": "ADULT", "product_category_index": 3},
+        "result": {"gender": "M", "age_group": "ADULT", "product_category_index": 2},
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_startswith_W": {
         "condition": "W ",
-        "result": {"gender": "F", "age_group": "ADULT", "product_category_index": 3},
+        "result": {"gender": "F", "age_group": "ADULT", "product_category_index": 2},
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_startswith_B": {
         "condition": "B ",
-        "result": {"gender": "M", "age_group": "KID", "product_category_index": 3},
+        "result": {"gender": "M", "age_group": "KID", "product_category_index": 2},
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_startswith_G": {
         "condition": "G ",
-        "result": {"gender": "F", "age_group": "KID", "product_category_index": 3},
+        "result": {"gender": "F", "age_group": "KID", "product_category_index": 2},
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_indexof_YOUTH_BOY": {
         "condition": "YOUTH BOY",
@@ -34,7 +34,11 @@ clean_tnf_xref_basic = {
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_indexof_YOUTH": {
         "condition": "YOUTH",
-        "result": {"age_group": "KID", "product_category_replace": ["YOUTH", "KID"]},
+        "result": {
+            "age_group": "KID",
+            "product_category_replace": ["YOUTH", "KID"],
+            "gender": "B",
+        },
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_indexof_TODDLER_BOY": {
         "condition": "TODDLER BOY",
@@ -74,7 +78,11 @@ clean_tnf_xref_basic = {
     },
     "TNF___CLM_DESCRIPTION_FOR_SAS_indexof_INFANT": {
         "condition": "INFANT",
-        "result": {"age_group": "KID", "product_category_replace": ["INFANT", "KID"]},
+        "result": {
+            "age_group": "KID",
+            "product_category_replace": ["INFANT", "KID"],
+            "gender": "B",
+        },
     },
     "STYLE_DESCRIPTION_find_JACKET": {
         "substring": "JACKET",
@@ -158,6 +166,7 @@ clean_tnf_xref_final = {
             "SPORTSWEAR": "SW",
             "PERFORMANCE": "PERF",
             "ACTIONSPORTS": "AS",
+            "ACTIONSSPORTS": "AS",
             "HIKING": "HIK",
             "MOUNTAIN CULTURE": "MTN_CUL",
             "MOUNTAINEERING/CLIMBING": "MTN_CLM",
@@ -166,7 +175,7 @@ clean_tnf_xref_final = {
             "SNOWSPORTS": "SNW_SPRT",
             "TRAINING": "TRN",
             "BOTTOMS": "BOT",
-            "SPORTS": "SPRT",
+            " SPORTS": " SPRT",
             "CULTURE": "CUL",
             "CULTUR": "CUL",
             "BACKPACKS": "BCPK",
@@ -188,7 +197,6 @@ clean_tnf_xref_final = {
             "URBAN": "URB",
             "SMARTWOOL": "SWOOL",
             "N/A": "N_A",
-            "_": "",
         },
     },
     "acting_column_new_end_use_sport": {
@@ -196,7 +204,7 @@ clean_tnf_xref_final = {
         "replacements": {
             "HIKING": "HIK",
             "MOUNTAIN CULTURE": "MTN_CUL",
-            "ACTIONSPORTS": "AS",
+            "ACTIONSSPORTS": "AS",
             "HIKING": "HIK",
             "MOUNTAIN CULTURE": "MTN_CUL",
             "MOUNTAINEERING/CLIMBING": "MTN_CLM",
