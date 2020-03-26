@@ -54,7 +54,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
             attribution_df.show()
             # Format date columns
             dfdate = df.withColumn("Date", date_format(
-                to_date(col("Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
+                to_date(col("day"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             dfdate = dfdate.withColumn("Prev_Date", date_format(
                 to_date(col("Prev_Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             df_insert = dfdate.withColumn("ETL_INSERT_TIME", lit(now))

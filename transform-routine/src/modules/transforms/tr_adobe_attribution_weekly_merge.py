@@ -51,9 +51,9 @@ class tr_adobe_attribution_weekly_merge(Dataprocessor_merge):
                 env_params["transformed_bucket"], attribution_daily)
             # Format date columns
             dfdate = df.withColumn("Date", date_format(
-                to_date(col("Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
+                to_date(col("day"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             dfdate = dfdate.withColumn("Prev_Date", date_format(
-                to_date(col("Prev_Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
+                to_date(col("prev_date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             df_insert = dfdate.withColumn("ETL_INSERT_TIME", lit(now))
             df_update = df_insert.withColumn("ETL_UPDATE_TIME", lit(""))
             df_jobid = df_update.withColumn("JOB_ID", lit(job_id))
