@@ -48,6 +48,14 @@ def get_env_params(bucket_name, key, region_name):
 class Constants:
 
     # Hard-coded values
+    FINAL_FEED_NAMES = [
+        "F_TNF_ADDRESS",
+        "F_VANS_ADDRESS",
+        "F_TNF_TRANS_DETAIL",
+        "F_VANS_TRANS_DETAIL",
+        "F_TNF_TRANS_HEADER",
+        "F_VANS_TRANS_HEADER",
+    ]
     AWS_REGION = "us-east-1"
     LOCAL_LOG_URL = "./{0}.txt".format(str(datetime.datetime.utcnow()))
 
@@ -151,19 +159,35 @@ class OrchestrationException(Exception):
         super().__init__(message)
 
 
+class AWSResourceLimitException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 def trigger_glue_job(job_name, file_name, log):
     """
-    This function triggers an AWS Glue job using simple a name
+    This function triggers an AWS Glue job, passing a file_name parameter to it
     """
     client = boto3.client("glue", region_name=Constants.AWS_REGION)
     log.info("Trigger job - {0} with file name - {1}".format(job_name, file_name))
-    response = client.start_job_run(
-        JobName=job_name, Arguments={"--FILE_NAME": file_name}, Timeout=2880
-    )
-    log.info(
-        "Job successfully triggered. Job run ID - {0}".format(response["JobRunId"])
-    )
-    return response["JobRunId"]
+    try:
+        response = client.start_job_run(
+            JobName=job_name, Arguments={"--FILE_NAME": file_name}, Timeout=2880
+        )
+        log.info(
+            "Job successfully triggered. Job run ID - {0}".format(response["JobRunId"])
+        )
+        return response["JobRunId"]
+    except client.exceptions.ResourceNumberLimitExceededException:
+        log.error(
+            "AWS Glue resource limit reached while trying to start job {0}".format(
+                job_name
+            ),
+            exc_info=True,
+        )
+        raise AWSResourceLimitException(
+            message="Could not start AWS Glue Job {0}".format(job_name)
+        )
 
 
 def get_glue_job_run_status(job_name, job_run_id, log):
@@ -215,10 +239,13 @@ class Job:
                 self.job_name, self.file_name
             )
         )
-        self.job_run_id = trigger_glue_job(
-            job_name=self.job_name, file_name=self.file_name, log=log
-        )
-        self.status = self.PROCESSING_STATUS
+        try:
+            self.job_run_id = trigger_glue_job(
+                job_name=self.job_name, file_name=self.file_name, log=log
+            )
+            self.status = self.PROCESSING_STATUS
+        except AWSResourceLimitException:
+            self.status = self.READY_STATUS
         return
 
     def check_glue_status(self):
@@ -482,6 +509,37 @@ def get_feeds_and_destinations(
         raise Exception(error_msg)
 
 
+def split_feeds_destinations_by_first_and_final_jobs(
+    feed_destination_pairs, feed_name_attribute, final_feed_names, log
+):
+    """
+    Parameters:
+
+    feed_destination_pairs: List[Dict[str,str]]
+    feed_name_attribute: str
+    final_feed_names: List[str]
+    log: logging.Logger
+
+    Returns:
+
+    Tuple[List[Dict[str,str]], List[Dict[str,str]]]
+
+    This function takes the entire list of feed destination pairs in DynamoDB and
+    splits this collection into feed destination pairs for all jobs which should be processed
+    together first and feed destination pairs which should be processed once all of the
+    jobs in the first collection have been completed. It uses the final_feeds list of feed
+    names to determine which pairs belong in the latter group.
+    """
+    first_feed_destination_pairs = []
+    final_feed_destination_pairs = []
+    for feed_destination_pair in feed_destination_pairs:
+        if feed_destination_pair[feed_name_attribute] in final_feed_names:
+            final_feed_destination_pairs.append(feed_destination_pair)
+        else:
+            first_feed_destination_pairs.append(feed_destination_pair)
+    return first_feed_destination_pairs, final_feed_destination_pairs
+
+
 def trim_feed_file_name(feed_file_name):
     """
     Parameters:
@@ -735,31 +793,40 @@ if __name__ == "__main__":
             target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
             log=log,
         )
-
-        file_destination_pairs = map_feed_files_to_destination_tables(
-            feed_files=s3_objects,
-            feeds_destinations=feeds_destinations,
+        first_feeds_destination_pairs, final_feeds_destination_pairs = split_feeds_destinations_by_first_and_final_jobs(
+            feed_destination_pairs=feeds_destinations,
             feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
-            target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
+            final_feed_names=Constants.FINAL_FEED_NAMES,
             log=log,
         )
-        job_groups = group_file_names_by_destination_table(
-            file_destination_pairs=file_destination_pairs, log=log
-        )
+        for feeds_destinations in [
+            first_feeds_destination_pairs,
+            final_feeds_destination_pairs,
+        ]:
+            file_destination_pairs = map_feed_files_to_destination_tables(
+                feed_files=s3_objects,
+                feeds_destinations=feeds_destinations,
+                feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
+                target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
+                log=log,
+            )
+            job_groups = group_file_names_by_destination_table(
+                file_destination_pairs=file_destination_pairs, log=log
+            )
 
-        ordered_job_groups = [
-            order_jobs(job_list=job_group, log=log) for job_group in job_groups
-        ]
+            ordered_job_groups = [
+                order_jobs(job_list=job_group, log=log) for job_group in job_groups
+            ]
 
-        log.info("Ordered job groups - {0}".format(ordered_job_groups))
+            log.info("Ordered job groups - {0}".format(ordered_job_groups))
 
-        run_job_queues(
-            glue_job=Constants.GLUE_DAILY_JOB_NAME,
-            job_groups=ordered_job_groups,
-            iteration_pause=Constants.ITERATION_PAUSE,
-            log=log,
-        )
-        log.info("Parallel queue of jobs executed successfully")
+            run_job_queues(
+                glue_job=Constants.GLUE_DAILY_JOB_NAME,
+                job_groups=ordered_job_groups,
+                iteration_pause=Constants.ITERATION_PAUSE,
+                log=log,
+            )
+            log.info("Parallel queue of jobs executed successfully")
         load_log_to_s3()
 
     except BaseException as e:

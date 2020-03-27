@@ -141,6 +141,9 @@ class dq_cust_style_product_missing_cnt(Core_Job):
 
             dynamic_df_source = DynamicFrame.fromDF(df, self.glueContext, "dynamic_df_source")
 
+            utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table),self.whouse_details,logger)
+            utils.execute_query_in_redshift(del_qry.format(whouse_schema+source_table+self.params["brand"]+'_stage'),self.whouse_details,logger)
+
             empty_src_tbl_qry = "create table {} (LIKE {} including defaults)".format(whouse_schema+source_table,whouse_schema+tgt_dstn_tbl_name)
             utils.execute_query_in_redshift(empty_src_tbl_qry,self.whouse_details,logger)
 
@@ -192,7 +195,7 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 
                 logger.info("Whouse table : {}".format(whouse_tbl))
                               
-                ref_table = to_find + 'dq'
+                ref_table = to_find + 'dq' + '_' + source_table
                 logger.info("writing today's ref table to redshift : {}".format(ref_table))
 
                 # Deleting the staging tables and dq tables we created.
@@ -338,7 +341,7 @@ class dq_cust_style_product_missing_cnt(Core_Job):
                 # STYLE -- Read this whouse table only when the reference file doesn't arrive today.
                 final_qry = None
                 
-                ref_table = to_find + 'dq'
+                ref_table = to_find + 'dq' + '_' + source_table
 
                 # Deleting the staging tables and dq tables we created.
                 utils.execute_query_in_redshift(del_qry.format(whouse_schema+ref_table),self.whouse_details,logger)

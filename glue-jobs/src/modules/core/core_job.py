@@ -262,6 +262,7 @@ class Core_Job:
                     "timestampFormat",
                     params["custom_s3_read_params"]["timestamp_format"],
                 )
+                .option("encoding", params["custom_s3_read_params"]["file_encoding"])
                 .option("nullValue", null_value)
                 .option("mode", params["custom_s3_read_params"]["mode_value"])
                 .option("multiline", params["custom_s3_read_params"]["multiline_value"])
@@ -1171,11 +1172,10 @@ class Core_Job:
             process_status = "failed"
             job_status_params_to_be_updated = {}
             try:
-
                 # read file from refined current directory
                 logger.info(
-                    "Bucket currently being used is ",
-                    core_job.env_params["refined_bucket"],
+                    "Bucket currently being used is "
+                    + core_job.env_params["refined_bucket"]
                 )
                 df = core_job.read_from_s3(
                     bucket=refined_bucket,
@@ -1267,31 +1267,36 @@ class Core_Job:
                     ),
                     exc_info=1,
                 )
-                file_moved_status = utils.move_s3_file_from_current(
-                    file_name=file_name,
-                    src_bucket=core_job.env_params["refined_bucket"],
-                    tgt_bucket=core_job.env_params["refined_bucket"],
-                    params=params,
-                    logger=logger,
-                    tgt_path="{}/{}".format(params["failed_dest_folder_nm"], file_name),
-                )
-                utils.move_s3_file_from_current(
-                    file_name=control_file_name,
-                    src_bucket=core_job.env_params["refined_bucket"],
-                    tgt_bucket=core_job.env_params["refined_bucket"],
-                    params=params,
-                    logger=logger,
-                    tgt_path="{}/{}".format(
-                        params["failed_dest_folder_nm"], control_file_name
-                    ),
-                )
-
+                try:
+                    file_moved_status = utils.move_s3_file_from_current(
+                        file_name=file_name,
+                        src_bucket=core_job.env_params["refined_bucket"],
+                        tgt_bucket=core_job.env_params["refined_bucket"],
+                        params=params,
+                        logger=logger,
+                        tgt_path="{}/{}".format(
+                            params["failed_dest_folder_nm"], file_name
+                        ),
+                    )
+                    utils.move_s3_file_from_current(
+                        file_name=control_file_name,
+                        src_bucket=core_job.env_params["refined_bucket"],
+                        tgt_bucket=core_job.env_params["refined_bucket"],
+                        params=params,
+                        logger=logger,
+                        tgt_path="{}/{}".format(
+                            params["failed_dest_folder_nm"], control_file_name
+                        ),
+                    )
+                except BaseException as e:
+                    logger.error(
+                        "Unable to move file from landing area in S3 to failed archive - {0}".format(
+                            e
+                        ),
+                        exc_info=True,
+                    )
+                process_error = error
                 process_status = constant.failure
-                raise CustomAppException.CustomAppError(
-                    moduleName=error.moduleName,
-                    exeptionType=error.exeptionType,
-                    message=error.message,
-                )
             finally:
                 job_status_params_to_be_updated.update(
                     {
@@ -1303,6 +1308,12 @@ class Core_Job:
                     job_status_params_to_be_updated,
                     etl_status_sort_key_as_job_process_dttm,
                 )
+                if process_status is constant.failure:
+                    raise Exception(
+                        "Encountered error during process stage - {0}".format(
+                            process_error
+                        )
+                    )
         else:
             """Initialising spark and gluecontext to prevent exception
                 user did not initialise spark context

@@ -212,17 +212,31 @@ class Xref_Job(Core_Job):
                             )
 
                 if key.startswith("LIST"):
-                    for search_term in xref_global_config.clean_tnf_xref_basic[key][
-                        "substring"
-                    ]:
-                        position = sas_style_description.find(search_term)
-                        if position >= 0:
-                            sas_style_description = sas_style_description.replace(
-                                search_term,
-                                xref_global_config.clean_tnf_xref_basic[key][
-                                    "replace_with"
-                                ],
-                            )
+                    if key in ["LIST_JACKET", "LIST_TRICLIMATE","LIST_THERMOBALL","LIST_TODDLER","LIST_INSULATED"]:
+                        for search_term in xref_global_config.clean_tnf_xref_basic[key][
+                            "substring"
+                        ]:
+                            position = sas_style_description.find(search_term)
+                            if position >= 0:
+                                sas_style_description = sas_style_description.replace(
+                                    search_term,
+                                    xref_global_config.clean_tnf_xref_basic[key][
+                                        "replace_with"
+                                    ],
+                                )
+                                break
+                    else:
+                        for search_term in xref_global_config.clean_tnf_xref_basic[key][
+                            "substring"
+                        ]:
+                            position = sas_style_description.find(search_term)
+                            if position >= 0:
+                                sas_style_description = sas_style_description.replace(
+                                    search_term,
+                                    xref_global_config.clean_tnf_xref_basic[key][
+                                        "replace_with"
+                                    ],
+                                )
 
                 if key.startswith("GLOVES"):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
