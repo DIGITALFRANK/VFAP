@@ -44,6 +44,8 @@ MAP_CUSTOM_SHOES = "map_custom_shoes"
 MAP_EXPERIAN_GOLD = "map_experian_gold"
 MAP_RESPONSYS_EMAIL = "map_responsys_email"
 MAP_WCS = "map_wcs"
+MAP_ZETA_EMAIL = "map_zeta_email"
+MAP_ZETA_PREFERENCE = "map_zeta_preference"
 MAP_UTILS = "MapUtils"
 
 # xref_modules

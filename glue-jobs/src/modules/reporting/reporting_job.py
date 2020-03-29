@@ -2434,9 +2434,6 @@ class Reporting_Job(Core_Job):
                         "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage3".format(
                             dbschema
                         ),
-                        "drop table if exists {0}.x_tmp_tnf_email_launch_clean_stage4".format(
-                            dbschema
-                        ),
                     ]
 
                     utils.execute_multiple_queries_in_redshift(
@@ -2546,180 +2543,7 @@ class Reporting_Job(Core_Job):
                                                 CHARINDEX('FATHERSDAY',campaign_name) > 0 
                                             THEN 'B'
                                     ELSE null
-                                    END AS email_ssn,
-
-                                    CASE WHEN CHARINDEX('GO-VACA',campaign_name) > 0 OR 
-                                                CHARINDEX('_NATL_PARKS',campaign_name) > 0 OR 
-                                                CHARINDEX('EXPLORE IN',subject) > 0 OR 
-                                                CHARINDEX('NATIONALPARK',campaign_name) > 0 OR 
-                                                CHARINDEX('BEST-OF-THE-BAY',campaign_name) > 0 
-                                            THEN  'TRAVEL'
-                                        WHEN CHARINDEX('RUN',campaign_name) > 0 OR  
-                                                CHARINDEX('_ECS_',campaign_name) > 0 OR 
-                                                CHARINDEX('GOLIATHON',campaign_name) > 0 OR 
-                                                CHARINDEX('MARATHON',subject) > 0 OR 
-                                                CHARINDEX('RUN',subject) > 0 OR 
-                                                CHARINDEX('OE_FUND',campaign_name) > 0 OR 
-                                                CHARINDEX('ENDURAN',subject) > 0 OR 
-                                                CHARINDEX('LACE UP FOR',subject) > 0 
-                                            THEN  'RUN'
-                                        WHEN CHARINDEX('TRAIN',campaign_name) > 0 OR 
-                                                CHARINDEX('GYM',subject) > 0 OR 
-                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
-                                                CHARINDEX('WORKOUT',campaign_name) > 0 OR 
-                                                CHARINDEX('CROSS FIT',subject)  > 0 OR 
-                                                CHARINDEX('XFITMN',subject) > 0 
-                                            THEN  'TRN'
-                                        WHEN CHARINDEX('HIK',campaign_name) > 0 OR 
-                                                CHARINDEX('HIK',subject) > 0 OR 
-                                                CHARINDEX('TRAIL',subject) > 0 
-                                            THEN  'HIK'
-                                        WHEN CHARINDEX('WATER',campaign_name) > 0 OR 
-                                                CHARINDEX('GO-SF',campaign_name) > 0 
-                                            THEN 'SURF'
-                                        WHEN CHARINDEX('CLIMB',campaign_name) > 0 OR 
-                                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0 OR 
-                                                CHARINDEX('SUMMIT',campaign_name) > 0 OR 
-                                                CHARINDEX('NEPAL',campaign_name)> 0 OR 
-                                                CHARINDEX('MERU',campaign_name) > 0    OR 
-                                                CHARINDEX('BANFF',campaign_name) > 0 OR 
-                                                CHARINDEX('MTN-D-DOW',campaign_name) > 0 OR 
-                                                CHARINDEX('ANGOLA',campaign_name) > 0 OR  
-                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
-                                                CHARINDEX('ALPINE',subject) > 0 OR 
-                                                CHARINDEX('CLIMB',subject) > 0 OR 
-                                                CHARINDEX('CONRAD ANKER',subject) > 0 OR 
-                                                CHARINDEX('ALEX HONNOLD',subject) > 0 
-                                            THEN  'MTNCLM'
-                                        WHEN CHARINDEX('HIPCAMP',campaign_name) > 0 OR 
-                                                CHARINDEX('CAMPING',campaign_name) > 0 OR 
-                                                CHARINDEX('BACKPACK',campaign_name) > 0 OR 
-                                                CHARINDEX('BACKPACK',subject) > 0 OR 
-                                                CHARINDEX('TENT',subject) > 0 OR 
-                                                CHARINDEX('HOMESTEAD',subject) > 0 OR 
-                                                CHARINDEX('HOMESTEAD',campaign_name) > 0 OR 
-                                                CHARINDEX('CAMP',subject) > 0 
-                                            THEN  'BCPKCAMP'
-                                        WHEN CHARINDEX('SKI',campaign_name) > 0 OR  
-                                                CHARINDEX('ALL-MTN',campaign_name) > 0 OR 
-                                                CHARINDEX('MEET INGRID',subject) > 0 OR 
-                                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
-                                                CHARINDEX('SKI',subject) > 0 OR 
-                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
-                                                CHARINDEX('SLOPE',SUBJECT) > 0 OR
-                                                CHARINDEX('STEEP',SUBJECT) > 0 
-                                            THEN  'SKI'
-                                        WHEN CHARINDEX('SNOW',campaign_name) > 0 OR 
-                                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
-                                                CHARINDEX('KAITLYN FARRINGTON',subject) > 0 
-                                            THEN  'SNWB'
-                                        WHEN CHARINDEX('YOGA',campaign_name) > 0 OR 
-                                                CHARINDEX('YOGA',subject) > 0 
-                                            THEN  'YOGA'
-                                        WHEN CHARINDEX('BOXING',campaign_name) > 0 OR 
-                                                CHARINDEX('BOXING',SUBJECT) > 0 
-                                        THEN  'BOXING'
-                                        WHEN CHARINDEX('HUNT-SEA',subject) > 0 OR 
-                                                CHARINDEX('HUNT-SEA',campaign_name) > 0 
-                                        THEN  'WATER'
-                                    ELSE null
-                                    END AS email_activity,
-
-                                    CASE WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'
-                                        WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'
-                                    ELSE null
-                                    END AS email_gender,
-
-                                    CASE WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
-                                                CHARINDEX('RETAIL',subject) > 0 
-                                            THEN  'RETAIL'
-                                            WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
-                                                    CHARINDEX('ECOM',subject) > 0 OR  
-                                                    CHARINDEX('NEW_SITE',campaign_name) > 0 
-                                                THEN 'ECOM'					
-                                            WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
-                                                    CHARINDEX('OUTLET',subject) > 0  
-                                                THEN 'OUTLET'
-                                    ELSE null
-                                    END AS email_channel,
-
-                                    CASE WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
-                                                CHARINDEX('EQUIPPED',subject) > 0 OR 
-                                                CHARINDEX('GEAR',subject) > 0 
-                                            THEN  'EQUIP'
-                                        WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
-                                                CHARINDEX('JACKET',subject) > 0 OR 
-                                                CHARINDEX('WATSON',campaign_name) > 0 
-                                            THEN  'JKT'
-                                        WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
-                                                CHARINDEX('XTRAFOAM',campaign_name) > 0 OR 
-                                                CHARINDEX('FOOTWEAR',subject) > 0 
-                                            THEN  'FW'
-                                        WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
-                                                CHARINDEX('DAY-PACK',campaign_name) > 0 OR 
-                                                CHARINDEX('DAY-PACK',subject) > 0 OR 
-                                                CHARINDEX('BACKPACK',subject) > 0 
-                                            THEN  'BCPK'
-                                        WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'		
-                                        WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
-                                                CHARINDEX('3 WAYS',subject) > 0 OR  
-                                                CHARINDEX('COLD',subject) > 0 OR 
-                                                CHARINDEX('COLD',campaign_name) > 0 OR 
-                                                CHARINDEX('WINTERJACKET',campaign_name) > 0 OR 
-                                                CHARINDEX('DOWN_JACKET',campaign_name) > 0 OR 
-                                                CHARINDEX('SUMMIT',campaign_name) > 0	OR 
-                                                CHARINDEX('_FUSE_CHI_',campaign_name) > 0 OR 
-                                                CHARINDEX('_FUSE_SEATTLE',campaign_name) > 0 OR 
-                                                CHARINDEX('_FUSE_BOSTON_',campaign_name) > 0 OR 
-                                                CHARINDEX('APEX-FLEX',campaign_name) > 0 OR 
-                                                CHARINDEX('FAR-NORTH',SUBJECT) > 0 OR 
-                                                CHARINDEX('FAR NORTH',SUBJECT) > 0 OR 
-                                                CHARINDEX('FARNORTHERN',campaign_name) > 0 OR 
-                                                CHARINDEX('INSULATED',campaign_name) > 0 OR 
-                                                CHARINDEX('URBAN_INS',campaign_name) > 0 OR  
-                                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
-                                                CHARINDEX('_SOFT_',campaign_name) > 0 OR 
-                                                CHARINDEX('URBAN-INS',campaign_name) > 0 OR 
-                                                CHARINDEX('CORE',campaign_name) > 0 OR 
-                                                CHARINDEX('TBALL',campaign_name) > 0 OR 
-                                                CHARINDEX('TBALL',subject) > 0 OR 
-                                                CHARINDEX('THERMOBALL',subject) > 0 OR 
-                                                CHARINDEX('ARCTIC',campaign_name) > 0 OR 
-                                                CHARINDEX('ARCTIC',subject) > 0 OR  
-                                                CHARINDEX('NEW DIMENSION TO WARMTH',subject) > 0 OR  
-                                                CHARINDEX('NEW DIMENSION OF WARMTH',subject) > 0 
-                                            THEN 'INS'
-                                        WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
-                                                CHARINDEX('URBAN_EXP',campaign_name) > 0 OR 
-                                                CHARINDEX('TRICLIM',campaign_name) > 0 OR 
-                                                CHARINDEX('VILLAGEWEAR',campaign_name) > 0 OR 
-                                                CHARINDEX('OSITO',campaign_name) > 0 OR 
-                                                CHARINDEX('WARMTH',campaign_name) > 0 OR 
-                                                CHARINDEX('FAVES',campaign_name) > 0 OR 
-                                                CHARINDEX('FLEECE PONCHO',subject) > 0 OR 
-                                                CHARINDEX('LIGHTER JACKET',subject) > 0 OR 
-                                                CHARINDEX('DENALI',campaign_name) > 0 
-                                            THEN  'MILDJKT'
-                                        WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
-                                                CHARINDEX('_VENTURE_',campaign_name) > 0 OR 
-                                                (CHARINDEX('RAIN',campaign_name) > 0 AND CHARINDEX('TRAIN',campaign_name) <= 0) OR
-                                                (CHARINDEX('RAIN',subject) > 0 AND CHARINDEX('TRAIN',subject) <= 0) 
-                                            THEN 'RAIN_WR'
-                                        WHEN CHARINDEX('HAT',subject) > 0 OR 
-                                                CHARINDEX('BEANIE',subject) > 0 OR 
-                                                CHARINDEX('EAR GEAR',subject) > 0 OR 
-                                                CHARINDEX('MITTEN',subject) > 0 OR 
-                                                CHARINDEX('SCARF',subject) > 0 OR 
-                                                CHARINDEX('VISOR',subject) > 0 OR 
-                                                CHARINDEX(' CAP ',subject) > 0  OR 
-                                                CHARINDEX('GLOVES',subject) > 0   OR 
-                                                CHARINDEX('SOCKS',subject) > 0 OR 
-                                                (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
-                                                CHARINDEX(' BAG',subject) > 0 OR 
-                                                CHARINDEX('BOTTLE',subject) > 0 
-                                            THEN 'ACCSR'
-                                    ELSE null
-                                    END AS Product_category_tmp
+                                    END AS email_ssn, null::varchar(50) as email_activity, null::varchar(50) as email_gender, null::varchar(50) as email_channel, null::varchar(50) as email_persona
                                 FROM {0}.x_tmp_tnf_email_launch_clean_stage2
                                     """.format(
                         dbschema
@@ -2729,130 +2553,353 @@ class Reporting_Job(Core_Job):
                         self.whouse_details,
                         logger,
                     )
+                    
+                    update_email_activity1= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('GO-VACA',campaign_name) > 0 OR 
+                                CHARINDEX('_NATL_PARKS',campaign_name) > 0 OR 
+                                CHARINDEX('EXPLORE IN',subject) > 0 OR 
+                                CHARINDEX('NATIONALPARK',campaign_name) > 0 OR 
+                                CHARINDEX('BEST-OF-THE-BAY',campaign_name) > 0 
+                            THEN  'TRAVEL' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity2= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('RUN',campaign_name) > 0 OR  
+                                CHARINDEX('_ECS_',campaign_name) > 0 OR 
+                                CHARINDEX('GOLIATHON',campaign_name) > 0 OR 
+                                CHARINDEX('MARATHON',subject) > 0 OR 
+                                CHARINDEX('RUN',subject) > 0 OR 
+                                CHARINDEX('OE_FUND',campaign_name) > 0 OR 
+                                CHARINDEX('ENDURAN',subject) > 0 OR 
+                                CHARINDEX('LACE UP FOR',subject) > 0 
+                            THEN  'RUN' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity3= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('TRAIN',campaign_name) > 0 OR 
+                                CHARINDEX('GYM',subject) > 0 OR 
+                                CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                CHARINDEX('WORKOUT',campaign_name) > 0 OR 
+                                CHARINDEX('CROSS FIT',subject)  > 0 OR 
+                                CHARINDEX('XFITMN',subject) > 0 
+                            THEN  'TRN' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity4= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('HIK',campaign_name) > 0 OR 
+                                CHARINDEX('HIK',subject) > 0 OR 
+                                CHARINDEX('TRAIL',subject) > 0 
+                            THEN  'HIK' else email_activity end""".format(dbschema)
+                    
+                    update_email_activity5= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('WATER',campaign_name) > 0 OR 
+                                CHARINDEX('GO-SF',campaign_name) > 0 
+                            THEN 'SURF' else email_activity end""".format(dbschema)    
+                    
+                    update_email_activity6= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('CLIMB',campaign_name) > 0 OR 
+                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0 OR 
+                                CHARINDEX('SUMMIT',campaign_name) > 0 OR 
+                                CHARINDEX('NEPAL',campaign_name)> 0 OR 
+                                CHARINDEX('MERU',campaign_name) > 0    OR 
+                                CHARINDEX('BANFF',campaign_name) > 0 OR 
+                                CHARINDEX('MTN-D-DOW',campaign_name) > 0 OR 
+                                CHARINDEX('ANGOLA',campaign_name) > 0 OR  
+                                CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                CHARINDEX('ALPINE',subject) > 0 OR 
+                                CHARINDEX('CLIMB',subject) > 0 OR 
+                                CHARINDEX('CONRAD ANKER',subject) > 0 OR 
+                                CHARINDEX('ALEX HONNOLD',subject) > 0 
+                            THEN  'MTNCLM' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity7= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('HIPCAMP',campaign_name) > 0 OR 
+                                CHARINDEX('CAMPING',campaign_name) > 0 OR 
+                                CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                CHARINDEX('BACKPACK',subject) > 0 OR 
+                                CHARINDEX('TENT',subject) > 0 OR 
+                                CHARINDEX('HOMESTEAD',subject) > 0 OR 
+                                CHARINDEX('HOMESTEAD',campaign_name) > 0 OR 
+                                CHARINDEX('CAMP',subject) > 0 
+                            THEN  'BCPKCAMP' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity8= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('SKI',campaign_name) > 0 OR  
+                                CHARINDEX('ALL-MTN',campaign_name) > 0 OR 
+                                CHARINDEX('MEET INGRID',subject) > 0 OR 
+                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
+                                CHARINDEX('SKI',subject) > 0 OR 
+                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                CHARINDEX('SLOPE',SUBJECT) > 0 OR
+                                CHARINDEX('STEEP',SUBJECT) > 0 
+                            THEN  'SKI' else email_activity end""".format(dbschema)
+                    
+                    
+                    update_email_activity9= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('SNOW',campaign_name) > 0 OR 
+                                CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
+                                CHARINDEX('KAITLYN FARRINGTON',subject) > 0 
+                            THEN  'SNWB' else email_activity end""".format(dbschema)
+                    
+                    
+                    
+                    update_email_activity10= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('YOGA',campaign_name) > 0 OR 
+                                CHARINDEX('YOGA',subject) > 0 
+                            THEN  'YOGA' else email_activity end""".format(dbschema)
+                    
+                    
+                    
+                    update_email_activity11= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('BOXING',campaign_name) > 0 OR 
+                                CHARINDEX('BOXING',SUBJECT) > 0 
+                        THEN  'BOXING' else email_activity end""".format(dbschema)
+                    
+                    
+                    
+                    update_email_activity12= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_activity= CASE WHEN CHARINDEX('HUNT-SEA',subject) > 0 OR 
+                                CHARINDEX('HUNT-SEA',campaign_name) > 0 
+                        THEN  'WATER' else email_activity end""".format(dbschema)
+                    
+                        
+                    update_email_activity = [update_email_activity1,update_email_activity2,update_email_activity3,update_email_activity4,update_email_activity5,update_email_activity6,update_email_activity7,update_email_activity8,update_email_activity9,update_email_activity10,update_email_activity11,update_email_activity12]
+                    
+                    utils.execute_multiple_queries_in_redshift(update_email_activity, self.whouse_details, logger)
 
-                    alter_table_query2 = [
-                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 drop column Product_category".format(
-                            dbschema
-                        ),
-                        "alter table {0}.x_tmp_tnf_email_launch_clean_stage3 rename column Product_category_tmp to Product_category".format(
-                            dbschema
-                        ),
-                    ]
-                    utils.execute_multiple_queries_in_redshift(
-                        alter_table_query2, self.whouse_details, logger
-                    )
-
-                    tmp_tnf_email_launch_clean_csv_query_stage4 = """ create table {0}.x_tmp_tnf_email_launch_clean_stage4
-                            AS 
-                            SELECT *,
-                                            CASE WHEN CHARINDEX('OUTDOOR',campaign_name) > 0 OR 
-                                                CHARINDEX('OUTDOOR',subject) > 0  OR 
-                                                CHARINDEX('OUTERWEAR',campaign_name) > 0 OR  
-                                                CHARINDEX('EXPLORATION',subject) > 0 OR  
-                                                CHARINDEX('GO OUTSIDE',subject) > 0 OR  
-                                                CHARINDEX('GET OUTSIDE',subject) > 0 OR 
-                                                CHARINDEX('OUTERWEAR',subject) > 0 OR 
-                                                CHARINDEX('SEEFORYOURSELF',subject) > 0 OR 
-                                                CHARINDEX('SEEFORYOURSELF',campaign_name) > 0 
-                                            THEN  'OUTDOOR'
-                                        WHEN CHARINDEX('ADVENTUR',campaign_name) > 0 OR 
-                                                CHARINDEX('ADVENTUR',subject) > 0 OR 
-                                                CHARINDEX('SUPERHERO',subject) > 0 OR 
-                                                CHARINDEX('SPEAKER',subject) > 0 OR 
-                                                CHARINDEX('CROWN',subject) > 0 OR 
-                                                CHARINDEX('CROWN',campaign_name) > 0 OR 
-                                                CHARINDEX('ULTIMATE EXPLORATION',subject)  > 0 OR 
-                                                CHARINDEX('FILM',campaign_name)> 0 OR 
-                                                CHARINDEX('VALLEY',campaign_name)> 0 OR 
-                                                CHARINDEX('FACE SPEAK',subject) > 0 OR 
-                                                CHARINDEX('FILM',subject) > 0 OR 
-                                                CHARINDEX('PROGRES',subject) > 0 OR 
-                                                CHARINDEX('-FLIP-',campaign_name) > 0  OR 
-                                                CHARINDEX('MADNESS',subject) > 0 OR 
-                                                CHARINDEX('EXPLORE-FUND',CAMPAIGN_NAME) > 0 OR 
-                                                CHARINDEX('EXPLORE-FUND',subject) > 0 	OR 
-                                                CHARINDEX('EXPLORE FUND',subject) > 0 	OR 
-                                                TRIM(email_activity) in ('TRAVEL', 'RUN', 'HIK', 
-                                                'TRAIN', 'SURF', 'MTNCLM', 'BCPK_CAMP', 'SKI','SNWB')	OR 
-                                                CHARINDEX('TUNE IN LIVE',subject) > 0 OR 
-                                                CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0	OR 
-                                                CHARINDEX('DESLAURIERS',subject) > 0 OR 
-                                                CHARINDEX('_SS_',campaign_name) > 0 OR 
-                                                CHARINDEX('SS_LIVE',subject) > 0 OR 
-                                                CHARINDEX('SS_LIVE',campaign_name) > 0 
-                                            THEN  'PE'
-                                        WHEN (CHARINDEX('MA',campaign_name) > 0 
-                                                AND CHARINDEX('MAIL',campaign_name) <= 0 )	OR 
-                                                CHARINDEX('MTATHLETICS',campaign_name) > 0 OR 
-                                                CHARINDEX('MOUNTAIN ATHLETICS',subject) > 0 
-                                            THEN  'MA'
-                                        WHEN CHARINDEX('RECYCLE',subject) > 0 OR 
-                                                CHARINDEX('BACKYARD',campaign_name) > 0 OR 
-                                                CHARINDEX('EARTH_DAY',campaign_name) > 0 OR 
-                                                CHARINDEX('EARTH DAY',subject) > 0
-                                            THEN 'NL'
-                                        WHEN CHARINDEX('YOUTH',campaign_name) > 0 OR 
-                                                CHARINDEX('KID',campaign_name) > 0 OR 
-                                                CHARINDEX('KID',subject) > 0 OR 
-                                                CHARINDEX('INFANT',campaign_name) > 0 OR 
-                                                CHARINDEX('TODDLER',campaign_name) > 0 
-                                            THEN  'FAMILY'
-                                        WHEN CHARINDEX('REWARD',campaign_name) > 0 OR 
-                                                CHARINDEX('SOCHI_PROMO',campaign_name) > 0 OR 
-                                                CHARINDEX('VIPEAK',subject) > 0 OR 
-                                                CHARINDEX('FREE T',subject) > 0 OR 
-                                                CHARINDEX('GET A FREE',subject) > 0 OR 
-                                                CHARINDEX('VIPEAK',campaign_name) > 0 OR 
-                                                CHARINDEX('BONUS',campaign_name) > 0 OR 
-                                                CHARINDEX('VIPEAK_REMINDER',campaign_name) > 0 OR 
-                                                CHARINDEX('EARN MORE POINTS',subject) > 0 OR 
-                                                CHARINDEX('CLAIM YOUR REWARD',subject) > 0 OR 
-                                                CHARINDEX('YOUR VIP',subject) > 0 OR 
-                                                CHARINDEX('VIP TICKET',subject) > 0 
-                                            THEN  'VIPRWRD'
-                                        WHEN CHARINDEX('WELCOME EMAIL',campaign_name) > 0 OR 
-                                                CHARINDEX('WELCOME_SIGNUP',campaign_name) > 0 OR 
-                                                CHARINDEX('WELCOMEEMAIL',campaign_name) > 0 OR 
-                                                CHARINDEX('WELCOME_SERIES',campaign_name) > 0 OR 
-                                                CHARINDEX('WELCOME TO',subject) > 0 OR 
-                                                CHARINDEX('THANKS FOR JOINING',subject) > 0 OR  
-                                                CHARINDEX('BEGINNER',subject) > 0 
-                                            THEN  'NEW_CUST'
-                                        WHEN CHARINDEX('LOYALTY WELCOME',campaign_name) > 0 OR 
-                                                CHARINDEX('LOYALTYWELCOME',campaign_name) > 0 OR 
-                                                CHARINDEX('PEAKPOINT',subject) > 0 
-                                            THEN  'NEW_VIPK'
-                                        WHEN CHARINDEX('ABANDON',campaign_name) > 0 
-                                            THEN  'ABNCART'
-                                        WHEN CHARINDEX('WISH LIST',campaign_name) > 0 OR 
-                                                CHARINDEX('WISHLIST',campaign_name) > 0 OR 
-                                                CHARINDEX('WISH_LIST',campaign_name) > 0 
-                                            THEN  'WISHLIST'
-                                        WHEN CHARINDEX('BACK IN STOCK',campaign_name) > 0 OR 
-                                                CHARINDEX('BACK_IN_STOCK',campaign_name) > 0 OR 
-                                                CHARINDEX('BACKINSTOCK',campaign_name) > 0 OR 
-                                                CHARINDEX('NEW_ARRIVAL',campaign_name) > 0 OR 
-                                                CHARINDEX('NEW ARRIVAL',subject) > 0 OR 
-                                                CHARINDEX('NEW_ARRIVAL',subject) > 0 OR 
-                                                CHARINDEX('CATALOG',subject) > 0 OR 
-                                                CHARINDEX('BOUNCE_BACK',subject) > 0 OR 
-                                                CHARINDEX('BOUNCE_BACK',campaign_name) > 0 OR  
-                                                CHARINDEX('INVITE',subject) > 0 OR  
-                                                CHARINDEX('CONVIE',subject) > 0 
-                                            THEN  'REP_CUST'
-                                        WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
-                                                CHARINDEX('SURVEY',subject) > 0 
-                                            THEN 'SURVEY'
-                                    ELSE null
-                                    END AS email_persona
-                                FROM {0}.x_tmp_tnf_email_launch_clean_stage3""".format(
-                        dbschema
-                    )
-                    utils.execute_query_in_redshift(
-                        tmp_tnf_email_launch_clean_csv_query_stage4,
-                        self.whouse_details,
-                        logger,
-                    )
+                    update_email_persona1= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('OUTDOOR',campaign_name) > 0 OR 
+                                        CHARINDEX('OUTDOOR',subject) > 0  OR 
+                                        CHARINDEX('OUTERWEAR',campaign_name) > 0 OR  
+                                        CHARINDEX('EXPLORATION',subject) > 0 OR  
+                                        CHARINDEX('GO OUTSIDE',subject) > 0 OR  
+                                        CHARINDEX('GET OUTSIDE',subject) > 0 OR 
+                                        CHARINDEX('OUTERWEAR',subject) > 0 OR 
+                                        CHARINDEX('SEEFORYOURSELF',subject) > 0 OR 
+                                        CHARINDEX('SEEFORYOURSELF',campaign_name) > 0 
+                                        THEN  'OUTDOOR' else email_persona end""".format(dbschema)
+                    
+                        
+                    update_email_persona2= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('ADVENTUR',campaign_name) > 0 OR 
+                            CHARINDEX('ADVENTUR',subject) > 0 OR 
+                            CHARINDEX('SUPERHERO',subject) > 0 OR 
+                            CHARINDEX('SPEAKER',subject) > 0 OR 
+                            CHARINDEX('CROWN',subject) > 0 OR 
+                            CHARINDEX('CROWN',campaign_name) > 0 OR 
+                            CHARINDEX('ULTIMATE EXPLORATION',subject)  > 0 OR 
+                            CHARINDEX('FILM',campaign_name)> 0 OR 
+                            CHARINDEX('VALLEY',campaign_name)> 0 OR 
+                            CHARINDEX('FACE SPEAK',subject) > 0 OR 
+                            CHARINDEX('FILM',subject) > 0 OR 
+                            CHARINDEX('PROGRES',subject) > 0 OR 
+                            CHARINDEX('-FLIP-',campaign_name) > 0  OR 
+                            CHARINDEX('MADNESS',subject) > 0 OR 
+                            CHARINDEX('EXPLORE-FUND',CAMPAIGN_NAME) > 0 OR 
+                            CHARINDEX('EXPLORE-FUND',subject) > 0     OR 
+                            CHARINDEX('EXPLORE FUND',subject) > 0     OR 
+                            TRIM(email_activity) in ('TRAVEL', 'RUN', 'HIK', 
+                            'TRAIN', 'SURF', 'MTNCLM', 'BCPK_CAMP', 'SKI','SNWB')    OR 
+                            CHARINDEX('TUNE IN LIVE',subject) > 0 OR 
+                            CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0    OR 
+                            CHARINDEX('DESLAURIERS',subject) > 0 OR 
+                            CHARINDEX('_SS_',campaign_name) > 0 OR 
+                            CHARINDEX('SS_LIVE',subject) > 0 OR 
+                            CHARINDEX('SS_LIVE',campaign_name) > 0 
+                        THEN  'PE' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona3= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN (CHARINDEX('MA',campaign_name) > 0 
+                            AND CHARINDEX('MAIL',campaign_name) <= 0 )    OR 
+                            CHARINDEX('MTATHLETICS',campaign_name) > 0 OR 
+                            CHARINDEX('MOUNTAIN ATHLETICS',subject) > 0 
+                        THEN  'MA' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona4= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('RECYCLE',subject) > 0 OR 
+                            CHARINDEX('BACKYARD',campaign_name) > 0 OR 
+                            CHARINDEX('EARTH_DAY',campaign_name) > 0 OR 
+                            CHARINDEX('EARTH DAY',subject) > 0
+                        THEN 'NL' else email_persona end""".format(dbschema)
+                        
+                    update_email_persona5= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('YOUTH',campaign_name) > 0 OR 
+                            CHARINDEX('KID',campaign_name) > 0 OR 
+                            CHARINDEX('KID',subject) > 0 OR 
+                            CHARINDEX('INFANT',campaign_name) > 0 OR 
+                            CHARINDEX('TODDLER',campaign_name) > 0 
+                        THEN  'FAMILY' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona6= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('REWARD',campaign_name) > 0 OR 
+                            CHARINDEX('SOCHI_PROMO',campaign_name) > 0 OR 
+                            CHARINDEX('VIPEAK',subject) > 0 OR 
+                            CHARINDEX('FREE T',subject) > 0 OR 
+                            CHARINDEX('GET A FREE',subject) > 0 OR 
+                            CHARINDEX('VIPEAK',campaign_name) > 0 OR 
+                            CHARINDEX('BONUS',campaign_name) > 0 OR 
+                            CHARINDEX('VIPEAK_REMINDER',campaign_name) > 0 OR 
+                            CHARINDEX('EARN MORE POINTS',subject) > 0 OR 
+                            CHARINDEX('CLAIM YOUR REWARD',subject) > 0 OR 
+                            CHARINDEX('YOUR VIP',subject) > 0 OR 
+                            CHARINDEX('VIP TICKET',subject) > 0 
+                        THEN  'VIPRWRD' else email_persona end""".format(dbschema)
+                    
+                    update_email_persona7= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('WELCOME EMAIL',campaign_name) > 0 OR 
+                            CHARINDEX('WELCOME_SIGNUP',campaign_name) > 0 OR 
+                            CHARINDEX('WELCOMEEMAIL',campaign_name) > 0 OR 
+                            CHARINDEX('WELCOME_SERIES',campaign_name) > 0 OR 
+                            CHARINDEX('WELCOME TO',subject) > 0 OR 
+                            CHARINDEX('THANKS FOR JOINING',subject) > 0 OR  
+                            CHARINDEX('BEGINNER',subject) > 0 
+                        THEN  'NEW_CUST' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona8= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('LOYALTY WELCOME',campaign_name) > 0 OR 
+                            CHARINDEX('LOYALTYWELCOME',campaign_name) > 0 OR 
+                            CHARINDEX('PEAKPOINT',subject) > 0 
+                        THEN  'NEW_VIPK' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona9= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('ABANDON',campaign_name) > 0 
+                        THEN  'ABNCART' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona10= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('WISH LIST',campaign_name) > 0 OR 
+                            CHARINDEX('WISHLIST',campaign_name) > 0 OR 
+                            CHARINDEX('WISH_LIST',campaign_name) > 0 
+                        THEN  'WISHLIST' else email_persona end""".format(dbschema)
+                        
+                    update_email_persona11= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('BACK IN STOCK',campaign_name) > 0 OR 
+                            CHARINDEX('BACK_IN_STOCK',campaign_name) > 0 OR 
+                            CHARINDEX('BACKINSTOCK',campaign_name) > 0 OR 
+                            CHARINDEX('NEW_ARRIVAL',campaign_name) > 0 OR 
+                            CHARINDEX('NEW ARRIVAL',subject) > 0 OR 
+                            CHARINDEX('NEW_ARRIVAL',subject) > 0 OR 
+                            CHARINDEX('CATALOG',subject) > 0 OR 
+                            CHARINDEX('BOUNCE_BACK',subject) > 0 OR 
+                            CHARINDEX('BOUNCE_BACK',campaign_name) > 0 OR  
+                            CHARINDEX('INVITE',subject) > 0 OR  
+                            CHARINDEX('CONVIE',subject) > 0 
+                        THEN  'REP_CUST' else email_persona end""".format(dbschema)
+                        
+                    update_email_persona12= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    set email_persona= CASE WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
+                            CHARINDEX('SURVEY',subject) > 0 
+                        THEN 'SURVEY' else email_persona end""".format(dbschema)
+                        
+                        
+                    update_email_persona = [update_email_persona1,update_email_persona2,update_email_persona3,update_email_persona4,update_email_persona5,
+                    update_email_persona6,update_email_persona7,update_email_persona8,update_email_persona9,update_email_persona10,update_email_persona11,update_email_persona12]
+                    
+                    utils.execute_multiple_queries_in_redshift(update_email_persona, self.whouse_details, logger)
+                    
+                    email_gender1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(dbschema)
+                    email_gender2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(dbschema)
+                    
+                    update_email_gender = [email_gender1,email_gender2]
+                    utils.execute_multiple_queries_in_redshift(update_email_gender, self.whouse_details, logger)
+    
+                    email_channel1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL'  else   email_channel  end""".format(dbschema)
+                    
+                    email_channel2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM'  else   email_channel  end""".format(dbschema)
+                    
+                    email_channel3 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET'  else   email_channel  end""".format(dbschema)
+                    
+                    update_email_channel = [email_channel1,email_channel2,email_channel3]
+                    utils.execute_multiple_queries_in_redshift(update_email_channel, self.whouse_details, logger)
+                        
+                    Product_category1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+                                                                    CHARINDEX('EQUIPPED',subject) > 0 OR 
+                                                                    CHARINDEX('GEAR',subject) > 0 
+                                                                THEN  'EQUIP'  else   Product_category  end""".format(dbschema)
+                    Product_category2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
+                                                                    CHARINDEX('JACKET',subject) > 0 OR 
+                                                                    CHARINDEX('WATSON',campaign_name) > 0 
+                                                                THEN  'JKT'  else   Product_category  end""".format(dbschema)
+                    Product_category3 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
+                                                                    CHARINDEX('XTRAFOAM',campaign_name) > 0 OR 
+                                                                    CHARINDEX('FOOTWEAR',subject) > 0 
+                                                                THEN  'FW'  else   Product_category  end""".format(dbschema)
+                    Product_category4 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                                    CHARINDEX('DAY-PACK',campaign_name) > 0 OR 
+                                                                    CHARINDEX('DAY-PACK',subject) > 0 OR 
+                                                                    CHARINDEX('BACKPACK',subject) > 0 
+                                                                THEN  'BCPK'  else   Product_category  end""".format(dbschema)
+                    Product_category5 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'  else   Product_category  end""".format(dbschema)
+                    Product_category6 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
+                                                                    CHARINDEX('3 WAYS',subject) > 0 OR  
+                                                                    CHARINDEX('COLD',subject) > 0 OR 
+                                                                    CHARINDEX('COLD',campaign_name) > 0 OR 
+                                                                    CHARINDEX('WINTERJACKET',campaign_name) > 0 OR 
+                                                                    CHARINDEX('DOWN_JACKET',campaign_name) > 0 OR 
+                                                                    CHARINDEX('SUMMIT',campaign_name) > 0   OR 
+                                                                    CHARINDEX('_FUSE_CHI_',campaign_name) > 0 OR 
+                                                                    CHARINDEX('_FUSE_SEATTLE',campaign_name) > 0 OR 
+                                                                    CHARINDEX('_FUSE_BOSTON_',campaign_name) > 0 OR 
+                                                                    CHARINDEX('APEX-FLEX',campaign_name) > 0 OR 
+                                                                    CHARINDEX('FAR-NORTH',SUBJECT) > 0 OR 
+                                                                    CHARINDEX('FAR NORTH',SUBJECT) > 0 OR 
+                                                                    CHARINDEX('FARNORTHERN',campaign_name) > 0 OR 
+                                                                    CHARINDEX('INSULATED',campaign_name) > 0 OR 
+                                                                    CHARINDEX('URBAN_INS',campaign_name) > 0 OR  
+                                                                    CHARINDEX('ALPINE',campaign_name) > 0 OR 
+                                                                    CHARINDEX('_SOFT_',campaign_name) > 0 OR 
+                                                                    CHARINDEX('URBAN-INS',campaign_name) > 0 OR 
+                                                                    CHARINDEX('CORE',campaign_name) > 0 OR 
+                                                                    CHARINDEX('TBALL',campaign_name) > 0 OR 
+                                                                    CHARINDEX('TBALL',subject) > 0 OR 
+                                                                    CHARINDEX('THERMOBALL',subject) > 0 OR 
+                                                                    CHARINDEX('ARCTIC',campaign_name) > 0 OR 
+                                                                    CHARINDEX('ARCTIC',subject) > 0 OR  
+                                                                    CHARINDEX('NEW DIMENSION TO WARMTH',subject) > 0 OR  
+                                                                    CHARINDEX('NEW DIMENSION OF WARMTH',subject) > 0 
+                                                                THEN 'INS'  else   Product_category  end""".format(dbschema)
+                    Product_category7 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
+                                                                    CHARINDEX('URBAN_EXP',campaign_name) > 0 OR 
+                                                                    CHARINDEX('TRICLIM',campaign_name) > 0 OR 
+                                                                    CHARINDEX('VILLAGEWEAR',campaign_name) > 0 OR 
+                                                                    CHARINDEX('OSITO',campaign_name) > 0 OR 
+                                                                    CHARINDEX('WARMTH',campaign_name) > 0 OR 
+                                                                    CHARINDEX('FAVES',campaign_name) > 0 OR 
+                                                                    CHARINDEX('FLEECE PONCHO',subject) > 0 OR 
+                                                                    CHARINDEX('LIGHTER JACKET',subject) > 0 OR 
+                                                                    CHARINDEX('DENALI',campaign_name) > 0 
+                                                                THEN  'MILDJKT'  else   Product_category  end""".format(dbschema)
+                    Product_category8 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
+                                                                    CHARINDEX('_VENTURE_',campaign_name) > 0 OR 
+                                                                    (CHARINDEX('RAIN',campaign_name) > 0 AND CHARINDEX('TRAIN',campaign_name) <= 0) OR
+                                                                    (CHARINDEX('RAIN',subject) > 0 AND CHARINDEX('TRAIN',subject) <= 0) 
+                                                                THEN 'RAIN_WR'  else   Product_category  end""".format(dbschema)
+                    Product_category9 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('HAT',subject) > 0 OR 
+                                                                    CHARINDEX('BEANIE',subject) > 0 OR 
+                                                                    CHARINDEX('EAR GEAR',subject) > 0 OR 
+                                                                    CHARINDEX('MITTEN',subject) > 0 OR 
+                                                                    CHARINDEX('SCARF',subject) > 0 OR 
+                                                                    CHARINDEX('VISOR',subject) > 0 OR 
+                                                                    CHARINDEX(' CAP ',subject) > 0  OR 
+                                                                    CHARINDEX('GLOVES',subject) > 0   OR 
+                                                                    CHARINDEX('SOCKS',subject) > 0 OR 
+                                                                    (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
+                                                                    CHARINDEX(' BAG',subject) > 0 OR 
+                                                                    CHARINDEX('BOTTLE',subject) > 0 
+                                                                THEN 'ACCSR'  else   Product_category  end""".format(dbschema)
+                                                                                                                                                                                                    
+                    update_Product_category = [Product_category1,Product_category2,Product_category3,Product_category4,Product_category5,Product_category6,Product_category7,Product_category8,Product_category9]
+                    utils.execute_multiple_queries_in_redshift(update_Product_category, self.whouse_details, logger) 
 
                     drop_temp_table_query = "drop table if exists {0}.x_tmp_tnf_email_launch_clean".format(
                         dbschema
@@ -2863,7 +2910,7 @@ class Reporting_Job(Core_Job):
                     create_x_tmp_tnf_email_launch_clean_table_query = """             Create Table {0}.x_tmp_tnf_email_launch_clean As
                                     SELECT sub.* FROM  
                                             ( SELECT *, 
-                                                ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM {0}.x_tmp_tnf_email_launch_clean_stage4 
+                                                ROW_NUMBER() OVER(PARTITION BY account_id,campaign_id,launch_id,list_id order by account_id) as row_num FROM {0}.x_tmp_tnf_email_launch_clean_stage3 
                                             ) sub 
                                     WHERE row_num = 1""".format(
                         dbschema
@@ -3015,7 +3062,7 @@ class Reporting_Job(Core_Job):
                         drop_temp_table_query4, self.whouse_details, logger
                     )
                     create_x_tmp_tnf_email_inputs_table_query = """            Create Table {0}.x_tmp_tnf_email_inputs As
-                                        SELECT 	t3.CUSTOMER_ID,
+                                        SELECT     t3.CUSTOMER_ID,
                                             t3.ACT,
                                             t3.CHNL,
                                             t3.GEN,
