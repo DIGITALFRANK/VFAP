@@ -1169,7 +1169,8 @@ class Core_Job:
         logger.info("Checking if the file is active")
         active_status = params["is_active"]
         if utils.is_feed_active(logger, active_status):
-            process_status = "failed"
+            process_status = constant.failure
+            process_error = None
             job_status_params_to_be_updated = {}
             try:
                 # read file from refined current directory
@@ -1210,6 +1211,7 @@ class Core_Job:
                         job_status_params_to_be_updated,
                         etl_status_sort_key_as_job_process_dttm,
                     )
+                    process_status = constant.skipped
                     return constant.success
 
                 # applying dq_checks
