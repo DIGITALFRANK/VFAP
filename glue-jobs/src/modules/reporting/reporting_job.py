@@ -2811,15 +2811,13 @@ class Reporting_Job(Core_Job):
                     utils.execute_multiple_queries_in_redshift(update_email_gender, self.whouse_details, logger)
     
                     email_channel1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
-                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL'  else   email_channel  end""".format(dbschema)
+                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL' WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM' WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET' else   email_channel  end""".format(dbschema)
                     
-                    email_channel2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
-                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM'  else   email_channel  end""".format(dbschema)
                     
-                    email_channel3 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
-                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET'  else   email_channel  end""".format(dbschema)
                     
-                    update_email_channel = [email_channel1,email_channel2,email_channel3]
+                    update_email_channel = [email_channel1]
                     utils.execute_multiple_queries_in_redshift(update_email_channel, self.whouse_details, logger)
                         
                     Product_category1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
@@ -2890,7 +2888,7 @@ class Reporting_Job(Core_Job):
                                                                     CHARINDEX('MITTEN',subject) > 0 OR 
                                                                     CHARINDEX('SCARF',subject) > 0 OR 
                                                                     CHARINDEX('VISOR',subject) > 0 OR 
-                                                                    CHARINDEX(' CAP ',subject) > 0  OR 
+                                                                    CHARINDEX(' CAP ',subject) > 0  OR POSITION(' CAP' in subject)=LENGTH(subject)-3 OR
                                                                     CHARINDEX('GLOVES',subject) > 0   OR 
                                                                     CHARINDEX('SOCKS',subject) > 0 OR 
                                                                     (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
@@ -3160,11 +3158,11 @@ class Reporting_Job(Core_Job):
                                   '{1}'::date - dsince_o_tmp as dsince_o,
                                    CASE
                                        WHEN freq_s = 0 THEN NULL
-                                   ELSE ROUND((freq_o * 100 / freq_s),1)
+                                   ELSE ROUND(freq_o * 100 / freq_s ::decimal)
                                    END AS pct_o,
                                    CASE
                                        WHEN freq_o = 0 THEN NULL
-                                   ELSE ROUND((freq_c * 100 / freq_o),1)
+                                   ELSE ROUND(freq_c * 100 / freq_o ::decimal)
                                    END AS pct_c
                                FROM 
                                    (select a.*, b.md2c from
