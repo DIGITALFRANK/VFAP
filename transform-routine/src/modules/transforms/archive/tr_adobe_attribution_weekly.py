@@ -35,7 +35,6 @@ class tr_adobe_attribution_weekly(Dataprocessor_Job):
         file_date_obj = datetime.strptime(file_date, '%Y-%m-%d')
         date = file_date_obj.strftime('%Y%m%d')
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
         print("inside transforms", params["tgt_dstn_folder_name"])
 
         try:
@@ -69,7 +68,6 @@ class tr_adobe_attribution_weekly(Dataprocessor_Job):
                                              lit(params["country"]))
             # Filter out null values
             df_null = df_country.where("Date is NOT NULL")
-            df_null.show()
             # Derive fiscal calendar fields
             df_null.createOrReplaceTempView("attribution")
             fiscal_calender_df.createOrReplaceTempView("fiscal_calendar")

@@ -695,9 +695,8 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
-            new_df = df.withColumn("process_dtm", F.current_timestamp()).withColumn(
-                "file_name", self.file_name
-            )
+            new_df = df.withColumn("process_dtm", F.current_timestamp())
+            logger.info("new_df sample records : {}".format(new_df.show(20)))
             write_status = self.write_glue_df_to_redshift(
                 df=new_df,
                 redshift_table=response["xref_params"]["xref_output"],
@@ -790,11 +789,11 @@ class Xref_Job(Core_Job):
 
             cm_session_xref_query = config.CM_SESSION_XREF_QUERY
             cm_session_xref_df = spark.sql(cm_session_xref_query)
-            print(cm_session_xref_df.show())
+            # print(cm_session_xref_df.show())
 
-            print("cm_session_xref : ", cm_reg_view.show())
-            print("email_xref : ", email_view.show())
-            cm_session_xref_df.show(10, truncate=False)
+            # print("cm_session_xref : ", cm_reg_view.show())
+            # print("email_xref : ", email_view.show())
+            # cm_session_xref_df.show(10, truncate=False)
 
             # writing cm_session_xref to target ,need to chnage as per target
             # cm_session_xref_status = self.write_to_tgt(
@@ -808,10 +807,11 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
-            logger.debug("*************Number of records to write**********")
-            logger.debug(cm_session_xref_df.count())
+            final_df = cm_session_xref_df.withColumn(
+                "process_dtm", F.current_timestamp()
+            )
             cm_session_xref_status = self.write_glue_df_to_redshift(
-                df=cm_session_xref_df,
+                df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
             )
@@ -871,8 +871,7 @@ class Xref_Job(Core_Job):
             #     path="Map_Custom/loyalty_xref/",
             #     mode="overwrite",
             # )
-            loyalty_xref_status = self.write_df_to_redshift_table(
-                df=loyalty_xref_df,
+            final_df = loyalty_xref_df.withColumn("process_dtm", F.current_timestamp())
             loyalty_xref_status = self.write_glue_df_to_redshift(
                 df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
@@ -895,7 +894,7 @@ class Xref_Job(Core_Job):
             )
         return loyalty_xref_status
 
-    def xr_email_xref(self):
+    def xr_email_xref_old(self):
         full_load_df = None
         spark = self.spark
         logger = self.logger
@@ -927,7 +926,7 @@ class Xref_Job(Core_Job):
                         AND mstr.sas_brand_id = uniq.sas_brand_id
                         """
             )
-            full_load_df.show()
+            full_load_df.show(20)
             # logger.info(
             #     "count of records in email_xref table is {}".format(
             #         full_load_df.count()
@@ -943,7 +942,7 @@ class Xref_Job(Core_Job):
             logger.debug(full_load_df.count())
             final_df = full_load_df.withColumn("process_dtm", F.current_timestamp())
             status = self.write_glue_df_to_redshift(
-                df=full_load_df,
+                df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
             )
@@ -1318,9 +1317,9 @@ class Xref_Job(Core_Job):
                                 FROM prodxref_clean_tmp_3 
                                 """
                 )
-                    .withColumnRenamed("class_department_code", "department_code")
-                    .withColumnRenamed("class_class_code", "class_code")
-                    .withColumnRenamed("class_class_description", "class_description")
+                .withColumnRenamed("class_department_code", "department_code")
+                .withColumnRenamed("class_class_code", "class_code")
+                .withColumnRenamed("class_class_description", "class_description")
             )
 
             prodxref_clean_df_3.createOrReplaceTempView("prodxref_clean_3")
@@ -1343,9 +1342,9 @@ class Xref_Job(Core_Job):
                                         ) sub 
                                         ON A.style_id = sub.style_style_id """
                 )
-                    .drop("TRGT_Peanuts_FLAG", "Peanuts_ind")
-                    .withColumnRenamed("TRGT_Peanuts_FLAG_tmp", "TRGT_Peanuts_FLAG")
-                    .withColumnRenamed("Peanuts_ind_tmp", "Peanuts_ind")
+                .drop("TRGT_Peanuts_FLAG", "Peanuts_ind")
+                .withColumnRenamed("TRGT_Peanuts_FLAG_tmp", "TRGT_Peanuts_FLAG")
+                .withColumnRenamed("Peanuts_ind_tmp", "Peanuts_ind")
             )
 
             Peanuts_ind_df.createOrReplaceTempView("Peanuts_ind_vw")
@@ -1376,11 +1375,11 @@ class Xref_Job(Core_Job):
                                 AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style_style
                                 """
                 )
-                    .drop("TRGT_Peanuts_like_FLAG", "Peanuts_like_ind")
-                    .withColumnRenamed(
+                .drop("TRGT_Peanuts_like_FLAG", "Peanuts_like_ind")
+                .withColumnRenamed(
                     "TRGT_Peanuts_like_FLAG_tmp", "TRGT_Peanuts_like_FLAG"
                 )
-                    .withColumnRenamed("Peanuts_like_ind_tmp", "Peanuts_like_ind")
+                .withColumnRenamed("Peanuts_like_ind_tmp", "Peanuts_like_ind")
             )
 
             Peanuts_like_FLAG_df.createOrReplaceTempView("Peanuts_like_FLAG_vw")
@@ -1409,8 +1408,8 @@ class Xref_Job(Core_Job):
                                 AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style
                                 """
                 )
-                    .drop("trgt_ultrngls_flag")
-                    .withColumnRenamed("trgt_ultrngls_flag_tmp", "trgt_ultrngls_flag")
+                .drop("trgt_ultrngls_flag")
+                .withColumnRenamed("trgt_ultrngls_flag_tmp", "trgt_ultrngls_flag")
             )
 
             trgt_ultrngls_flag_df.createOrReplaceTempView("trgt_ultrngls_flag_vw")
@@ -1439,8 +1438,8 @@ class Xref_Job(Core_Job):
                                     AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style
                                     """
                 )
-                    .drop("trgt_ultrngpro_flag")
-                    .withColumnRenamed("trgt_ultrngpro_flag_tmp", "trgt_ultrngpro_flag")
+                .drop("trgt_ultrngpro_flag")
+                .withColumnRenamed("trgt_ultrngpro_flag_tmp", "trgt_ultrngpro_flag")
             )
 
             trgt_ultrngpro_flag_df.createOrReplaceTempView("trgt_ultrngpro_flag_vw")
@@ -1468,8 +1467,8 @@ class Xref_Job(Core_Job):
                                         AND substr(A.style_aka,CHAR_LENGTH(TRIM(A.style_aka))-3, 4) = sub.style
                                         """
                 )
-                    .drop("trgt_bts_flag")
-                    .withColumnRenamed("trgt_bts_flag_tmp", "trgt_bts_flag")
+                .drop("trgt_bts_flag")
+                .withColumnRenamed("trgt_bts_flag_tmp", "trgt_bts_flag")
             )
 
             trgt_bts_flag_df.createOrReplaceTempView("trgt_bts_flag_vw")
@@ -1505,7 +1504,7 @@ class Xref_Job(Core_Job):
             full_load_df.show()
             final_df = full_load_df.withColumn(
                 "process_dtm", F.current_timestamp()
-            )
+            ).withColumn("fs_sk", F.lit(-1))
             final_df.show()
             final_df.printSchema()
             status = self.write_glue_df_to_redshift(

@@ -520,9 +520,9 @@
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
-				  "AllocatedCapacity": 10, 
+				  "AllocatedCapacity": 10,
 				  "ScriptName": "main.py",
-				  "GlueJobName": "daily-job",
+				  "GlueJobName": "daily-etl-job",
 				  "MaxConcurrentRuns": 70,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 8,
@@ -550,22 +550,15 @@
                 ]
             }
         },
-		"ReportingFileChecklist": {
+		"DailyInitJob": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
-				"Parameters": {
-				  "AllocatedCapacity": 10, 
-				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "reporting-file-checklist",
+				"Parameters": { 
+				  "ScriptName": "main_job_queue.py",
+				  "GlueJobName": "daily-init-job",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
-				  "MaxCapacity": 8,
-				  "WorkerType": "G.1X",
-				  "Timeout": 480,
-				  "NumberOfWorkers": 8,
-				  "FileNameArgument": "reporting_week_weather_sum",
-				  "JobParamArgument": "NULL",
-				  "JobTypeArgument": "NULL",				
+				  "Timeout": 480,			
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
@@ -573,7 +566,7 @@
 				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
 				  "GlueRole": { "Ref": "GlueRole" }
 				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/daily-glue-etl-job.json",
                 "Tags": [
 					  { "Key": "CostCenter", "Value": "118204800" },
 					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
@@ -584,115 +577,13 @@
                 ]
             }
         },
-		"ETLReportMissingDatesJob": {
+		"WeekWeatherSumJob": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
 				  "AllocatedCapacity": 10,
 				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "etl-report-missing-dates",
-				  "MaxConcurrentRuns": 1,
-				  "MaxRetries": 0,
-				  "MaxCapacity": 8,
-				  "WorkerType": "Standard",
-				  "Timeout": 480,
-				  "NumberOfWorkers": 8,
-				  "FileNameArgument": "reporting_etl_rpt_missing_dates",
-				  "JobParamArgument": "NULL",
-				  "JobTypeArgument": "NULL",				
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Ref": "GlueRole" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
-                ]
-            }
-        },
-		"StatusReportJob": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "AllocatedCapacity": 10,
-				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "status-report-job",
-				  "MaxConcurrentRuns": 1,
-				  "MaxRetries": 0,
-				  "MaxCapacity": 8,
-				  "WorkerType": "Standard",
-				  "Timeout": 120,
-				  "NumberOfWorkers": 8,
-				  "FileNameArgument": "reporting_send_daily_etl_job_status_report",
-				  "JobParamArgument": "NULL",
-				  "JobTypeArgument": "NULL",				
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Ref": "GlueRole" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
-                ]
-            }
-        },
-		"BuildEmailInputsJob": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "AllocatedCapacity": 10,
-				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "build-email-input-job",
-				  "MaxConcurrentRuns": 1,
-				  "MaxRetries": 0,
-				  "MaxCapacity": 8,
-				  "WorkerType": "G.1X",
-				  "Timeout": 480,
-				  "NumberOfWorkers": 8,
-				  "FileNameArgument": "reporting_csv_build_email_inputs",
-				  "JobParamArgument": "NULL",
-				  "JobTypeArgument": "NULL",				
-				  "Environment": { "Ref": "Environment" },
-				  "ResourceGroup": { "Ref": "ResourceGroup" },
-				  "Application": { "Ref": "Application" },
-				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
-				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
-				  "GlueRole": { "Ref": "GlueRole" }
-				},
-				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
-                "Tags": [
-					  { "Key": "CostCenter", "Value": "118204800" },
-					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
-					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
-					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
-					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
-					  { "Key": "Application", "Value": { "Ref": "Application" } }
-                ]
-            }
-        },
-		"ReportingCRMFileChecklist": {
-			  "Type": "AWS::CloudFormation::Stack",
-			  "Properties": {
-				"Parameters": {
-				  "AllocatedCapacity": 10, 
-				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "reporting-crm-file-checklist",
+				  "GlueJobName": "week-weather-sum-job",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 8,
@@ -907,7 +798,9 @@
 					"CustomShoeMap": { "Fn::GetAtt": [ "CustomShoeMap", "Outputs.JobName" ] },
 					"WCSMap": { "Fn::GetAtt": [ "WCSMap", "Outputs.JobName" ] },
 					"CoremetricsMAP": { "Fn::GetAtt": [ "CoremetricsMAP", "Outputs.JobName" ] },
-					"ReportingFileChecklist": { "Fn::GetAtt": [ "ReportingFileChecklist", "Outputs.JobName" ] },
+					"ReportingCRMFileChecklist": { "Fn::GetAtt": [ "ReportingCRMFileChecklist", "Outputs.JobName" ] },
+					"StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
+					"BuildEmailInputsJob": { "Fn::GetAtt": [ "BuildEmailInputsJob", "Outputs.JobName" ] },
 					"MapZetaEmail": { "Fn::GetAtt": [ "MapZetaEmail", "Outputs.JobName" ] },
 					"MapZetaPreference": { "Fn::GetAtt": [ "MapZetaPreference", "Outputs.JobName" ] },
 					"RptDedupeSummary": { "Fn::GetAtt": [ "RptDedupeSummary", "Outputs.JobName" ] },
@@ -931,10 +824,13 @@
         },
 		"DailyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "DailyETLJob" ],
+			  "DependsOn" : [ "DailyInitJob", "StatusReportJob", "ETLReportMissingDatesJob", "WeekWeatherSumJob" ],
 			  "Properties": {
 				"Parameters": {
-				  "DailyETLJob": { "Fn::GetAtt": [ "DailyETLJob", "Outputs.JobName" ] },
+				  "DailyInitJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
+				  "StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
+				  "WeekWeatherSumJob": { "Fn::GetAtt": [ "WeekWeatherSumJob", "Outputs.JobName" ] },
+				  "ETLReportMissingDatesJob": { "Fn::GetAtt": [ "ETLReportMissingDatesJob", "Outputs.JobName" ] },
 				  "StartOnCreation" : { "Ref": "StartOnCreation" },
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },

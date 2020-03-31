@@ -145,7 +145,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=config.FILE_BROKER_TABLE,
+                table=broker_table,
                 logger=logger,
             )
             logger.info("File parameters for weekly job is {}".format(file_params))
@@ -161,7 +161,7 @@ class utils:
                 partition_key_value=partition_key,
                 sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                 sort_key_value=None,  # sort_key,
-                table=config.FILE_BROKER_TABLE,
+                table=broker_table,
                 logger=logger,
             )
             logger.info("File parameters for file are as : {}".format(file_params))

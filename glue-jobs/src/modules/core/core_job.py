@@ -232,7 +232,7 @@ class Core_Job:
     # **Need to update this method with params
 
     def read_from_s3(self, bucket, path, structype_schema):
-        """This function reads data from s3 using spark.read method in Pyspark
+        """This function reads data from s3 using spark.read method with various read options in Pyspark
 
         Arguments:
             bucket {[String]} -- Name of the bucket in S3
@@ -285,7 +285,41 @@ class Core_Job:
             )
 
         # Addition of row count check
-        self.feed_row_count = df.count()
+        if params["custom_s3_read_params"]["multiline_value"] == "true":
+            logger.info(
+                "Reading file without multiline to get physical count of the file from s3..."
+            )
+            try:
+                self.feed_row_count = self.read_from_s3_without_multilines(
+                    bucket=self.env_params["refined_bucket"],
+                    path=params["rf_source_dir"] + "/" + self.file_name,
+                    structype_schema=self.structype_schema,
+                )
+                logger.info(
+                    "The physical count of feed file (without multiline) is - {}".format(
+                        self.feed_row_count
+                    )
+                )
+            except Exception as error:
+                self.feed_row_count = None
+                logger.error(
+                    "Could not read feed-file without multiline{}".format(error),
+                    exc_info=True,
+                )
+                raise IOException.IOError(
+                    moduleName=constant.CORE_JOB,
+                    exeptionType=constant.IO_S3_READ_OBJECT_EXCEPTION,
+                    message=constant.S3_READ_FAILED_MESSAGE.format(error),
+                )
+        else:
+            logger.info(
+                "Reading file with multiline to get physical count of the file from s3..."
+            )
+            self.feed_row_count = df.count()
+            logger.info(
+                "The actual count of feed file is - {}".format(self.feed_row_count)
+            )
+
         control_row_count = self.get_control_row_count(
             s3_directory="/".join(s3_obj.split("/")[:-1])
         )
@@ -1139,7 +1173,6 @@ class Core_Job:
             process_error = None
             job_status_params_to_be_updated = {}
             try:
-
                 # read file from refined current directory
                 logger.info(
                     "Bucket currently being used is "
@@ -1230,36 +1263,11 @@ class Core_Job:
                 logger.error(
                     "Error Occurred in Core Class due To {}".format(error), exc_info=1
                 )
-                process_status = constant.failure
-                raise CustomAppException.CustomAppError(
-                    moduleName=error.moduleName,
-                    exeptionType=error.exeptionType,
-                    message=error.message,
-                )
-                file_moved_status = utils.move_s3_file_from_current(
-                    file_name=file_name,
-                    src_bucket=core_job.env_params["refined_bucket"],
-                    tgt_bucket=core_job.env_params["refined_bucket"],
-                    params=params,
-                    logger=logger,
-                    tgt_path="{}/{}".format(params["failed_dest_folder_nm"], file_name),
-                )
-                utils.move_s3_file_from_current(
-                    file_name=control_file_name,
-                    src_bucket=core_job.env_params["refined_bucket"],
-                    tgt_bucket=core_job.env_params["refined_bucket"],
-                    params=params,
-                    logger=logger,
-                    tgt_path="{}/{}".format(
-                        params["failed_dest_folder_nm"], control_file_name
+                logger.error(
+                    "Moving Feed_file and CTNL files in the failed folder".format(
+                        error
                     ),
-                )
-
-                process_status = constant.failure
-                raise CustomAppException.CustomAppError(
-                    moduleName=error.moduleName,
-                    exeptionType=error.exeptionType,
-                    message=error.message,
+                    exc_info=1,
                 )
                 try:
                     file_moved_status = utils.move_s3_file_from_current(
