@@ -981,4 +981,3 @@ select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
                 "job_id": utils.get_glue_job_run_id(),
                 "job_start_time": str(datetime.utcnow()),
             }
-

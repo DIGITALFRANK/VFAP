@@ -90,8 +90,32 @@ class tr_adobe_attribution_weekly(Dataprocessor_Job):
                                                 "yyyy-MM-dd"))
             df_insert = df_fiscal.withColumn("ETL_INSERT_TIME", lit(now))
             df_update = df_insert.withColumn("ETL_UPDATE_TIME", lit(""))
-            full_load_df = df_update.withColumn("JOB_ID", lit(job_id))
+            df_jobid = df_update.withColumn("JOB_ID", lit(job_id))
+            df_jobid.createOrReplaceTempView("weekly")
+            full_load_df = sq.sql("SELECT Date as day, Type_Of_Attribution, "
+                                  "Channels, Fiscal_Week, "
+                                  "Fiscal_Month, Fiscal_QTR, Fiscal_Year, "
+                                  "Brand, Country, 0 as Orders, "
+                                  "0 as Sales_Local, 0 as Sales_USD, "
+                                  "0 as Visits, weekly_visits, "
+                                  "0 as bi_weekly_visits, 0 as Bounces, "
+                                  "0 as Entries, 0 as Units, "
+                                  "0 as Daily_Unique_Visitor, "
+                                  "Weekly_Unique_Visitors, "
+                                  "0 as BI_Weekly_Unique_visitor, "
+                                  "0 as Prev_Orders, 0 as Prev_Sales_Local, "
+                                  "0 as Prev_Sales_USD, 0 as Prev_Visits, "
+                                  "0 as prev_weekly_visits, "
+                                  "0 as prev_bi_weekly_visits, "
+                                  "0 as Prev_Bounces, 0 as Prev_Entries, "
+                                  "0 as Prev_Units, "
+                                  "0 as Prev_Daily_Unique_Visitor, "
+                                  "0 as Prev_Weekly_Unique_Visitor, "
+                                  "0 as Prev_BI_Weekly_Unique_visitor, "
+                                  "prev_date, ETL_INSERT_TIME, "
+                                  "ETL_UPDATE_TIME, JOB_ID from weekly")
 
+            full_load_df.show()
             logger.info(
                 "Transformed DF Count : {}".format(full_load_df.count()))
         except Exception as error:

@@ -41,15 +41,10 @@ def driver(file_name, args):
         else:
             logger.info(constant.daily_job_skip)
             status = constant.skipped
-    except CustomAppError as error:
-        logger.error("Error Occurred Main {}".format(error), exc_info=True)
+    except BaseException as error:
+        logger.error("Error Occurred Main - {0}".format(error), exc_info=True)
         status = constant.failure
         job_exception = str(error)
-        raise CustomAppError(
-            moduleName=error.moduleName,
-            exeptionType=error.exeptionType,
-            message=error.message,
-        )
     finally:
         driver_end_time = str(datetime.utcnow())
         logging.info("Job exited with status : {}".format(status))
@@ -75,7 +70,9 @@ def driver(file_name, args):
             )
             # utils.upload_file(config.LOG_FILE, params["log_bucket"], args)
             raise Exception(
-                "Job failed gracefully - check log and/or email notification for details"
+                "Job failed gracefully, check log and/or email notification for details {0}".format(
+                    job_exception
+                )
             )
         else:
             utils_ses.send_job_status_email(

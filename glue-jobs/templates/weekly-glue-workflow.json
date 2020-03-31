@@ -76,20 +76,24 @@
             "Description": "CoremetricsMAP job name",
             "Type": "String"
         },
-		"ReportingCRMFileChecklist": {
-            "Description": "ReportingCRMFileChecklist job name",
-            "Type": "String"
-        },
-		"BuildEmailInputsJob": {
-            "Description": "BuildEmailInputsJob job name",
-            "Type": "String"
-        },
-		"StatusReportJob": {
-            "Description": "StatusReportJob job name",
+		"ReportingFileChecklist": {
+            "Description": "ReportingFileChecklist job name",
             "Type": "String"
         },
 		"StartOnCreation": {
             "Description": "Start On Creation (true or false)",
+            "Type": "String"
+        },
+		"MapZetaEmail": {
+            "Description": "MapZetaEmail job name",
+            "Type": "String"
+        },
+		"MapZetaPreference": {
+            "Description": "MapZetaPreference job name",
+            "Type": "String"
+        },
+		"RptDedupeSummary": {
+            "Description": "RptDedupeSummary job name",
             "Type": "String"
         }
     },
@@ -114,7 +118,7 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "ReportingCRMFileChecklist" } }
+				{  "JobName" : { "Ref": "ReportingFileChecklist" } }
 			  ],
 			  "Description" : "Glue workflow Weekly trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
@@ -148,7 +152,7 @@
 			  "Predicate" : {
 				"Conditions" : [ 
 					{
-					  "JobName" : { "Ref": "ReportingCRMFileChecklist" },
+					  "JobName" : { "Ref": "WorkflowTrigger" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
 					} 
@@ -170,7 +174,8 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "EmailResponsysMap" } }
+				{  "JobName" : { "Ref": "EmailResponsysMap" } },
+        {   "JobName" : { "Ref": "MapZetaEmail" }}
 			  ],
 			  "Description" : "Weekly Map trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-map-trigger" ] ] },
@@ -236,7 +241,8 @@
 			  "Actions" : [ 
 				{  "JobName" : { "Ref": "CMSessionXRef" } },
 				{  "JobName" : { "Ref": "CustomShoeMap" } },
-				{  "JobName" : { "Ref": "WCSMap" } }
+				{  "JobName" : { "Ref": "WCSMap" } },
+				{  "JobName" : { "Ref": "MapZetaPreference" } }
 			  ],
 			  "Description" : "Weekly Session XRef trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-session-xref-trigger" ] ] },
@@ -329,7 +335,12 @@
 					  "JobName" : { "Ref": "CustomShoeMap" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					}					
+					},
+					{
+					  "JobName" : { "Ref": "MapZetaPreference" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
 				],
 				"Logical" : "AND"
 			  },
@@ -345,16 +356,16 @@
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		},
-		"StatusReportJobTrigger": {
+		"RptDedupeSummaryTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
-				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  "Actions" : [
+				{  "JobName" : { "Ref": "RptDedupeSummary" } }
 			  ],
-			  "Description" : "Status report trigger",
-			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
+			  "Description" : "Rpt dedupe summary trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dedupe-summary-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "BuildEmailInputsJob" },
 					  "LogicalOperator" : "EQUALS",
@@ -374,9 +385,38 @@
 					  "JobName" : { "Ref": "LoyaltyXRef" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					} 
+					}
 				],
 				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StatusReportJobTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [
+				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  ],
+			  "Description" : "Status report trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-status-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [
+					{
+					  "JobName" : { "Ref": "RptDedupeSummary" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
 			  },
 			  "Tags" : {
 				"CostCenter":"118204800",

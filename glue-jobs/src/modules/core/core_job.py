@@ -144,7 +144,7 @@ class Core_Job:
             )
             df.show()
             control_file_row_count = df.count()
-            if control_file_row_count != 1:
+            if control_file_row_count > 1:
                 log.error(
                     "Control file has {0} rows - expecting only 1".format(
                         control_file_row_count
@@ -161,11 +161,17 @@ class Core_Job:
         log.info("Collecting stored row count from control file")
         # Subtract 1 if header row included in control count
         if is_header_included_in_count.lower() == "true":
-            row_count = df.select(df.Count).collect()[0][0] - 1
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
                 log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0] - 1
         else:
-            row_count = df.select(df.Count).collect()[0][0]
+            if control_file_row_count == 0:
+                log.info("Control file from s3 has 0 records")
+                row_count = 0
+            else:
                 log.info("Control file from s3 records extracted from ctrl_file_df")
                 row_count = df.select(df.Count).collect()[0][0]
         log.debug("Successfully collected row count - {0}".format(row_count))
@@ -226,7 +232,7 @@ class Core_Job:
     # **Need to update this method with params
 
     def read_from_s3(self, bucket, path, structype_schema):
-        """This function reads data from s3 using spark.read method with various read options in Pyspark
+        """This function reads data from s3 using spark.read method in Pyspark
 
         Arguments:
             bucket {[String]} -- Name of the bucket in S3
@@ -256,6 +262,7 @@ class Core_Job:
                     "timestampFormat",
                     params["custom_s3_read_params"]["timestamp_format"],
                 )
+                .option("encoding", params["custom_s3_read_params"]["file_encoding"])
                 .option("nullValue", null_value)
                 .option("mode", params["custom_s3_read_params"]["mode_value"])
                 .option("multiline", params["custom_s3_read_params"]["multiline_value"])
@@ -278,41 +285,7 @@ class Core_Job:
             )
 
         # Addition of row count check
-        if params["custom_s3_read_params"]["multiline_value"] == "true":
-            logger.info(
-                "Reading file without multiline to get physical count of the file from s3..."
-            )
-            try:
-                self.feed_row_count = self.read_from_s3_without_multilines(
-                    bucket=self.env_params["refined_bucket"],
-                    path=params["rf_source_dir"] + "/" + self.file_name,
-                    structype_schema=self.structype_schema,
-                )
-                logger.info(
-                    "The physical count of feed file (without multiline) is - {}".format(
-                        self.feed_row_count
-                    )
-                )
-            except Exception as error:
-                self.feed_row_count = None
-                logger.error(
-                    "Could not read feed-file without multiline{}".format(error),
-                    exc_info=True,
-                )
-                raise IOException.IOError(
-                    moduleName=constant.CORE_JOB,
-                    exeptionType=constant.IO_S3_READ_OBJECT_EXCEPTION,
-                    message=constant.S3_READ_FAILED_MESSAGE.format(error),
-                )
-        else:
-            logger.info(
-                "Reading file with multiline to get physical count of the file from s3..."
-            )
-            self.feed_row_count = df.count()
-            logger.info(
-                "The actual count of feed file is - {}".format(self.feed_row_count)
-            )
-
+        self.feed_row_count = df.count()
         control_row_count = self.get_control_row_count(
             s3_directory="/".join(s3_obj.split("/")[:-1])
         )
@@ -947,6 +920,13 @@ class Core_Job:
                     ) + ";".join(
                         post_query.split(";")[1:]
                     )
+                if self.file_name.upper().startswith("F_TNF_STORE"):
+                    post_query = """begin;
+                                    UPDATE {0} SET store_post_code = ' ' WHERE store_post_code = '"';""".format(
+                        stage_table
+                    ) + ";".join(
+                        post_query.split(";")[1:]
+                    )
 
                 logger.info("Post Query to Execute : {}".format(post_query))
                 logger.info(
@@ -1155,14 +1135,15 @@ class Core_Job:
         logger.info("Checking if the file is active")
         active_status = params["is_active"]
         if utils.is_feed_active(logger, active_status):
-            process_status = "failed"
+            process_status = constant.failure
+            process_error = None
             job_status_params_to_be_updated = {}
             try:
 
                 # read file from refined current directory
                 logger.info(
-                    "Bucket currently being used is ",
-                    core_job.env_params["refined_bucket"],
+                    "Bucket currently being used is "
+                    + core_job.env_params["refined_bucket"]
                 )
                 df = core_job.read_from_s3(
                     bucket=refined_bucket,
@@ -1197,6 +1178,7 @@ class Core_Job:
                         job_status_params_to_be_updated,
                         etl_status_sort_key_as_job_process_dttm,
                     )
+                    process_status = constant.skipped
                     return constant.success
 
                 # applying dq_checks
@@ -1248,11 +1230,11 @@ class Core_Job:
                 logger.error(
                     "Error Occurred in Core Class due To {}".format(error), exc_info=1
                 )
-                logger.error(
-                    "Moving Feed_file and CTNL files in the failed folder".format(
-                        error
-                    ),
-                    exc_info=1,
+                process_status = constant.failure
+                raise CustomAppException.CustomAppError(
+                    moduleName=error.moduleName,
+                    exeptionType=error.exeptionType,
+                    message=error.message,
                 )
                 file_moved_status = utils.move_s3_file_from_current(
                     file_name=file_name,
@@ -1279,6 +1261,36 @@ class Core_Job:
                     exeptionType=error.exeptionType,
                     message=error.message,
                 )
+                try:
+                    file_moved_status = utils.move_s3_file_from_current(
+                        file_name=file_name,
+                        src_bucket=core_job.env_params["refined_bucket"],
+                        tgt_bucket=core_job.env_params["refined_bucket"],
+                        params=params,
+                        logger=logger,
+                        tgt_path="{}/{}".format(
+                            params["failed_dest_folder_nm"], file_name
+                        ),
+                    )
+                    utils.move_s3_file_from_current(
+                        file_name=control_file_name,
+                        src_bucket=core_job.env_params["refined_bucket"],
+                        tgt_bucket=core_job.env_params["refined_bucket"],
+                        params=params,
+                        logger=logger,
+                        tgt_path="{}/{}".format(
+                            params["failed_dest_folder_nm"], control_file_name
+                        ),
+                    )
+                except BaseException as e:
+                    logger.error(
+                        "Unable to move file from landing area in S3 to failed archive - {0}".format(
+                            e
+                        ),
+                        exc_info=True,
+                    )
+                process_error = error
+                process_status = constant.failure
             finally:
                 job_status_params_to_be_updated.update(
                     {
@@ -1290,6 +1302,12 @@ class Core_Job:
                     job_status_params_to_be_updated,
                     etl_status_sort_key_as_job_process_dttm,
                 )
+                if process_status is constant.failure:
+                    raise Exception(
+                        "Encountered error during process stage - {0}".format(
+                            process_error
+                        )
+                    )
         else:
             """Initialising spark and gluecontext to prevent exception
                 user did not initialise spark context
