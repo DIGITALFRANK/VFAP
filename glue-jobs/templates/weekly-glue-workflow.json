@@ -91,6 +91,18 @@
 		"StartOnCreation": {
             "Description": "Start On Creation (true or false)",
             "Type": "String"
+        },
+		"MapZetaEmail": {
+            "Description": "MapZetaEmail job name",
+            "Type": "String"
+        },
+		"MapZetaPreference": {
+            "Description": "MapZetaPreference job name",
+            "Type": "String"
+        },
+		"RptDedupeSummary": {
+            "Description": "RptDedupeSummary job name",
+            "Type": "String"
         }
     },
     "Mappings": { },
@@ -236,7 +248,9 @@
 			  "Actions" : [ 
 				{  "JobName" : { "Ref": "CMSessionXRef" } },
 				{  "JobName" : { "Ref": "CustomShoeMap" } },
-				{  "JobName" : { "Ref": "WCSMap" } }
+				{  "JobName" : { "Ref": "WCSMap" } },
+				{  "JobName" : { "Ref": "MapZetaEmail" } },
+				{  "JobName" : { "Ref": "MapZetaPreference" } }
 			  ],
 			  "Description" : "Weekly Session XRef trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-session-xref-trigger" ] ] },
@@ -329,7 +343,62 @@
 					  "JobName" : { "Ref": "CustomShoeMap" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					}					
+					},
+					{
+					  "JobName" : { "Ref": "MapZetaEmail" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "MapZetaPreference" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}	
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},		
+		"RptDedupeSummaryTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "RptDedupeSummary" } }
+			  ],
+			  "Description" : "Rpt dedupe summary trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "dedupe-summary-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "BuildEmailInputsJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "VansCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "TNFCleanXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "LoyaltyXRef" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
 				],
 				"Logical" : "AND"
 			  },
@@ -356,27 +425,11 @@
 			  "Predicate" : {
 				"Conditions" : [ 
 					{
-					  "JobName" : { "Ref": "BuildEmailInputsJob" },
+					  "JobName" : { "Ref": "RptDedupeSummary" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					},
-					{
-					  "JobName" : { "Ref": "VansCleanXRef" },
-					  "LogicalOperator" : "EQUALS",
-					  "State" : "SUCCEEDED"
-					},
-					{
-					  "JobName" : { "Ref": "TNFCleanXRef" },
-					  "LogicalOperator" : "EQUALS",
-					  "State" : "SUCCEEDED"
-					},
-					{
-					  "JobName" : { "Ref": "LoyaltyXRef" },
-					  "LogicalOperator" : "EQUALS",
-					  "State" : "SUCCEEDED"
-					} 
-				],
-				"Logical" : "AND"
+					}
+				]
 			  },
 			  "Tags" : {
 				"CostCenter":"118204800",
