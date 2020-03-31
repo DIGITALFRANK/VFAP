@@ -74,7 +74,7 @@
 			  ],
 			  "Description" : "Glue workflow daily trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-job-trigger" ] ] },
-			  "Schedule" : "cron(0 22 ? * MON-FRI *)",
+			  "Schedule" : "cron(0 22 ? * MON-THU *)",
 			  "StartOnCreation" : { "Ref": "StartOnCreation" },
 			  "Tags" : {
 				"CostCenter":"118204800",
