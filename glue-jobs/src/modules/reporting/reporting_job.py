@@ -1604,7 +1604,9 @@ class Reporting_Job(Core_Job):
                 if bulk_begin_dt == "Null":
                     bulk_begin_dt = None
                 else:
-                    bulk_begin_dt = datetime.datetime.strptime(bulk_begin_dt, "%Y-%m-%d %H:%M:%S")
+                    bulk_begin_dt = datetime.datetime.strptime(
+                        bulk_begin_dt, "%Y-%m-%d %H:%M:%S"
+                    )
             except Exception as error:
                 log.error(
                     "Encountered error while interpreting time interval flags: {0}".format(
@@ -2553,17 +2555,18 @@ class Reporting_Job(Core_Job):
                         self.whouse_details,
                         logger,
                     )
-                    
-                    update_email_activity1= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+
+                    update_email_activity1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('GO-VACA',campaign_name) > 0 OR 
                                 CHARINDEX('_NATL_PARKS',campaign_name) > 0 OR 
                                 CHARINDEX('EXPLORE IN',subject) > 0 OR 
                                 CHARINDEX('NATIONALPARK',campaign_name) > 0 OR 
                                 CHARINDEX('BEST-OF-THE-BAY',campaign_name) > 0 
-                            THEN  'TRAVEL' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity2= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'TRAVEL' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('RUN',campaign_name) > 0 OR  
                                 CHARINDEX('_ECS_',campaign_name) > 0 OR 
                                 CHARINDEX('GOLIATHON',campaign_name) > 0 OR 
@@ -2572,31 +2575,37 @@ class Reporting_Job(Core_Job):
                                 CHARINDEX('OE_FUND',campaign_name) > 0 OR 
                                 CHARINDEX('ENDURAN',subject) > 0 OR 
                                 CHARINDEX('LACE UP FOR',subject) > 0 
-                            THEN  'RUN' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity3= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'RUN' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('TRAIN',campaign_name) > 0 OR 
                                 CHARINDEX('GYM',subject) > 0 OR 
                                 CHARINDEX('EQUIPPED',subject) > 0 OR 
                                 CHARINDEX('WORKOUT',campaign_name) > 0 OR 
                                 CHARINDEX('CROSS FIT',subject)  > 0 OR 
                                 CHARINDEX('XFITMN',subject) > 0 
-                            THEN  'TRN' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity4= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'TRN' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity4 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('HIK',campaign_name) > 0 OR 
                                 CHARINDEX('HIK',subject) > 0 OR 
                                 CHARINDEX('TRAIL',subject) > 0 
-                            THEN  'HIK' else email_activity end""".format(dbschema)
-                    
-                    update_email_activity5= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'HIK' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity5 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('WATER',campaign_name) > 0 OR 
                                 CHARINDEX('GO-SF',campaign_name) > 0 
-                            THEN 'SURF' else email_activity end""".format(dbschema)    
-                    
-                    update_email_activity6= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN 'SURF' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity6 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('CLIMB',campaign_name) > 0 OR 
                                 CHARINDEX('PREPARED FOR THE MOUNTAIN',subject) > 0 OR 
                                 CHARINDEX('SUMMIT',campaign_name) > 0 OR 
@@ -2610,10 +2619,11 @@ class Reporting_Job(Core_Job):
                                 CHARINDEX('CLIMB',subject) > 0 OR 
                                 CHARINDEX('CONRAD ANKER',subject) > 0 OR 
                                 CHARINDEX('ALEX HONNOLD',subject) > 0 
-                            THEN  'MTNCLM' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity7= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'MTNCLM' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity7 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('HIPCAMP',campaign_name) > 0 OR 
                                 CHARINDEX('CAMPING',campaign_name) > 0 OR 
                                 CHARINDEX('BACKPACK',campaign_name) > 0 OR 
@@ -2622,10 +2632,11 @@ class Reporting_Job(Core_Job):
                                 CHARINDEX('HOMESTEAD',subject) > 0 OR 
                                 CHARINDEX('HOMESTEAD',campaign_name) > 0 OR 
                                 CHARINDEX('CAMP',subject) > 0 
-                            THEN  'BCPKCAMP' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity8= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'BCPKCAMP' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity8 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('SKI',campaign_name) > 0 OR  
                                 CHARINDEX('ALL-MTN',campaign_name) > 0 OR 
                                 CHARINDEX('MEET INGRID',subject) > 0 OR 
@@ -2634,42 +2645,59 @@ class Reporting_Job(Core_Job):
                                 CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
                                 CHARINDEX('SLOPE',SUBJECT) > 0 OR
                                 CHARINDEX('STEEP',SUBJECT) > 0 
-                            THEN  'SKI' else email_activity end""".format(dbschema)
-                    
-                    
-                    update_email_activity9= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'SKI' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity9 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('SNOW',campaign_name) > 0 OR 
                                 CHARINDEX('SNOWSPORTS',campaign_name) > 0 OR 
                                 CHARINDEX('KAITLYN FARRINGTON',subject) > 0 
-                            THEN  'SNWB' else email_activity end""".format(dbschema)
-                    
-                    
-                    
-                    update_email_activity10= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'SNWB' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity10 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('YOGA',campaign_name) > 0 OR 
                                 CHARINDEX('YOGA',subject) > 0 
-                            THEN  'YOGA' else email_activity end""".format(dbschema)
-                    
-                    
-                    
-                    update_email_activity11= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                            THEN  'YOGA' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity11 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('BOXING',campaign_name) > 0 OR 
                                 CHARINDEX('BOXING',SUBJECT) > 0 
-                        THEN  'BOXING' else email_activity end""".format(dbschema)
-                    
-                    
-                    
-                    update_email_activity12= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'BOXING' else email_activity end""".format(
+                        dbschema
+                    )
+
+                    update_email_activity12 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_activity= CASE WHEN CHARINDEX('HUNT-SEA',subject) > 0 OR 
                                 CHARINDEX('HUNT-SEA',campaign_name) > 0 
-                        THEN  'WATER' else email_activity end""".format(dbschema)
-                    
-                        
-                    update_email_activity = [update_email_activity1,update_email_activity2,update_email_activity3,update_email_activity4,update_email_activity5,update_email_activity6,update_email_activity7,update_email_activity8,update_email_activity9,update_email_activity10,update_email_activity11,update_email_activity12]
-                    
-                    utils.execute_multiple_queries_in_redshift(update_email_activity, self.whouse_details, logger)
+                        THEN  'WATER' else email_activity end""".format(
+                        dbschema
+                    )
 
-                    update_email_persona1= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                    update_email_activity = [
+                        update_email_activity1,
+                        update_email_activity2,
+                        update_email_activity3,
+                        update_email_activity4,
+                        update_email_activity5,
+                        update_email_activity6,
+                        update_email_activity7,
+                        update_email_activity8,
+                        update_email_activity9,
+                        update_email_activity10,
+                        update_email_activity11,
+                        update_email_activity12,
+                    ]
+
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_activity, self.whouse_details, logger
+                    )
+
+                    update_email_persona1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('OUTDOOR',campaign_name) > 0 OR 
                                         CHARINDEX('OUTDOOR',subject) > 0  OR 
                                         CHARINDEX('OUTERWEAR',campaign_name) > 0 OR  
@@ -2679,10 +2707,11 @@ class Reporting_Job(Core_Job):
                                         CHARINDEX('OUTERWEAR',subject) > 0 OR 
                                         CHARINDEX('SEEFORYOURSELF',subject) > 0 OR 
                                         CHARINDEX('SEEFORYOURSELF',campaign_name) > 0 
-                                        THEN  'OUTDOOR' else email_persona end""".format(dbschema)
-                    
-                        
-                    update_email_persona2= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                                        THEN  'OUTDOOR' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('ADVENTUR',campaign_name) > 0 OR 
                             CHARINDEX('ADVENTUR',subject) > 0 OR 
                             CHARINDEX('SUPERHERO',subject) > 0 OR 
@@ -2708,34 +2737,39 @@ class Reporting_Job(Core_Job):
                             CHARINDEX('_SS_',campaign_name) > 0 OR 
                             CHARINDEX('SS_LIVE',subject) > 0 OR 
                             CHARINDEX('SS_LIVE',campaign_name) > 0 
-                        THEN  'PE' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona3= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'PE' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN (CHARINDEX('MA',campaign_name) > 0 
                             AND CHARINDEX('MAIL',campaign_name) <= 0 )    OR 
                             CHARINDEX('MTATHLETICS',campaign_name) > 0 OR 
                             CHARINDEX('MOUNTAIN ATHLETICS',subject) > 0 
-                        THEN  'MA' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona4= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'MA' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona4 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('RECYCLE',subject) > 0 OR 
                             CHARINDEX('BACKYARD',campaign_name) > 0 OR 
                             CHARINDEX('EARTH_DAY',campaign_name) > 0 OR 
                             CHARINDEX('EARTH DAY',subject) > 0
-                        THEN 'NL' else email_persona end""".format(dbschema)
-                        
-                    update_email_persona5= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN 'NL' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona5 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('YOUTH',campaign_name) > 0 OR 
                             CHARINDEX('KID',campaign_name) > 0 OR 
                             CHARINDEX('KID',subject) > 0 OR 
                             CHARINDEX('INFANT',campaign_name) > 0 OR 
                             CHARINDEX('TODDLER',campaign_name) > 0 
-                        THEN  'FAMILY' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona6= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'FAMILY' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona6 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('REWARD',campaign_name) > 0 OR 
                             CHARINDEX('SOCHI_PROMO',campaign_name) > 0 OR 
                             CHARINDEX('VIPEAK',subject) > 0 OR 
@@ -2748,9 +2782,11 @@ class Reporting_Job(Core_Job):
                             CHARINDEX('CLAIM YOUR REWARD',subject) > 0 OR 
                             CHARINDEX('YOUR VIP',subject) > 0 OR 
                             CHARINDEX('VIP TICKET',subject) > 0 
-                        THEN  'VIPRWRD' else email_persona end""".format(dbschema)
-                    
-                    update_email_persona7= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'VIPRWRD' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona7 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('WELCOME EMAIL',campaign_name) > 0 OR 
                             CHARINDEX('WELCOME_SIGNUP',campaign_name) > 0 OR 
                             CHARINDEX('WELCOMEEMAIL',campaign_name) > 0 OR 
@@ -2758,28 +2794,33 @@ class Reporting_Job(Core_Job):
                             CHARINDEX('WELCOME TO',subject) > 0 OR 
                             CHARINDEX('THANKS FOR JOINING',subject) > 0 OR  
                             CHARINDEX('BEGINNER',subject) > 0 
-                        THEN  'NEW_CUST' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona8= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'NEW_CUST' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona8 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('LOYALTY WELCOME',campaign_name) > 0 OR 
                             CHARINDEX('LOYALTYWELCOME',campaign_name) > 0 OR 
                             CHARINDEX('PEAKPOINT',subject) > 0 
-                        THEN  'NEW_VIPK' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona9= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'NEW_VIPK' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona9 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('ABANDON',campaign_name) > 0 
-                        THEN  'ABNCART' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona10= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'ABNCART' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona10 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('WISH LIST',campaign_name) > 0 OR 
                             CHARINDEX('WISHLIST',campaign_name) > 0 OR 
                             CHARINDEX('WISH_LIST',campaign_name) > 0 
-                        THEN  'WISHLIST' else email_persona end""".format(dbschema)
-                        
-                    update_email_persona11= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'WISHLIST' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona11 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('BACK IN STOCK',campaign_name) > 0 OR 
                             CHARINDEX('BACK_IN_STOCK',campaign_name) > 0 OR 
                             CHARINDEX('BACKINSTOCK',campaign_name) > 0 OR 
@@ -2791,54 +2832,152 @@ class Reporting_Job(Core_Job):
                             CHARINDEX('BOUNCE_BACK',campaign_name) > 0 OR  
                             CHARINDEX('INVITE',subject) > 0 OR  
                             CHARINDEX('CONVIE',subject) > 0 
-                        THEN  'REP_CUST' else email_persona end""".format(dbschema)
-                        
-                    update_email_persona12= """update {0}.x_tmp_tnf_email_launch_clean_stage3 
+                        THEN  'REP_CUST' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona12 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
                             CHARINDEX('SURVEY',subject) > 0 
-                        THEN 'SURVEY' else email_persona end""".format(dbschema)
-                        
-                        
-                    update_email_persona = [update_email_persona1,update_email_persona2,update_email_persona3,update_email_persona4,update_email_persona5,
-                    update_email_persona6,update_email_persona7,update_email_persona8,update_email_persona9,update_email_persona10,update_email_persona11,update_email_persona12]
-                    
-                    utils.execute_multiple_queries_in_redshift(update_email_persona, self.whouse_details, logger)
-                    
-                    email_gender1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(dbschema)
-                    email_gender2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(dbschema)
-                    
-                    update_email_gender = [email_gender1,email_gender2]
-                    utils.execute_multiple_queries_in_redshift(update_email_gender, self.whouse_details, logger)
-    
-                    email_channel1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+<<<<<<< HEAD
+                        THEN 'SURVEY' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona = [
+                        update_email_persona1,
+                        update_email_persona2,
+                        update_email_persona3,
+                        update_email_persona4,
+                        update_email_persona5,
+                        update_email_persona6,
+                        update_email_persona7,
+                        update_email_persona8,
+                        update_email_persona9,
+                        update_email_persona10,
+                        update_email_persona11,
+                        update_email_persona12,
+                    ]
+
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_persona, self.whouse_details, logger
+                    )
+
+                    email_gender1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(
+                        dbschema
+                    )
+                    email_gender2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(
+                        dbschema
+                    )
+
+                    update_email_gender = [email_gender1, email_gender2]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_gender, self.whouse_details, logger
+                    )
+
+                    email_channel1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    email_channel2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    email_channel3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    update_email_channel = [
+                        email_channel1,
+                        email_channel2,
+                        email_channel3,
+                    ]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_channel, self.whouse_details, logger
+                    )
+
+                    Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+=======
+                        THEN 'SURVEY' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona = [
+                        update_email_persona1,
+                        update_email_persona2,
+                        update_email_persona3,
+                        update_email_persona4,
+                        update_email_persona5,
+                        update_email_persona6,
+                        update_email_persona7,
+                        update_email_persona8,
+                        update_email_persona9,
+                        update_email_persona10,
+                        update_email_persona11,
+                        update_email_persona12,
+                    ]
+
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_persona, self.whouse_details, logger
+                    )
+
+                    email_gender1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(
+                        dbschema
+                    )
+                    email_gender2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(
+                        dbschema
+                    )
+
+                    update_email_gender = [email_gender1, email_gender2]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_gender, self.whouse_details, logger
+                    )
+
+                    email_channel1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
                     CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL' WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
                     CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM' WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
-                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET' else   email_channel  end""".format(dbschema)
-                    
-                    
-                    
+                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET' else   email_channel  end""".format(
+                        dbschema
+                    )
+
                     update_email_channel = [email_channel1]
-                    utils.execute_multiple_queries_in_redshift(update_email_channel, self.whouse_details, logger)
-                        
-                    Product_category1 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_channel, self.whouse_details, logger
+                    )
+
+                    Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+>>>>>>> ae05f8fadfafa8c15bfbd9f22160413818202cad
                                                                     CHARINDEX('EQUIPPED',subject) > 0 OR 
                                                                     CHARINDEX('GEAR',subject) > 0 
-                                                                THEN  'EQUIP'  else   Product_category  end""".format(dbschema)
-                    Product_category2 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
+                                                                THEN  'EQUIP'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('JACKET',campaign_name) > 0 OR 
                                                                     CHARINDEX('JACKET',subject) > 0 OR 
                                                                     CHARINDEX('WATSON',campaign_name) > 0 
-                                                                THEN  'JKT'  else   Product_category  end""".format(dbschema)
-                    Product_category3 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
+                                                                THEN  'JKT'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BOOT',campaign_name) > 0 OR 
                                                                     CHARINDEX('XTRAFOAM',campaign_name) > 0 OR 
                                                                     CHARINDEX('FOOTWEAR',subject) > 0 
-                                                                THEN  'FW'  else   Product_category  end""".format(dbschema)
-                    Product_category4 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
+                                                                THEN  'FW'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category4 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('BACKPACK',campaign_name) > 0 OR 
                                                                     CHARINDEX('DAY-PACK',campaign_name) > 0 OR 
                                                                     CHARINDEX('DAY-PACK',subject) > 0 OR 
                                                                     CHARINDEX('BACKPACK',subject) > 0 
-                                                                THEN  'BCPK'  else   Product_category  end""".format(dbschema)
-                    Product_category5 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'  else   Product_category  end""".format(dbschema)
-                    Product_category6 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
+                                                                THEN  'BCPK'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category5 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('ASCENTIAL',campaign_name) > 0 THEN 'ASCNTL'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category6 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('THERM',campaign_name) > 0 OR  
                                                                     CHARINDEX('3 WAYS',subject) > 0 OR  
                                                                     CHARINDEX('COLD',subject) > 0 OR 
                                                                     CHARINDEX('COLD',campaign_name) > 0 OR 
@@ -2865,8 +3004,10 @@ class Reporting_Job(Core_Job):
                                                                     CHARINDEX('ARCTIC',subject) > 0 OR  
                                                                     CHARINDEX('NEW DIMENSION TO WARMTH',subject) > 0 OR  
                                                                     CHARINDEX('NEW DIMENSION OF WARMTH',subject) > 0 
-                                                                THEN 'INS'  else   Product_category  end""".format(dbschema)
-                    Product_category7 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
+                                                                THEN 'INS'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category7 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('FLEECE',campaign_name) > 0 OR 
                                                                     CHARINDEX('URBAN_EXP',campaign_name) > 0 OR 
                                                                     CHARINDEX('TRICLIM',campaign_name) > 0 OR 
                                                                     CHARINDEX('VILLAGEWEAR',campaign_name) > 0 OR 
@@ -2876,13 +3017,17 @@ class Reporting_Job(Core_Job):
                                                                     CHARINDEX('FLEECE PONCHO',subject) > 0 OR 
                                                                     CHARINDEX('LIGHTER JACKET',subject) > 0 OR 
                                                                     CHARINDEX('DENALI',campaign_name) > 0 
-                                                                THEN  'MILDJKT'  else   Product_category  end""".format(dbschema)
-                    Product_category8 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
+                                                                THEN  'MILDJKT'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category8 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('_FUSEFORM_',campaign_name) > 0 OR 
                                                                     CHARINDEX('_VENTURE_',campaign_name) > 0 OR 
                                                                     (CHARINDEX('RAIN',campaign_name) > 0 AND CHARINDEX('TRAIN',campaign_name) <= 0) OR
                                                                     (CHARINDEX('RAIN',subject) > 0 AND CHARINDEX('TRAIN',subject) <= 0) 
-                                                                THEN 'RAIN_WR'  else   Product_category  end""".format(dbschema)
-                    Product_category9 =   """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('HAT',subject) > 0 OR 
+                                                                THEN 'RAIN_WR'  else   Product_category  end""".format(
+                        dbschema
+                    )
+                    Product_category9 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN CHARINDEX('HAT',subject) > 0 OR 
                                                                     CHARINDEX('BEANIE',subject) > 0 OR 
                                                                     CHARINDEX('EAR GEAR',subject) > 0 OR 
                                                                     CHARINDEX('MITTEN',subject) > 0 OR 
@@ -2894,10 +3039,24 @@ class Reporting_Job(Core_Job):
                                                                     (CHARINDEX('PACK',subject) > 0 AND CHARINDEX('BACKPACK',subject) <= 0 ) OR 
                                                                     CHARINDEX(' BAG',subject) > 0 OR 
                                                                     CHARINDEX('BOTTLE',subject) > 0 
-                                                                THEN 'ACCSR'  else   Product_category  end""".format(dbschema)
-                                                                                                                                                                                                    
-                    update_Product_category = [Product_category1,Product_category2,Product_category3,Product_category4,Product_category5,Product_category6,Product_category7,Product_category8,Product_category9]
-                    utils.execute_multiple_queries_in_redshift(update_Product_category, self.whouse_details, logger) 
+                                                                THEN 'ACCSR'  else   Product_category  end""".format(
+                        dbschema
+                    )
+
+                    update_Product_category = [
+                        Product_category1,
+                        Product_category2,
+                        Product_category3,
+                        Product_category4,
+                        Product_category5,
+                        Product_category6,
+                        Product_category7,
+                        Product_category8,
+                        Product_category9,
+                    ]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_Product_category, self.whouse_details, logger
+                    )
 
                     drop_temp_table_query = "drop table if exists {0}.x_tmp_tnf_email_launch_clean".format(
                         dbschema
@@ -4423,3 +4582,172 @@ class Reporting_Job(Core_Job):
                     traceback.format_exc()
                 ),
             )
+
+    def reporting_dedupe_summary(self):
+        """
+        This job is reponsible for reporting a summary of duplicate rows
+        for a set of tables in the data warehouse.
+        """
+
+        def execute_duplication_summary(whouse_details, log):
+            """
+            Parameters:
+
+            whouse_details: Dict[str, str]
+            log: logging.Logger
+
+            Returns: None (Mutates Redshift Data Warehouse)
+
+            This function is responsible for remotely querying Redshift to summarize
+            the presence of duplicates in a set of tables
+            """
+            log.info(
+                "Attempting to execute duplication detection procedures in Redshift"
+            )
+
+            dedup_summary_non_wcs_qry = config.dedup_summary_non_wcs.format(
+                whouse_details["dbSchema"]
+            )
+            utils.execute_query_in_redshift(
+                dedup_summary_non_wcs_qry, whouse_details, log
+            )
+
+            dedup_summary_wcs_qry = config.dedup_summary_wcs.format(
+                whouse_details["dbSchema"]
+            )
+            utils.execute_query_in_redshift(dedup_summary_wcs_qry, whouse_details, log)
+
+            execute_stp_wcs_non_wcs_qry = config.execute_stp_wcs_non_wcs.format(
+                whouse_details["dbSchema"]
+            )
+            utils.execute_query_in_redshift(
+                execute_stp_wcs_non_wcs_qry, whouse_details, log
+            )
+
+            utils.execute_query_in_redshift(
+                "call {}.execute_stp_wcs_non_wcs();".format(whouse_details["dbSchema"]),
+                whouse_details,
+                log,
+            )
+            log.info(
+                "Executed duplication detection procedures in Redshift successfully"
+            )
+            return
+
+        def pull_duplication_summary_into_memory(redshift_table, log):
+            """
+            Parameters:
+
+            redshift_table: str
+            log: logging.Logger
+
+            Returns:
+
+            pyspark.sql.DataFrame
+
+            This function is responsble for reading the record duplication summary from
+            Redshift into a Spark DataFrame
+            """
+            log.info(
+                "Loading redshift table {0} into memory".format(
+                    deduplication_table_name
+                )
+            )
+            df = self.redshift_table_to_dataframe(redshift_table=redshift_table)
+            log.info(
+                "Successfully loaded redshift table {0} into memory".format(
+                    deduplication_table_name
+                )
+            )
+            return df
+
+        def filter_by_tables_with_duplicate_records(
+            duplicate_summary_df, duplicate_flag_column, duplicate_flag_value, log
+        ):
+            """
+            Parameters:
+
+            duplicate_summary_df: pyspark.sql.DataFrame,
+            duplicate_flag_column: str
+            duplicate_flag_value: str
+            log: logging.Logger
+
+            Returns:
+
+            pyspark.sql.DataFrame
+            
+            This function accepts a DataFrame containing duplicate record summaries for
+            tables in Redshift, it filters the DataFrame on the duplicate flag column where
+            it equals the supplied duplicate flag value corresponding to the presence of
+            duplicate records in the corresponding table in Redshift
+            """
+            log.info(
+                "Filtering deduplication table - report should only include duplicate information"
+            )
+            duplicates_df = duplicate_summary_df.where(
+                duplicate_summary_df[duplicate_flag_column] == duplicate_flag_value
+            )
+            log.info(
+                "Sending internal report email containing data duplication summary"
+            )
+            return duplicates_df
+
+        log = self.logger
+        whouse_details = self.whouse_details
+        reporting_dttm = datetime.datetime.now().strftime("%d%b%Y")
+        deduplication_table_name = "dup_summary"
+        duplicates_table_title = "Duplicate Record Summary - {0}".format(reporting_dttm)
+        _LEVEL = self.env_params["env_name"]
+        reporting_subject_str = (
+            "VFC/" + _LEVEL + "/" + reporting_dttm + " - Duplicate Record Summary."
+        )
+
+        execute_duplication_summary(
+            whouse_details=whouse_details, log=log,
+        )
+        deduplication_df = pull_duplication_summary_into_memory(
+            redshift_table=deduplication_table_name, log=log
+        )
+
+        deduplication_df.persist()
+        deduplication_df_count = deduplication_df.count()
+        log.info(
+            "Counted {0} rows in {1} table".format(
+                deduplication_df_count, deduplication_table_name
+            )
+        )
+        if deduplication_df_count == 0:
+            log.info(
+                "Sending internal email report to indicate that Redshift table {0} is empty".format(
+                    deduplication_table_name
+                )
+            )
+            utils_ses.send_absent_report_email(
+                job_name=self.file_name,
+                subject=reporting_subject_str,
+                message="No duplicate record report - 0 rows in Redshift table {0} at {1}".format(
+                    deduplication_table_name, str(datetime.datetime.now())
+                ),
+                log=log,
+            )
+            log.info("Successfuly sent internal email")
+        else:
+            duplicates_df = filter_by_tables_with_duplicate_records(
+                duplicate_summary_df=deduplication_df,
+                duplicate_flag_column="Dup",
+                duplicate_flag_value="Y",
+                log=log,
+            )
+            log.info("Sending internal email summary of tables with duplicate records")
+            utils_ses.send_report_email(
+                job_name=self.file_name,
+                subject=reporting_subject_str,
+                dataframes=[duplicates_df],
+                table_titles=[duplicates_table_title],
+                log=log,
+                footnote="This report was produced on {0}".format(
+                    str(datetime.datetime.now())
+                ),
+            )
+        log.info("Successfully completed deduplication summary job")
+        return constant.success

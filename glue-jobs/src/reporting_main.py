@@ -143,6 +143,9 @@ def driver(file_name, args):
                     "redshift_load_mode"
                 ],
             )
+        if file_name == "reporting_dedupe_summary":
+            logger.info("Job reporting_dedupe_summary started")
+            stage_status = reporting_job_obj.reporting_dedupe_summary()
         # Insert additional reporting jobs here
 
         if stage_status == constant.success:
