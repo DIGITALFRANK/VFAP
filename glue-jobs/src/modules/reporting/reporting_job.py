@@ -4467,16 +4467,17 @@ class Reporting_Job(Core_Job):
             log.info("Executing query to compute CRM job summary")
             df_crm_file_summary = spark.sql(
                 """
-            SELECT df_broker_status.input_config_file_name,
-                   df_broker_status.status_file_name,
+            SELECT 
+                   df_broker_status.status_file_name AS file_name,
                    df_broker_status.status_load_date,
-                   df_redshift_daily_data.file_name AS redshift_file_name,
+                   df_redshift_daily_data.table_name AS redshift_table_name,
                    df_redshift_daily_data.Brand AS Brand,
                    df_redshift_daily_data.CNT AS CNT
 
                    FROM df_broker_status_table df_broker_status
                    LEFT JOIN df_redshift_table df_redshift_daily_data
                    ON upper(df_broker_status.status_file_name) = upper(df_redshift_daily_data.file_name)
+                   ORDER BY file_name
             """
             )
             log.info("Computed CRM job summary successfully")
@@ -4528,7 +4529,6 @@ class Reporting_Job(Core_Job):
                             target_table
                         )
                     )
-                    # TODO: parameterize load mode
                     transformed_df_to_redshift_table_status = self.write_df_to_redshift_table(
                         df=transformed_df,
                         redshift_table=target_table,
@@ -4558,9 +4558,19 @@ class Reporting_Job(Core_Job):
             utils_ses.send_report_email(
                 job_name=self.file_name,
                 subject=email_subject,
-                dataframes=[df_crm_file_summary, df_crm_file_not_present_this_week],
-                table_titles=["CRM file summary", "CRM files not present this week"],
+                dataframes=[df_crm_file_not_present_this_week, df_crm_file_summary],
+                table_titles=[
+                    "CRM files not present this week - {0}".format(
+                        datetime.datetime.now().strftime("%d%b%Y")
+                    ),
+                    "CRM file summary - {0}".format(
+                        datetime.datetime.now().strftime("%d%b%Y")
+                    ),
+                ],
                 log=log,
+                footnote="This report is produced by reporting_crm_file_checklist - {0}".format(
+                    str(datetime.datetime.now())
+                ),
             )
 
             if crm_file_count_indicator > 0:
