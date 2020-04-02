@@ -108,6 +108,40 @@
                 ]
             }
         },
+		"TNFMapTibco": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10, 
+				  "ScriptName": "map_main.py",
+				  "GlueJobName": "map-tnf-tibco",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 10,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,	
+				  "FileNameArgument": "NULL",
+				  "JobParamArgument": "weekly_map_tnf_tibco",
+				  "JobTypeArgument": "MAP",			
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
 		"VansCleanXRef": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
@@ -783,7 +817,7 @@
         },
 		"WeeklyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingCRMFileChecklist", "StatusReportJob", "BuildEmailInputsJob", "MapZetaEmail", "MapZetaPreference", "RptDedupeSummary" ],
+			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingCRMFileChecklist", "StatusReportJob", "BuildEmailInputsJob", "MapZetaEmail", "MapZetaPreference", "RptDedupeSummary", "TNFMapTibco" ],
 			  "Properties": {
 				"Parameters": {
 					"LoyaltyXRef": { "Fn::GetAtt": [ "LoyaltyXRef", "Outputs.JobName" ] },
@@ -804,6 +838,7 @@
 					"MapZetaEmail": { "Fn::GetAtt": [ "MapZetaEmail", "Outputs.JobName" ] },
 					"MapZetaPreference": { "Fn::GetAtt": [ "MapZetaPreference", "Outputs.JobName" ] },
 					"RptDedupeSummary": { "Fn::GetAtt": [ "RptDedupeSummary", "Outputs.JobName" ] },
+					"TNFMapTibco": { "Fn::GetAtt": [ "TNFMapTibco", "Outputs.JobName" ] },
 					"StartOnCreation" : { "Ref": "StartOnCreation" },
 				    "Environment": { "Ref": "Environment" },
 				    "ResourceGroup": { "Ref": "ResourceGroup" },

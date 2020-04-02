@@ -103,6 +103,10 @@
 		"RptDedupeSummary": {
             "Description": "RptDedupeSummary job name",
             "Type": "String"
+        },
+		"TNFMapTibco": {
+            "Description": "TNFMapTibco job name",
+            "Type": "String"
         }
     },
     "Mappings": { },
@@ -161,6 +165,35 @@
 				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "ReportingCRMFileChecklist" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"StartMapTNFTibco": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [
+				{  "JobName" : { "Ref": "TNFMapTibco" } }
+			  ],
+			  "Description" : "TNF MAP Tibco trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "tnf-map-tibco-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [
+					{
+					  "JobName" : { "Ref": "LoyaltyXRef" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
 					}
@@ -390,7 +423,7 @@
 					  "State" : "SUCCEEDED"
 					},
 					{
-					  "JobName" : { "Ref": "LoyaltyXRef" },
+					  "JobName" : { "Ref": "TNFMapTibco" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
 					}
