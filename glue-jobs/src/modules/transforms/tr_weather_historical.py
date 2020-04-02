@@ -118,11 +118,17 @@ class tr_weather_historical(Core_Job):
                 redshift_schema + "." + params["tgt_dstn_tbl_name"]
             )
 
+            update_location_qry = """update {0} 
+                                    set location = regexp_replace(location,'[a-z,A-Z]','')""".format(
+                redshift_schema + "." + params["tgt_dstn_tbl_name"]
+            )
+
             execute_above_queries_list = [
                 changed_records_qry,
                 retained_records_qry,
                 truncate_tgt_tbl_qry,
                 insert_into_tgt_tbl_qry,
+                update_location_qry
             ]
             utils.execute_multiple_queries_in_redshift(
                 execute_above_queries_list, self.whouse_details, logger

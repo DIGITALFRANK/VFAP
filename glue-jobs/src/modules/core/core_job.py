@@ -1003,6 +1003,17 @@ class Core_Job:
                     Target_table, Target_table, stage_table
                 )
 
+                if self.file_name.upper().startswith("I_TNF_WEATHERTRENDS_VF_SHORTRANGE_DATA"):
+                    post_query = """begin;
+                                    UPDATE {0} SET location = regexp_replace(location,'[a-z,A-Z]','');""".format(
+                        stage_table
+                    ) + ";".join(
+                        post_query.split(";")[1:]
+                    )               
+
+
+
+
                 connection_options = {
                     "url": redshift_url,
                     "user": username,
