@@ -2839,6 +2839,68 @@ class Reporting_Job(Core_Job):
                     update_email_persona12 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
                             CHARINDEX('SURVEY',subject) > 0 
+<<<<<<< HEAD
+                        THEN 'SURVEY' else email_persona end""".format(
+                        dbschema
+                    )
+
+                    update_email_persona = [
+                        update_email_persona1,
+                        update_email_persona2,
+                        update_email_persona3,
+                        update_email_persona4,
+                        update_email_persona5,
+                        update_email_persona6,
+                        update_email_persona7,
+                        update_email_persona8,
+                        update_email_persona9,
+                        update_email_persona10,
+                        update_email_persona11,
+                        update_email_persona12,
+                    ]
+
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_persona, self.whouse_details, logger
+                    )
+
+                    email_gender1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(
+                        dbschema
+                    )
+                    email_gender2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(
+                        dbschema
+                    )
+
+                    update_email_gender = [email_gender1, email_gender2]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_gender, self.whouse_details, logger
+                    )
+
+                    email_channel1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
+                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    email_channel2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
+                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    email_channel3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
+                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET'  else   email_channel  end""".format(
+                        dbschema
+                    )
+
+                    update_email_channel = [
+                        email_channel1,
+                        email_channel2,
+                        email_channel3,
+                    ]
+                    utils.execute_multiple_queries_in_redshift(
+                        update_email_channel, self.whouse_details, logger
+                    )
+
+                    Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+=======
                         THEN 'SURVEY' else email_persona end""".format(
                         dbschema
                     )
@@ -2887,6 +2949,7 @@ class Reporting_Job(Core_Job):
                     )
 
                     Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
+>>>>>>> ae05f8fadfafa8c15bfbd9f22160413818202cad
                                                                     CHARINDEX('EQUIPPED',subject) > 0 OR 
                                                                     CHARINDEX('GEAR',subject) > 0 
                                                                 THEN  'EQUIP'  else   Product_category  end""".format(
