@@ -3545,7 +3545,8 @@ class Reporting_Job(Core_Job):
                                     CASE WHEN act_pct_o_WATER is null  AND act_pct_o_SURF > 0
                                         THEN act_pct_o_SURF
                                         ELSE act_pct_o_WATER
-                                    END AS act_pct_o_WATER_tmp
+                                    END AS act_pct_o_WATER_tmp,
+                                    current_timestamp as process_dtm
                                 FROM  {0}.{1}_stage""".format(
                         dbschema, target_table
                     )

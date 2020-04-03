@@ -87,6 +87,11 @@ class tr_weather_historical(Core_Job):
             )
             logger.info("Refined DF copied to redshift successfully...")
 
+            update_location_qry1 = """update {0} 
+                                    set location = regexp_replace(location,'[a-z,A-Z]','')""".format(
+                redshift_schema + "." + target_table_stage
+            )
+
             changed_records_qry = """create temp table changed_records as
                                         select a.* from {0} as a left outer join {1} as b
                                         on
@@ -124,6 +129,7 @@ class tr_weather_historical(Core_Job):
             )
 
             execute_above_queries_list = [
+                update_location_qry1,
                 changed_records_qry,
                 retained_records_qry,
                 truncate_tgt_tbl_qry,

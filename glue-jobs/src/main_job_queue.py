@@ -56,6 +56,7 @@ class Constants:
         "F_TNF_TRANS_HEADER",
         "F_VANS_TRANS_HEADER",
     ]
+    FAILFAST_QUEUE_FEEDS = ["I_TNF_WeatherTrends_vf_historical_data"]
     AWS_REGION = "us-east-1"
     LOCAL_LOG_URL = "./{0}.txt".format(str(datetime.datetime.utcnow()))
 
@@ -203,6 +204,26 @@ def get_glue_job_run_status(job_name, job_run_id, log):
     return response["JobRun"]["JobRunState"]
 
 
+def trim_feed_file_name(feed_file_name):
+    """
+    Parameters:
+
+    feed_file_name: str - underscore delimited feed file name including timestamp and file extension
+
+    Returns:
+
+    str - trimmed file name
+
+    This function trims a feed file name in S3 by removing the timestamp, file extension
+    and trailing underscore from the file name.
+
+    eg
+
+    my_file_012345.csv -> my_file
+    """
+    return "_".join(feed_file_name.split("_")[:-1])
+
+
 class Job:
     """
     A Job is a model of an AWS Glue job which allows the object to run
@@ -213,10 +234,18 @@ class Job:
     READY_STATUS = "ready"
     PROCESSING_STATUS = "processing"
     COMPLETE_STATUS = "complete"
+    SUCCESS_STATUS = "success"
+    FAILED_STATUS = "failed"
 
     # Groupings of DynamoDB job status states to relevant states
     GLUE_JOB_PROCESSING_RESPONSES = ["STARTING", "RUNNING", "STOPPING"]
     GLUE_JOB_COMPLETE_RESPONSES = ["STOPPED", "SUCCEEDED", "FAILED", "TIMEOUT"]
+    GLUE_JOB_FAILED_RESPONSES = ["FAILED", "TIMEOUT", "STOPPED"]
+    GLUE_JOB_SUCCESS_RESPONSES = ["SUCCEEDED"]
+
+    # Detailed reporting flag for checking job status
+    PERMISSIVE_REPORT = 0
+    FAILFAST_REPORT = 1
 
     def __init__(self, job_name, file_name):
         """
@@ -248,17 +277,25 @@ class Job:
             self.status = self.READY_STATUS
         return
 
-    def check_glue_status(self):
+    def check_glue_status(self, reporting_flag):
         """
-        This function checks the status of an AWS Glue job which
-        was most previously run from this object
+        This function checks the status of an AWS Glue job. The set
+        of return values is determined by whether success/failure
+        is a required detail.
         """
         ddb_status = get_glue_job_run_status(
             job_name=self.job_name, job_run_id=self.job_run_id, log=log
         )
-        if ddb_status in Job.GLUE_JOB_COMPLETE_RESPONSES:
-            self.status = self.COMPLETE_STATUS
-        return self.status
+        if reporting_flag == Job.PERMISSIVE_REPORT:
+            if ddb_status in Job.GLUE_JOB_COMPLETE_RESPONSES:
+                self.status = self.COMPLETE_STATUS
+            return self.status
+        elif reporting_flag == Job.FAILFAST_REPORT:
+            if ddb_status in Job.GLUE_JOB_FAILED_RESPONSES:
+                self.status = self.FAILED_STATUS
+            elif ddb_status in Job.GLUE_JOB_SUCCESS_RESPONSES:
+                self.status = self.SUCCESS_STATUS
+            return self.status
 
 
 class Job_Queue:
@@ -272,6 +309,8 @@ class Job_Queue:
 
     NON_EMPTY_STATUS = 1
     EMPTY_STATUS = 0
+    PERMISSIVE = 0
+    FAILFAST = 1
 
     def __init__(self, job_list):
         """
@@ -283,6 +322,44 @@ class Job_Queue:
         self.queue_len = len(job_list)
         self.head = 0
         self.status = Job_Queue.NON_EMPTY_STATUS
+        self.mode = self.determine_queue_mode(
+            job_list=job_list, failfast_jobs=Constants.FAILFAST_QUEUE_FEEDS
+        )
+
+    def determine_queue_mode(self, job_list, failfast_jobs):
+        """
+        Parameters:
+
+        job_list: List[Job]
+
+        This function is responsible for determining the execution
+        mode of the Queue. The following two modes control the behaviour
+        of the Queue in the event where a job fails:
+        
+        FAILFAST - abandon all pending jobs as a result of a single failed job
+        PERMISSIVE - move to the next job in the queue and continue
+
+        The mode is determined by whether the file_name attached
+        to any of the Jobs matches any of the patterns in the
+        list of jobs which require failfast behaviour
+        """
+        file_names = list(map(lambda x: x.file_name, job_list))
+        # Queues are permissive by default
+        mode = Job_Queue.PERMISSIVE
+        if (
+            len(
+                list(
+                    filter(
+                        lambda file_name: trim_feed_file_name(file_name)
+                        in Constants.FAILFAST_QUEUE_FEEDS,
+                        file_names,
+                    )
+                )
+            )
+            > 0
+        ):
+            mode = Job_Queue.FAILFAST
+        return mode
 
     def check_queue(self, log):
         """
@@ -324,11 +401,38 @@ class Job_Queue:
         if job.status == Job.READY_STATUS:
             job.run(log)
         if job.status == Job.PROCESSING_STATUS:
-            latest_job_status = job.check_glue_status()
-            if latest_job_status == Job.COMPLETE_STATUS:
-                log.info("Job complete - {0}".format(self.queue[self.head].file_name))
-                self.head += 1
-                if self.head == self.queue_len:
+            if self.mode == Job_Queue.PERMISSIVE:
+                latest_job_status = job.check_glue_status(
+                    reporting_flag=Job.PERMISSIVE_REPORT
+                )
+                if latest_job_status == Job.COMPLETE_STATUS:
+                    log.info(
+                        "Job complete - {0}".format(self.queue[self.head].file_name)
+                    )
+                    self.head += 1
+                    if self.head == self.queue_len:
+                        self.status = Job_Queue.EMPTY_STATUS
+            elif self.mode == Job_Queue.FAILFAST:
+                latest_job_status = job.check_glue_status(
+                    reporting_flag=Job.FAILFAST_REPORT
+                )
+                if latest_job_status == Job.SUCCESS_STATUS:
+                    log.info(
+                        "Job completed successfully - {0}".format(
+                            self.queue[self.head].file_name
+                        )
+                    )
+                    self.head += 1
+                    if self.head == self.queue_len:
+                        self.status = Job_Queue.EMPTY_STATUS
+                elif latest_job_status == Job.FAILED_STATUS:
+                    log.error(
+                        "Job failed - {0}".format(self.queue[self.head].file_name)
+                    )
+                    log.error(
+                        "FAILFAST QUEUE - skipping to end of queue, abandoning any/all pending jobs"
+                    )
+                    self.head = self.queue_len
                     self.status = Job_Queue.EMPTY_STATUS
 
 
@@ -538,26 +642,6 @@ def split_feeds_destinations_by_first_and_final_jobs(
         else:
             first_feed_destination_pairs.append(feed_destination_pair)
     return first_feed_destination_pairs, final_feed_destination_pairs
-
-
-def trim_feed_file_name(feed_file_name):
-    """
-    Parameters:
-
-    feed_file_name: str - underscore delimited feed file name including timestamp and file extension
-
-    Returns:
-
-    str - trimmed file name
-
-    This function trims a feed file name in S3 by removing the timestamp, file extension
-    and trailing underscore from the file name.
-
-    eg
-
-    my_file_012345.csv -> my_file.csv
-    """
-    return "_".join(feed_file_name.split("_")[:-1])
 
 
 def map_feed_files_to_destination_tables(
@@ -793,7 +877,10 @@ if __name__ == "__main__":
             target_table_attribute=Constants.DDB_TARGET_TABLE_ATTRIBUTE,
             log=log,
         )
-        first_feeds_destination_pairs, final_feeds_destination_pairs = split_feeds_destinations_by_first_and_final_jobs(
+        (
+            first_feeds_destination_pairs,
+            final_feeds_destination_pairs,
+        ) = split_feeds_destinations_by_first_and_final_jobs(
             feed_destination_pairs=feeds_destinations,
             feed_name_attribute=Constants.DDB_FEED_NAME_ATTRIBUTE,
             final_feed_names=Constants.FINAL_FEED_NAMES,
