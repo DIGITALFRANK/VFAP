@@ -820,32 +820,32 @@ class utils:
                 port=redshift_port,
             )
             logger.info("Query Execution in Progress...")
-            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT 
+            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT, table_name 
 from 
-(select file_name as FILE_NAME,count(*) as CNT from {0}.CLASS group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.COLOR group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.DEPT group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.PRODUCTXREF group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.REGION group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.ADDRESS group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.STORE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.STYLE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ALT_KEY group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_CATEGORY group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ATTRIBUTE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_XREF group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_DETAIL group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
-""".format(redshift_schema)
+(select file_name as FILE_NAME,count(*) as CNT, 'CLASS' as table_name from {0}.CLASS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'COLOR' as table_name from {0}.COLOR group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'DEPT' as table_name from {0}.DEPT group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'PRODUCTXREF' as table_name from {0}.PRODUCTXREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'REGION' as table_name from {0}.REGION group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'ADDRESS' as table_name from {0}.ADDRESS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'STORE' as table_name from {0}.STORE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'STYLE' as table_name from {0}.STYLE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST' as table_name from {0}.CUST group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_ALT_KEY' as table_name from {0}.CUST_ALT_KEY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_CATEGORY' as table_name from {0}.TRANS_CATEGORY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_ATTRIBUTE' as table_name from {0}.CUST_ATTRIBUTE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_XREF' as table_name from {0}.CUST_XREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_DETAIL' as table_name from {0}.TRANS_DETAIL group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_HEADER' as table_name from {0}.TRANS_HEADER group by 1)
+""".format(
+                redshift_schema
+            )
             cur1 = conn.cursor()
             df_redshift_daily_data = cur1.execute(query1)
             logger.info("Query executed successfully")
             results = df_redshift_daily_data.fetchall()
             logger.info("Results : {}".format(results))
-            df_redshift = spark.createDataFrame(
-                results, ["file_name", "Brand", "CNT"]
-            )
+            df_redshift = spark.createDataFrame(results, ["file_name", "Brand", "CNT", "table_name"])
             logger.info("df_redshift created.. {} ".format(type(df_redshift)))
             conn.commit()
             cur1.close()

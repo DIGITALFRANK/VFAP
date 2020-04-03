@@ -138,7 +138,7 @@ and ex.sas_brand_id = reg.sas_brand_id """.format(
 # ---------------------------------LOYALTY_XREF_CONFIGURATIONS-----------------------------------------------------------
 CUST_ATTRIBUTE_VIEW = "cust_attribute"
 
-LOYALTY_XREF_QUERY_OLD = """select customer_id,attribute_comment as LOYA_ID from
+LOYALTY_XREF_QUERY = """select customer_id,attribute_comment as LOYA_ID from
 ( select customer_id,attribute_comment,row_number() over (partition by customer_id order by attribute_date desc ) as row_number
 from {cust_attribute} attr where attribute_grouping_code = 'VNBR' and sas_brand_id = 4
 )
@@ -146,16 +146,16 @@ where row_number = 1 """.format(
     cust_attribute=CUST_ATTRIBUTE_VIEW
 )
 
-LOYALTY_XREF_QUERY = """create table {0}.LOYALTY_XREF
-AS
-SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT AS LOYA_ID
-FROM
-(SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT,
-ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID ORDER BY ATTRIBUTE_DATE DESC) AS row_number
-FROM {0}.CUST_ATTRIBUTE attr
-WHERE ATTRIBUTE_GROUPING_CODE = 'VNBR' AND SAS_BRAND_ID = 4
-)
-WHERE row_number = 1"""
+# LOYALTY_XREF_QUERY = """create table {0}.LOYALTY_XREF
+# AS
+# SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT AS LOYA_ID
+# FROM
+# (SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT,
+# ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID ORDER BY ATTRIBUTE_DATE DESC) AS row_number
+# FROM {0}.CUST_ATTRIBUTE attr
+# WHERE ATTRIBUTE_GROUPING_CODE = 'VNBR' AND SAS_BRAND_ID = 4
+# )
+# WHERE row_number = 1"""
 # --------------------------WEBS_XREF-------------------------------------------------------------------
 MAP_ADOBE_TEMP_VIEW = "cust_alt_key"
 WEBS_XREF_QUERY = """select sas_brand_id,webs_customer_id,max(customer_id) as customer_id

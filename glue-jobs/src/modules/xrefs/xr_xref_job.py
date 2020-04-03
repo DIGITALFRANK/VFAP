@@ -1238,7 +1238,12 @@ class Xref_Job(Core_Job):
                                   WHEN CHARINDEX('GIRL',SAS_STYLE_DESCRIPTION) > 0 THEN 'F'
                                   ELSE product_gender end,
                                   
-                product_age_group = CASE WHEN CHARINDEX('WOMEN',SAS_STYLE_DESCRIPTION) > 0 THEN 'ADULT'
+                product_age_group = CASE WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'M' THEN  product_age_group
+                                         WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'W' THEN product_age_group
+                                         WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'YB' THEN product_age_group
+                                         WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'YG' THEN product_age_group
+                                         WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'U' THEN product_age_group
+                                         WHEN CHARINDEX('WOMEN',SAS_STYLE_DESCRIPTION) > 0 THEN 'ADULT'
                                          WHEN CHARINDEX('MEN',SAS_STYLE_DESCRIPTION) > 0 THEN 'ADULT'
                                          WHEN CHARINDEX('BOY',SAS_STYLE_DESCRIPTION) > 0 THEN 'KID'
                                          WHEN CHARINDEX('GIRL',SAS_STYLE_DESCRIPTION) > 0 THEN  'KID'

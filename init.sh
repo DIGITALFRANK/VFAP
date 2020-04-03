@@ -13,7 +13,11 @@
 
 #buildModules="config-files,dynamoDB,glue-conn,glue-triggers/common-trigger,glue-triggers/merge-trigger,ingest-routine,param-store,refine-routine,secrets,transform-routine,glue-jobs"
 
+<<<<<<< HEAD
 buildModules="refine-routine,glue-triggers/common-trigger"
+=======
+buildModules="glue-jobs"
+>>>>>>> 0d4424a0a5d9556f3c4d87533f6d52671ba60dec
 
 for module in $(echo $buildModules | sed "s/,/ /g")
 do

@@ -2839,68 +2839,6 @@ class Reporting_Job(Core_Job):
                     update_email_persona12 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 
                     set email_persona= CASE WHEN CHARINDEX('SURVEY',campaign_name) > 0 OR  
                             CHARINDEX('SURVEY',subject) > 0 
-<<<<<<< HEAD
-                        THEN 'SURVEY' else email_persona end""".format(
-                        dbschema
-                    )
-
-                    update_email_persona = [
-                        update_email_persona1,
-                        update_email_persona2,
-                        update_email_persona3,
-                        update_email_persona4,
-                        update_email_persona5,
-                        update_email_persona6,
-                        update_email_persona7,
-                        update_email_persona8,
-                        update_email_persona9,
-                        update_email_persona10,
-                        update_email_persona11,
-                        update_email_persona12,
-                    ]
-
-                    utils.execute_multiple_queries_in_redshift(
-                        update_email_persona, self.whouse_details, logger
-                    )
-
-                    email_gender1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-MEN',campaign_name) > 0 THEN 'M'  else   email_gender  end""".format(
-                        dbschema
-                    )
-                    email_gender2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_gender = case  WHEN CHARINDEX('-WOMEN',campaign_name) > 0 THEN 'F'  else   email_gender  end""".format(
-                        dbschema
-                    )
-
-                    update_email_gender = [email_gender1, email_gender2]
-                    utils.execute_multiple_queries_in_redshift(
-                        update_email_gender, self.whouse_details, logger
-                    )
-
-                    email_channel1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('RETAIL',campaign_name) > 0 OR  
-                    CHARINDEX('RETAIL',subject) > 0 THEN  'RETAIL'  else   email_channel  end""".format(
-                        dbschema
-                    )
-
-                    email_channel2 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('ECOM',campaign_name) > 0 OR 
-                    CHARINDEX('ECOM',subject) > 0 OR  CHARINDEX('NEW_SITE',campaign_name) > 0 THEN 'ECOM'  else   email_channel  end""".format(
-                        dbschema
-                    )
-
-                    email_channel3 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  email_channel = case  WHEN CHARINDEX('OUTLET',campaign_name) > 0 OR  
-                    CHARINDEX('OUTLET',subject) > 0 THEN 'OUTLET'  else   email_channel  end""".format(
-                        dbschema
-                    )
-
-                    update_email_channel = [
-                        email_channel1,
-                        email_channel2,
-                        email_channel3,
-                    ]
-                    utils.execute_multiple_queries_in_redshift(
-                        update_email_channel, self.whouse_details, logger
-                    )
-
-                    Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
-=======
                         THEN 'SURVEY' else email_persona end""".format(
                         dbschema
                     )
@@ -2949,7 +2887,6 @@ class Reporting_Job(Core_Job):
                     )
 
                     Product_category1 = """update {0}.x_tmp_tnf_email_launch_clean_stage3 set  Product_category = case  WHEN  CHARINDEX('EQUIPMENT',campaign_name) > 0 OR 
->>>>>>> ae05f8fadfafa8c15bfbd9f22160413818202cad
                                                                     CHARINDEX('EQUIPPED',subject) > 0 OR 
                                                                     CHARINDEX('GEAR',subject) > 0 
                                                                 THEN  'EQUIP'  else   Product_category  end""".format(
@@ -4467,16 +4404,17 @@ class Reporting_Job(Core_Job):
             log.info("Executing query to compute CRM job summary")
             df_crm_file_summary = spark.sql(
                 """
-            SELECT df_broker_status.input_config_file_name,
-                   df_broker_status.status_file_name,
+            SELECT 
+                   df_broker_status.status_file_name AS file_name,
                    df_broker_status.status_load_date,
-                   df_redshift_daily_data.file_name AS redshift_file_name,
+                   df_redshift_daily_data.table_name AS redshift_table_name,
                    df_redshift_daily_data.Brand AS Brand,
                    df_redshift_daily_data.CNT AS CNT
 
                    FROM df_broker_status_table df_broker_status
                    LEFT JOIN df_redshift_table df_redshift_daily_data
                    ON upper(df_broker_status.status_file_name) = upper(df_redshift_daily_data.file_name)
+                   ORDER BY file_name
             """
             )
             log.info("Computed CRM job summary successfully")
@@ -4528,7 +4466,6 @@ class Reporting_Job(Core_Job):
                             target_table
                         )
                     )
-                    # TODO: parameterize load mode
                     transformed_df_to_redshift_table_status = self.write_df_to_redshift_table(
                         df=transformed_df,
                         redshift_table=target_table,
@@ -4558,9 +4495,19 @@ class Reporting_Job(Core_Job):
             utils_ses.send_report_email(
                 job_name=self.file_name,
                 subject=email_subject,
-                dataframes=[df_crm_file_summary, df_crm_file_not_present_this_week],
-                table_titles=["CRM file summary", "CRM files not present this week"],
+                dataframes=[df_crm_file_not_present_this_week, df_crm_file_summary],
+                table_titles=[
+                    "CRM files not present this week - {0}".format(
+                        datetime.datetime.now().strftime("%d%b%Y")
+                    ),
+                    "CRM file summary - {0}".format(
+                        datetime.datetime.now().strftime("%d%b%Y")
+                    ),
+                ],
                 log=log,
+                footnote="This report is produced by reporting_crm_file_checklist - {0}".format(
+                    str(datetime.datetime.now())
+                ),
             )
 
             if crm_file_count_indicator > 0:
