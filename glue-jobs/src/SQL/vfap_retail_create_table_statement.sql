@@ -647,7 +647,7 @@ total_buyer INTEGER
 )
 DISTSTYLE EVEN;
 
-DROP TABLE vfap_retail.csv_tnf_email_inputs;
+DROP TABLE IF EXISTS vfap_retail.csv_tnf_email_inputs;
 CREATE TABLE IF NOT EXISTS vfap_retail.csv_tnf_email_inputs
 (
 customer_id bigint ,
