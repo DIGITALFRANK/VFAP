@@ -9,6 +9,7 @@ s3 = boto3.client('s3')
 
 
 def lambda_handler(event, context):
+    time.sleep(15)
     #getting the file name from s3 bucket
     source_bucket = event['Records'][0]['s3']['bucket']['name']
     obj = event.get('Records')[0].get('s3').get('object')

@@ -57,7 +57,7 @@ class tr_weather_forecast(Core_Job):
                 logger.info(
                     "truncate the existing warehouse data and insert refined data"
                 )
-                full_load_df = df.withColumn("sas_brand_id", lit(int(params["sas_brand_id"]))).withColumn("process_dtm", F.current_timestamp())
+                full_load_df = df.withColumn("fs_sk", lit(None).cast(IntegerType())).withColumn("sas_brand_id", lit(int(params["sas_brand_id"]))).withColumn("process_dtm", F.current_timestamp())
             else:
                 logger.info("No need to append")
                 full_load_df = warehouse_df

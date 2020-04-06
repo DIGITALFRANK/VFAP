@@ -128,9 +128,7 @@ class utils:
             [dict] -- Returns a dictionary of parameters from dynamo DB
         """
         file_params = None
-        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())[
-            "config_table"
-        ]
+        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())['config_table']
         if filename.__contains__("xref") or filename.__contains__("map"):
             logger.debug("Get Weekly job configuration")
             file_parts = filename.split("_")
@@ -198,7 +196,7 @@ class utils:
                     partition_key_value=partition_key,
                     sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                     sort_key_value=None,  # sort_key,
-                    table=broker_table,
+                    table=config.FILE_BROKER_TABLE,
                     logger=logger,
                 )
                 # Adding file_date as attribute to ddb params using in tr_weather_historical
@@ -497,9 +495,7 @@ class utils:
             return False
 
     @staticmethod
-    def move_s3_file_from_current(
-        file_name, src_bucket, tgt_bucket, params, logger, tgt_path=None
-    ):
+    def move_s3_file_from_current(file_name, src_bucket, tgt_bucket, params, logger):
         file_moved_status = False
         try:
             s3_client = boto3.client("s3")
@@ -514,12 +510,9 @@ class utils:
             file_date = datetime.strptime(file_parts[-1].split(".")[0], date_format)
             date_partition = file_parts[-1].split(".")[0][0:8]
             src_path = "{}/{}".format(params["rf_source_dir"], file_name)
-            if tgt_path is None:
-                tgt_path = "{}{}/date={}/{}".format(
-                    params["rf_dstn_folder_name"], feed_name, date_partition, file_name
-                )
-            else:
-                tgt_path = tgt_path
+            tgt_path = "{}{}/date={}/{}".format(
+                params["rf_dstn_folder_name"], feed_name, date_partition, file_name
+            )
             copy_source = {"Bucket": src_bucket, "Key": src_path}
             logger.info("Copying file from  {} to {}".format(src_path, tgt_path))
             file_moved_response = s3_client.copy(
@@ -820,32 +813,32 @@ class utils:
                 port=redshift_port,
             )
             logger.info("Query Execution in Progress...")
-            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT 
+            query1 = """select upper(FILE_NAME) as FILE_NAME, case when file_name like '%_TNF_%' then 'TNF' else 'VANS' end as Brand, CNT, table_name 
 from 
-(select file_name as FILE_NAME,count(*) as CNT from {0}.CLASS group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.COLOR group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.DEPT group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.PRODUCTXREF group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.REGION group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.ADDRESS group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.STORE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.STYLE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ALT_KEY group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_CATEGORY group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_ATTRIBUTE group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.CUST_XREF group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_DETAIL group by 1  union all
-select file_name as FILE_NAME,count(*) as CNT from {0}.TRANS_HEADER group by 1)
-""".format(redshift_schema)
+(select file_name as FILE_NAME,count(*) as CNT, 'CLASS' as table_name from {0}.CLASS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'COLOR' as table_name from {0}.COLOR group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'DEPT' as table_name from {0}.DEPT group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'PRODUCTXREF' as table_name from {0}.PRODUCTXREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'REGION' as table_name from {0}.REGION group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'ADDRESS' as table_name from {0}.ADDRESS group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'STORE' as table_name from {0}.STORE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'STYLE' as table_name from {0}.STYLE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST' as table_name from {0}.CUST group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_ALT_KEY' as table_name from {0}.CUST_ALT_KEY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_CATEGORY' as table_name from {0}.TRANS_CATEGORY group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_ATTRIBUTE' as table_name from {0}.CUST_ATTRIBUTE group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'CUST_XREF' as table_name from {0}.CUST_XREF group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_DETAIL' as table_name from {0}.TRANS_DETAIL group by 1  union all
+select file_name as FILE_NAME,count(*) as CNT, 'TRANS_HEADER' as table_name from {0}.TRANS_HEADER group by 1)
+""".format(
+                redshift_schema
+            )
             cur1 = conn.cursor()
             df_redshift_daily_data = cur1.execute(query1)
             logger.info("Query executed successfully")
             results = df_redshift_daily_data.fetchall()
             logger.info("Results : {}".format(results))
-            df_redshift = spark.createDataFrame(
-                results, ["file_name", "Brand", "CNT"]
-            )
+            df_redshift = spark.createDataFrame(results, ["file_name", "Brand", "CNT", "table_name"])
             logger.info("df_redshift created.. {} ".format(type(df_redshift)))
             conn.commit()
             cur1.close()
