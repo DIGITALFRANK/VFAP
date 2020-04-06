@@ -128,7 +128,9 @@ class utils:
             [dict] -- Returns a dictionary of parameters from dynamo DB
         """
         file_params = None
-        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())['config_table']
+        broker_table = utils.get_param_store_configs(utils.get_parameter_store_key())[
+            "config_table"
+        ]
         if filename.__contains__("xref") or filename.__contains__("map"):
             logger.debug("Get Weekly job configuration")
             file_parts = filename.split("_")
@@ -196,7 +198,7 @@ class utils:
                     partition_key_value=partition_key,
                     sort_key_attr=None,  # config.FILE_BROKER_SORT_KEY_ATTRIBUTE,
                     sort_key_value=None,  # sort_key,
-                    table=config.FILE_BROKER_TABLE,
+                    table=broker_table,
                     logger=logger,
                 )
                 # Adding file_date as attribute to ddb params using in tr_weather_historical
@@ -495,7 +497,9 @@ class utils:
             return False
 
     @staticmethod
-    def move_s3_file_from_current(file_name, src_bucket, tgt_bucket, params, logger):
+    def move_s3_file_from_current(
+        file_name, src_bucket, tgt_bucket, params, logger, tgt_path=None
+    ):
         file_moved_status = False
         try:
             s3_client = boto3.client("s3")
@@ -510,9 +514,12 @@ class utils:
             file_date = datetime.strptime(file_parts[-1].split(".")[0], date_format)
             date_partition = file_parts[-1].split(".")[0][0:8]
             src_path = "{}/{}".format(params["rf_source_dir"], file_name)
-            tgt_path = "{}{}/date={}/{}".format(
-                params["rf_dstn_folder_name"], feed_name, date_partition, file_name
-            )
+            if tgt_path is None:
+                tgt_path = "{}{}/date={}/{}".format(
+                    params["rf_dstn_folder_name"], feed_name, date_partition, file_name
+                )
+            else:
+                tgt_path = tgt_path
             copy_source = {"Bucket": src_bucket, "Key": src_path}
             logger.info("Copying file from  {} to {}".format(src_path, tgt_path))
             file_moved_response = s3_client.copy(

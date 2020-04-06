@@ -289,7 +289,8 @@ Raise info ''only_1_new_customer_qry executed successfully'';
 old_customers_to_find_new_customer_qry = ''create temp table old_customers_to_find_new_customer_itr1 as
 select old_customer_no,new_customer_no
 from unique_customers_to_find 
-where old_cust  is null  and new_cust is not null'';
+where old_customer_no not in ( select distinct old_customer_no from only_1_new_customer)'';
+
 
 EXECUTE old_customers_to_find_new_customer_qry;
 Raise info ''old_customers_to_find_new_customer_qry executed successfully'';
@@ -412,6 +413,7 @@ Raise info ''Query Executed successfully'';
  
 END;
 ' LANGUAGE plpgsql;"""
+
 dedup_summary_non_wcs = """CREATE OR REPLACE PROCEDURE {0}.dedup_summary_non_wcs(sas_brand_id IN integer,input_table varchar(max), key_var varchar(max))
 AS'
 DECLARE 

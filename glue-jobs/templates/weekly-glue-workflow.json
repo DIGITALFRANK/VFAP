@@ -76,8 +76,16 @@
             "Description": "CoremetricsMAP job name",
             "Type": "String"
         },
-		"ReportingFileChecklist": {
-            "Description": "ReportingFileChecklist job name",
+		"ReportingCRMFileChecklist": {
+            "Description": "ReportingCRMFileChecklist job name",
+            "Type": "String"
+        },
+		"BuildEmailInputsJob": {
+            "Description": "BuildEmailInputsJob job name",
+            "Type": "String"
+        },
+		"StatusReportJob": {
+            "Description": "StatusReportJob job name",
             "Type": "String"
         },
 		"StartOnCreation": {
@@ -121,8 +129,8 @@
 		"WorkflowTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
-				{  "JobName" : { "Ref": "ReportingFileChecklist" } }
+			  "Actions" : [
+				{  "JobName" : { "Ref": "ReportingCRMFileChecklist" } }
 			  ],
 			  "Description" : "Glue workflow Weekly trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-job-trigger" ] ] },
@@ -143,20 +151,20 @@
 		"StartXRefTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
+			  "Actions" : [
 				{  "JobName" : { "Ref": "LoyaltyXRef" } },
 				{  "JobName" : { "Ref": "VansCleanXRef" } },
 				{  "JobName" : { "Ref": "CustomerXRef" } },
 				{  "JobName" : { "Ref": "EmailXRef" } },
-				{  "JobName" : { "Ref": "AdobeMap" } }, 
+				{  "JobName" : { "Ref": "AdobeMap" } },
 				{  "JobName" : { "Ref": "TNFCleanXRef" } }
 			  ],
 			  "Description" : "Weekly XRef trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-xref-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
-					  "JobName" : { "Ref": "WorkflowTrigger" },
+					  "JobName" : { "Ref": "ReportingCRMFileChecklist" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
 					}
@@ -188,7 +196,7 @@
 					  "JobName" : { "Ref": "LoyaltyXRef" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					} 
+					}
 				]
 			  },
 			  "Tags" : {
@@ -206,13 +214,14 @@
 		"StartMapTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
-				{  "JobName" : { "Ref": "EmailResponsysMap" } }
+			  "Actions" : [
+				{  "JobName" : { "Ref": "EmailResponsysMap" } },
+        {   "JobName" : { "Ref": "MapZetaEmail" }}
 			  ],
 			  "Description" : "Weekly Map trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-map-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "EmailXRef" },
 					  "LogicalOperator" : "EQUALS",
@@ -222,7 +231,7 @@
 					  "JobName" : { "Ref": "CustomerXRef" },
 					  "LogicalOperator" : "EQUALS",
 					  "State" : "SUCCEEDED"
-					} 
+					}
 				],
 				"Logical" : "AND"
 			  },
@@ -241,13 +250,13 @@
 		"StartMapExpGoldTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
+			  "Actions" : [
 				{  "JobName" : { "Ref": "ExperianGoldMap" } }
 			  ],
 			  "Description" : "Weekly Map experian gold trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-map-expgold-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "CustomerXRef" },
 					  "LogicalOperator" : "EQUALS",
@@ -270,15 +279,16 @@
 		"SessionXRefTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
+			  "Actions" : [
 				{  "JobName" : { "Ref": "CMSessionXRef" } },
 				{  "JobName" : { "Ref": "CustomShoeMap" } },
-				{  "JobName" : { "Ref": "WCSMap" } }
+				{  "JobName" : { "Ref": "WCSMap" } },
+				{  "JobName" : { "Ref": "MapZetaPreference" } }
 			  ],
 			  "Description" : "Weekly Session XRef trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-session-xref-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "EmailXRef" },
 					  "LogicalOperator" : "EQUALS",
@@ -301,13 +311,13 @@
 		"CoremetricsMapTrigger": {
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
-			  "Actions" : [ 
+			  "Actions" : [
 				{  "JobName" : { "Ref": "CoremetricsMAP" } }
 			  ],
 			  "Description" : "Weekly coremetrics map trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "weekly-cm-map-trigger" ] ] },
 			  "Predicate" : {
-				"Conditions" : [ 
+				"Conditions" : [
 					{
 					  "JobName" : { "Ref": "CMSessionXRef" },
 					  "LogicalOperator" : "EQUALS",

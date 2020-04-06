@@ -59,7 +59,7 @@ class Xref_Job(Core_Job):
                         product_age_group = xref_global_config.clean_tnf_xref_basic[
                             key
                         ]["result"]["age_group"]
-                        sas_product_category = row.tnf___clm_description_for_sas[
+                        sas_product_category = sas_product_category[
                             xref_global_config.clean_tnf_xref_basic[key]["result"][
                                 "product_category_index"
                             ] :
@@ -69,14 +69,14 @@ class Xref_Job(Core_Job):
                 if key.startswith("TNF___CLM_DESCRIPTION_FOR_SAS_indexof_"):
                     try:
                         if (
-                            row.tnf___clm_description_for_sas.index(
+                            sas_product_category.index(
                                 xref_global_config.clean_tnf_xref_basic[key][
                                     "condition"
                                 ]
                             )
                             >= 0
                         ):
-                            sas_product_category = row.tnf___clm_description_for_sas.replace(
+                            sas_product_category = sas_product_category.replace(
                                 xref_global_config.clean_tnf_xref_basic[key]["result"][
                                     "product_category_replace"
                                 ][0],
@@ -110,12 +110,12 @@ class Xref_Job(Core_Job):
                             "end_part"
                         ]:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "substring"
                                 ]
-                                + row.style_description[
+                                + sas_style_description[
                                     position
                                     + 1
                                     + len(
@@ -127,23 +127,23 @@ class Xref_Job(Core_Job):
                             )
                         else:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "substring"
                                 ]
                             )
                 if key.startswith("JKT"):
-                    position = row.style_description.find(
+                    position = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring"]
                     )
                     if position >= 0:
                         sas_style_description = (
-                            row.style_description[0:position]
+                            sas_style_description[0:position]
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
-                            + row.style_description[
+                            + sas_style_description[
                                 position
                                 + len(
                                     xref_global_config.clean_tnf_xref_basic[key][
@@ -153,31 +153,31 @@ class Xref_Job(Core_Job):
                             ]
                         )
                 if key.startswith("SWEATS"):
-                    pos1 = row.style_description.find(
+                    pos1 = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring1"]
                     )
-                    pos2 = row.style_description.find(
+                    pos2 = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring2"]
                     )
                     if pos1 >= 0 and pos2 < 0:
                         sas_style_description = (
-                            row.style_description[0:pos1]
+                            sas_style_description[0:pos1]
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
                         )
                 if key.startswith("TRIJACKET"):
-                    position = row.style_description.find(
+                    position = sas_style_description.find(
                         xref_global_config.clean_tnf_xref_basic[key]["substring"]
                     )
                     if position >= 0:
                         sas_style_description = (
-                            row.style_description[0:position]
+                            sas_style_description[0:position]
                             + " "
                             + xref_global_config.clean_tnf_xref_basic[key][
                                 "replace_with"
                             ]
-                            + row.style_description[
+                            + sas_style_description[
                                 position
                                 + 1
                                 + len(
@@ -192,15 +192,15 @@ class Xref_Job(Core_Job):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
                         "substring"
                     ]:
-                        position = row.style_description.find(search_term)
+                        position = sas_style_description.find(search_term)
                         if position >= 0:
                             sas_style_description = (
-                                row.style_description[0:position]
+                                sas_style_description[0:position]
                                 + " "
                                 + xref_global_config.clean_tnf_xref_basic[key][
                                     "replace_with"
                                 ]
-                                + row.style_description[
+                                + sas_style_description[
                                     position
                                     + 1
                                     + len(
@@ -212,23 +212,37 @@ class Xref_Job(Core_Job):
                             )
 
                 if key.startswith("LIST"):
-                    for search_term in xref_global_config.clean_tnf_xref_basic[key][
-                        "substring"
-                    ]:
-                        position = row.style_description.find(search_term)
-                        if position >= 0:
-                            sas_style_description = row.style_description.replace(
-                                search_term,
-                                xref_global_config.clean_tnf_xref_basic[key][
-                                    "replace_with"
-                                ],
-                            )
+                    if key in ["LIST_JACKET", "LIST_TRICLIMATE","LIST_THERMOBALL","LIST_TODDLER","LIST_INSULATED"]:
+                        for search_term in xref_global_config.clean_tnf_xref_basic[key][
+                            "substring"
+                        ]:
+                            position = sas_style_description.find(search_term)
+                            if position >= 0:
+                                sas_style_description = sas_style_description.replace(
+                                    search_term,
+                                    xref_global_config.clean_tnf_xref_basic[key][
+                                        "replace_with"
+                                    ],
+                                )
+                                break
+                    else:
+                        for search_term in xref_global_config.clean_tnf_xref_basic[key][
+                            "substring"
+                        ]:
+                            position = sas_style_description.find(search_term)
+                            if position >= 0:
+                                sas_style_description = sas_style_description.replace(
+                                    search_term,
+                                    xref_global_config.clean_tnf_xref_basic[key][
+                                        "replace_with"
+                                    ],
+                                )
 
-                if key.startswith("GLOVESCLIMBING"):
+                if key.startswith("GLOVES"):
                     for search_term in xref_global_config.clean_tnf_xref_basic[key][
                         "substring"
                     ]:
-                        pos_style = row.style_description.find(search_term)
+                        pos_style = sas_style_description.find(search_term)
                         pos_sas_product = row.tnf___clm_description_for_sas.find(
                             search_term
                         )
@@ -236,7 +250,7 @@ class Xref_Job(Core_Job):
                             search_term
                         )
                         if pos_style >= 0:
-                            sas_style_description = row.style_description.replace(
+                            sas_style_description = sas_style_description.replace(
                                 search_term,
                                 xref_global_config.clean_tnf_xref_basic[key][
                                     "replace_with"
@@ -263,31 +277,54 @@ class Xref_Job(Core_Job):
                                 ],
                             )
 
-            return {
-                "department_code": row.department_code,
-                "department_description": row.department_description,
-                "class_code": row.class_code,
-                "class_description": row.class_description,
-                "style_id": row.style_id,
-                "vendor_style": row.vendor_style,
-                "style_description": row.style_description,
-                "vendor_cd_4": row.vendor_cd_4,
-                "vendor_cd_6": row.vendor_cd_6,
-                "cnodeid": row.cnodeid,
-                "style_description_short": row.style_description_short,
-                "style_description_long": row.style_description_long,
-                "product_line": row.product_line,
-                "sbu": row.sbu,
-                "series": row.series,
-                "newconsumersegmentterritory": row.newconsumersegmentterritory,
-                "newendusesport": row.newendusesport,
-                "newproductcollectionfamily": row.newproductcollectionfamily,
-                "tnf___clm_description_for_sas": row.tnf___clm_description_for_sas,
-                "tnf_sas_product_category": sas_product_category,
-                "product_gender": product_gender,
-                "product_age_group": product_age_group,
-                "sas_style_description": sas_style_description,
-            }
+            return (
+                # "department_code":
+                row.department_code,
+                # "department_description":
+                row.department_description,
+                # "class_code":
+                row.class_code,
+                # "class_description":
+                row.class_description,
+                # "style_id":
+                row.style_id,
+                # "vendor_style":
+                row.vendor_style,
+                # "style_description":
+                row.style_description,
+                # "vendor_cd_4":
+                row.vendor_cd_4,
+                # "vendor_cd_6":
+                row.vendor_cd_6,
+                # "cnodeid":
+                row.cnodeid,
+                # "style_description_short":
+                row.style_description_short,
+                # "style_description_long":
+                row.style_description_long,
+                # "product_line":
+                row.product_line,
+                # "sbu":
+                row.sbu,
+                # "series":
+                row.series,
+                # "newconsumersegmentterritory":
+                row.newconsumersegmentterritory,
+                # "newendusesport":
+                row.newendusesport,
+                # "newproductcollectionfamily":
+                row.newproductcollectionfamily,
+                # "tnf___clm_description_for_sas":
+                clm_description_for_sas,
+                # "tnf_sas_product_category":
+                sas_product_category,
+                # "product_gender":
+                product_gender,
+                # "product_age_group":
+                product_age_group,
+                # "sas_style_description":
+                sas_style_description,
+            )
         except Exception as error:
             print("Error encountered while running xref {}".format(error))
             raise CustomAppError(
@@ -436,7 +473,9 @@ class Xref_Job(Core_Job):
             gender_age = (
                 row.product_gender.strip() + "_" + row.product_age_group.strip()
             )
-            sas_product_category = None
+            sas_product_category = row.tnf_sas_product_category
+            newendusesport = row.newendusesport
+            vendor_cd_4 = row.vendor_cd_4
             # NEWENDUSESPORT = None
             TRGT_MA_FLAG = 0
             TRGT_MS_FLAG = 0
@@ -444,17 +483,7 @@ class Xref_Job(Core_Job):
             TRGT_UE_FLAG = 0
 
             for key in xref_global_config.clean_tnf_xref_final.keys():
-                if key.endswith("product_category"):
-                    for item in xref_global_config.clean_tnf_xref_final[key][
-                        "replacements"
-                    ]:
-                        replace_with = xref_global_config.clean_tnf_xref_final[key][
-                            "replacements"
-                        ][item]
-                        sas_product_category = row.tnf_sas_product_category.rstrip().replace(
-                            item, replace_with
-                        )
-                elif key.startswith("VENDER_CD"):
+                if key.startswith("VENDER_CD"):
                     if (
                         row.vendor_cd_4
                         in xref_global_config.clean_tnf_xref_final[key]["substring"]
@@ -462,14 +491,25 @@ class Xref_Job(Core_Job):
                         sas_product_category = xref_global_config.clean_tnf_xref_final[
                             key
                         ]["result"]
-                elif key.endswith("new_end_use_sport"):
+                if key.endswith("product_category"):
                     for item in xref_global_config.clean_tnf_xref_final[key][
                         "replacements"
                     ]:
                         replace_with = xref_global_config.clean_tnf_xref_final[key][
                             "replacements"
                         ][item]
-                        sas_product_category = row.newendusesport.rstrip().replace(
+                        sas_product_category = sas_product_category.rstrip().replace(
+                            item, replace_with
+                        )
+
+                if key.endswith("new_end_use_sport"):
+                    for item in xref_global_config.clean_tnf_xref_final[key][
+                        "replacements"
+                    ]:
+                        replace_with = xref_global_config.clean_tnf_xref_final[key][
+                            "replacements"
+                        ][item]
+                        newendusesport = newendusesport.rstrip().replace(
                             item, replace_with
                         )
                 elif key.startswith("condition"):
@@ -502,36 +542,64 @@ class Xref_Job(Core_Job):
                     ):
                         TRGT_UE_FLAG = 1
 
-            return {
-                "department_code": row.department_code,
-                "department_description": row.department_description,
-                "class_code": row.class_code,
-                "class_description": row.class_description,
-                "style_id": row.style_id,
-                "vendor_style": row.vendor_style,
-                "style_description": row.style_description,
-                "vendor_cd_4": row.vendor_cd_4,
-                "vendor_cd_6": row.vendor_cd_6,
-                "cnodeid": row.cnodeid,
-                "style_description_short": row.style_description_short,
-                "style_description_long": row.style_description_long,
-                "product_line": row.product_line,
-                "sbu": row.sbu,
-                "series": row.series,
-                "newconsumersegmentterritory": row.newconsumersegmentterritory,
-                "newendusesport": row.newendusesport,
-                "newproductcollectionfamily": row.newproductcollectionfamily,
-                "tnf___clm_description_for_sas": row.tnf___clm_description_for_sas,
-                "tnf_sas_product_category": sas_product_category,
-                "product_gender": row.product_gender,
-                "product_age_group": row.product_age_group,
-                "sas_style_description": row.sas_style_description,
-                "TRGT_MA_FLAG": TRGT_MA_FLAG,
-                "TRGT_MS_FLAG": TRGT_MS_FLAG,
-                "TRGT_ML_FLAG": TRGT_ML_FLAG,
-                "TRGT_UE_FLAG": TRGT_UE_FLAG,
-                "gender_age": gender_age,
-            }
+            return (
+                # "department_code":
+                row.department_code,
+                # "department_description":
+                row.department_description,
+                # "class_code":
+                row.class_code,
+                # "class_description":
+                row.class_description,
+                # "style_id":
+                row.style_id,
+                # "vendor_style":
+                row.vendor_style,
+                # "style_description":
+                row.style_description,
+                # "vendor_cd_4":
+                vendor_cd_4,
+                # "vendor_cd_6":
+                row.vendor_cd_6,
+                # "cnodeid":
+                row.cnodeid,
+                # "style_description_short":
+                row.style_description_short,
+                # "style_description_long":
+                row.style_description_long,
+                # "product_line":
+                row.product_line,
+                # "sbu":
+                row.sbu,
+                # "series":
+                row.series,
+                # "newconsumersegmentterritory":
+                row.newconsumersegmentterritory,
+                # "newendusesport":
+                newendusesport,
+                # "newproductcollectionfamily":
+                row.newproductcollectionfamily,
+                # "tnf___clm_description_for_sas":
+                row.tnf___clm_description_for_sas,
+                # "tnf_sas_product_category":
+                sas_product_category.replace(" ", "_"),
+                # "product_gender":
+                row.product_gender,
+                # "product_age_group":
+                row.product_age_group,
+                # "sas_style_description":
+                row.sas_style_description,
+                # "TRGT_MA_FLAG":
+                TRGT_MA_FLAG,
+                # "TRGT_MS_FLAG":
+                TRGT_MS_FLAG,
+                # "TRGT_ML_FLAG":
+                TRGT_ML_FLAG,
+                # "TRGT_UE_FLAG":
+                TRGT_UE_FLAG,
+                # "gender_age":
+                gender_age,
+            )
         except Exception as error:
             print("Error encountered while running xref {}".format(error))
             raise CustomAppError(
@@ -591,18 +659,22 @@ class Xref_Job(Core_Job):
                     "xref_input_tnf_footwear_style_id"
                 ]
             )
-            rdd1 = TNF_STYLE_XREF.rdd.map(
-                lambda x: Row(**Xref_Job.clean_tnf_style_xref(x))
-            )
+            rdd1 = []
+            for x in TNF_STYLE_XREF.collect():
+                rdd1.append(Xref_Job.clean_tnf_style_xref(x))
+            # rdd1 = TNF_STYLE_XREF.rdd.map(lambda x: Xref_Job.clean_tnf_style_xref(x))
             style_xref_clean = spark.createDataFrame(rdd1, schema=style_xref_schema_1)
             # logger.info("style_xref_clean is {}".format(style_xref_clean.show()))
             # Replace Null value with 'B'
             style_xref_clean = style_xref_clean.na.fill(
                 {"product_gender": "B", "product_age_group": "B"}
             )
-            rdd2 = style_xref_clean.rdd.map(
-                lambda x: Row(**Xref_Job.clean_tnf_xref_final(x))
-            )
+            # rdd2 = style_xref_clean.rdd.map(
+            #     lambda x: Row(**Xref_Job.clean_tnf_xref_final(x))
+            # )
+            rdd2 = []
+            for x in style_xref_clean.collect():
+                rdd2.append(Xref_Job.clean_tnf_xref_final(x))
 
             style_xref_clean = spark.createDataFrame(
                 rdd2, schema=schema_style_xref_clean
@@ -623,9 +695,8 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
-            new_df = df.withColumn("process_dtm", F.current_timestamp()).withColumn(
-                "file_name", self.file_name
-            )
+            new_df = df.withColumn("process_dtm", F.current_timestamp())
+            logger.info("new_df sample records : {}".format(new_df.show(20)))
             write_status = self.write_glue_df_to_redshift(
                 df=new_df,
                 redshift_table=response["xref_params"]["xref_output"],
@@ -718,11 +789,11 @@ class Xref_Job(Core_Job):
 
             cm_session_xref_query = config.CM_SESSION_XREF_QUERY
             cm_session_xref_df = spark.sql(cm_session_xref_query)
-            print(cm_session_xref_df.show())
+            # print(cm_session_xref_df.show())
 
-            print("cm_session_xref : ", cm_reg_view.show())
-            print("email_xref : ", email_view.show())
-            cm_session_xref_df.show(10, truncate=False)
+            # print("cm_session_xref : ", cm_reg_view.show())
+            # print("email_xref : ", email_view.show())
+            # cm_session_xref_df.show(10, truncate=False)
 
             # writing cm_session_xref to target ,need to chnage as per target
             # cm_session_xref_status = self.write_to_tgt(
@@ -736,10 +807,11 @@ class Xref_Job(Core_Job):
             #     redshift_table=response["xref_params"]["xref_output"],
             #     load_mode=response["xref_params"]["write_mode"],
             # )
-            logger.debug("*************Number of records to write**********")
-            logger.debug(cm_session_xref_df.count())
+            final_df = cm_session_xref_df.withColumn(
+                "process_dtm", F.current_timestamp()
+            )
             cm_session_xref_status = self.write_glue_df_to_redshift(
-                df=cm_session_xref_df,
+                df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
             )
@@ -799,8 +871,9 @@ class Xref_Job(Core_Job):
             #     path="Map_Custom/loyalty_xref/",
             #     mode="overwrite",
             # )
-            loyalty_xref_status = self.write_df_to_redshift_table(
-                df=loyalty_xref_df,
+            final_df = loyalty_xref_df.withColumn("process_dtm", F.current_timestamp())
+            loyalty_xref_status = self.write_glue_df_to_redshift(
+                df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
             )
@@ -821,7 +894,7 @@ class Xref_Job(Core_Job):
             )
         return loyalty_xref_status
 
-    def xr_email_xref(self):
+    def xr_email_xref_old(self):
         full_load_df = None
         spark = self.spark
         logger = self.logger
@@ -853,7 +926,7 @@ class Xref_Job(Core_Job):
                         AND mstr.sas_brand_id = uniq.sas_brand_id
                         """
             )
-            full_load_df.show()
+            full_load_df.show(20)
             # logger.info(
             #     "count of records in email_xref table is {}".format(
             #         full_load_df.count()
@@ -869,7 +942,7 @@ class Xref_Job(Core_Job):
             logger.debug(full_load_df.count())
             final_df = full_load_df.withColumn("process_dtm", F.current_timestamp())
             status = self.write_glue_df_to_redshift(
-                df=full_load_df,
+                df=final_df,
                 redshift_table=response["xref_params"]["xref_output"],
                 load_mode=response["xref_params"]["write_mode"],
             )
@@ -1026,20 +1099,6 @@ class Xref_Job(Core_Job):
             WHERE sas_brand_id = 7""".format(dbschema)
             utils.execute_query_in_redshift(prodxref_clean_query1, self.whouse_details, logger)
 
-            whouse_whouse_vans_prod_seg_past_recom_df.createOrReplaceTempView(
-                "whouse_vans_prod_seg_past_recom"
-            )
-            whouse_class_df.createOrReplaceTempView("whouse_class")
-            whouse_sku_df.createOrReplaceTempView("whouse_sku")
-            whouse_us_item_master_df.createOrReplaceTempView("whouse_us_item_master")
-            whouse_prod_xref_df.createOrReplaceTempView("whouse_prod_xref")
-            whouse_style_df.createOrReplaceTempView("whouse_style")
-            whouse_vans_mte_style_id_df.createOrReplaceTempView(
-                "whouse_vans_mte_style_id"
-            )
-            whouse_vans_peanuts_style_df.createOrReplaceTempView(
-                "whouse_vans_peanuts_style"
-            )
 
             prodxref_clean_query2 = """create table {0}.prodxref_clean_2 as 
             SELECT DISTINCT a.class_code as class_class_code,
@@ -1108,7 +1167,7 @@ class Xref_Job(Core_Job):
             prodxref_clean_3_temp_update1 = """update {0}.prodxref_clean_3_temp1
             set VANS_SAS_PRODUCT_CATEGORY = 'MENS CORE CLASSIC'
             where class_code = 1011""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update2 = """update {0}.prodxref_clean_3_temp1
             set VANS_SAS_PRODUCT_CATEGORY = 'MENS BRAND AFFINITY'
             where      charindex('3700000010911',style_aka) > 0
@@ -1134,39 +1193,39 @@ class Xref_Job(Core_Job):
             		or charindex('3700000010268',style_aka) > 0
             		or charindex('3715000010012',style_aka)  > 0
             		or charindex('3710000010008',style_aka)  > 0""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update3 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'ACTION SPORTS'
             where substring(VANS_PRODCAT, 6,2) = 'AS'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update4 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'BASIC'
             where substring(VANS_PRODCAT, 6,2) = 'BS'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update5 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'FASHION'
             where substring(VANS_PRODCAT, 6,2) = 'FL'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update6 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'MARKDOWN OUTLET'
             where substring(VANS_PRODCAT, 6,2) = 'MO'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update7 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'OTHER'
             where substring(VANS_PRODCAT, 6,2) = 'OT'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update8 = """update {0}.prodxref_clean_3_temp1
             set product_type = 'APPAREL'
             where substring(VANS_PRODCAT, 9,2) = 'AP'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update9 = """update {0}.prodxref_clean_3_temp1
             set product_type = 'FOOT WEAR'
             where substring(VANS_PRODCAT, 9,2) = 'FT'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update10 = """update {0}.prodxref_clean_3_temp1
             set product_type = 'ACCESSORIES'
             where substring(VANS_PRODCAT, 9,2) = 'AC'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update11 = """update {0}.prodxref_clean_3_temp1
             set product_gender = CASE WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'M' THEN  'M'
                                   WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'W' THEN 'F'
@@ -1178,7 +1237,7 @@ class Xref_Job(Core_Job):
                                   WHEN CHARINDEX('BOY',SAS_STYLE_DESCRIPTION) > 0 THEN  'M'
                                   WHEN CHARINDEX('GIRL',SAS_STYLE_DESCRIPTION) > 0 THEN 'F'
                                   ELSE product_gender end,
-
+                                  
                 product_age_group = CASE WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'M' THEN  product_age_group
                                          WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'W' THEN product_age_group
                                          WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) = 'YB' THEN product_age_group
@@ -1192,7 +1251,7 @@ class Xref_Job(Core_Job):
                                          WHEN CHARINDEX('INFANT',SAS_STYLE_DESCRIPTION) > 0 THEN 'KID'
                                          WHEN CHARINDEX('KID',SAS_STYLE_DESCRIPTION) > 0 THEN 'KID'
                                          ELSE product_age_group end""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update12 = """update {0}.prodxref_clean_3_temp1
             set product_gender = CASE WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) in ('M') THEN  'M'
                                       WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) in ('W') THEN  'F'
@@ -1202,7 +1261,7 @@ class Xref_Job(Core_Job):
                                          WHEN TRIM(SPLIT_PART(VANS_PRODCAT, '_',4)) in ('W') THEN  'ADULT'
                                          Else product_age_group
                                     End""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update13 = """update {0}.prodxref_clean_3_temp1
             set product_gender = CASE WHEN CHARINDEX('YB',SPLIT_PART(VANS_PRODCAT, '_',4)) > 0  THEN  'M'
                                       WHEN CHARINDEX('YG',SPLIT_PART(VANS_PRODCAT, '_',4)) > 0  THEN  'F'
@@ -1213,22 +1272,22 @@ class Xref_Job(Core_Job):
                                          WHEN CHARINDEX('Y',SPLIT_PART(VANS_PRODCAT, '_',4)) > 0  THEN  'KID'
                                       Else product_age_group
                                   End""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update14 = """update {0}.prodxref_clean_3_temp1
             set product_gender = 'U'
             where TRIM(SPLIT_PART(VANS_PRODCAT, '_',4))  in ('U')""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update15 = """update {0}.prodxref_clean_3_temp1
             set VANS_SAS_PRODUCT_CATEGORY = 'WOMEN FASHION'
             where class_code IN (1206, 1207, 1210, 1214, 2950, 2951, 2952, 2953, 2956, 2957, 2958) 
                or department_code = 380 
                or (product_family = 'FL' AND product_gender = 'F')""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update16 = """update {0}.prodxref_clean_3_temp1
             set VANS_SAS_PRODUCT_CATEGORY = 'KIDS PRODUCTS'
             where class_code IN (1308,1320,1310,1410,1311,1411,1409,1511,1520,2512,2511,2513,1305,1405,1505,1508,3399,3499,3599) 
                or product_age_group = 'KID'""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update17 = """update {0}.prodxref_clean_3_temp1
             set product_family = 'NA',
                 product_gender= 'B',
@@ -1237,20 +1296,20 @@ class Xref_Job(Core_Job):
             where CHARINDEX('UNSPECIFIED',VANS_PRODCAT) > 0 
                or CHARINDEX('EXCLUDE',VANS_PRODCAT) > 0 
                or CHARINDEX('NOTUSED',VANS_PRODCAT) > 0""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update18 = """update {0}.prodxref_clean_3_temp1
             set gen_age = product_gender||'_'||product_age_group""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update19 = """update {0}.prodxref_clean_3_temp1
             set family_type = CASE WHEN regexp_count(VANS_PRODCAT,'_') >= 2 
                               THEN SPLIT_PART(VANS_PRODCAT,'_',2)||'_'||SPLIT_PART(VANS_PRODCAT,'_',3)
                               WHEN regexp_count(VANS_PRODCAT,'_') = 1  THEN SPLIT_PART(VANS_PRODCAT,'_',2)
                               else family_type end""".format(dbschema)
-
+                             
             prodxref_clean_3_temp_update20 = """update {0}.prodxref_clean_3_temp1
             set mte_ind =  0 
             where mte_ind is null""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update21 = """update {0}.prodxref_clean_3_temp1
             set SKATE_IND = case when sas_style_description like ('% SKATE%') or vans_prodcat like '%SKATE%' then 1 else 0 END,
                 SURF_IND = case when sas_style_description like ('% SURF%') or vans_prodcat like '%SURF%' then 1 else 0 END,
@@ -1259,7 +1318,7 @@ class Xref_Job(Core_Job):
                                      vans_prodcat like '%SNOW%' then 1 else 0 END,
                 nonsegment_ind = case when mte_ind =1 or (VANS_SAS_PRODUCT_CATEGORY IN ('MENS CORE CLASSIC', 'KIDS PRODUCTS', 'WOMEN FASHION', 'MEN BRAND AFFINITY')) 
                                  then 0 else 1 end""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update22 = """update {0}.prodxref_clean_3_temp1
             set TRGT_Peanuts_FLAG = 1,
             		Peanuts_ind=1 
@@ -1268,7 +1327,7 @@ class Xref_Job(Core_Job):
             from {0}.vans_peanuts_style B
             where prodxref_clean_3_temp1.style_id = B.style_id
             )""".format(dbschema)
-
+    
             prodxref_clean_3_temp_update23 = """update {0}.prodxref_clean_3_temp1 
             set TRGT_Peanuts_like_FLAG = 1,
                 Peanuts_like_ind=1 
@@ -1391,7 +1450,6 @@ class Xref_Job(Core_Job):
 
 
         except Exception as error:
-            full_load_df = None
             status = False
             logger.error(
                 "Error Ocuured While processiong tr_clean_vans_xref due to : {}".format(
