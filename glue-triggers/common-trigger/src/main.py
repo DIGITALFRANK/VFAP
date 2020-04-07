@@ -1,6 +1,7 @@
 import json
 import boto3
 import os
+import time
 
 #environment = os.environ.get('environment', 'dev')
 environment = os.environ['environment']
@@ -10,6 +11,7 @@ gluejobname = f'vf-{environment}-transformed-job'
 def lambda_handler(event, context):
     # TODO implement
     print(event)
+    time.sleep(15)
 
     s3 = boto3.client('s3')
     glue = boto3.client('glue')

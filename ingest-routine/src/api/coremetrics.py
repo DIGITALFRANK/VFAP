@@ -6,6 +6,7 @@ from external_lib import requests
 from utils.dynamo_util import DynamoUtils
 from utils.secrets_util import SecretsUtil
 import sys
+import time
 from utils.s3_util import S3Client
 from utils.sns_obj import sns_notification
 import os
@@ -29,6 +30,7 @@ class coremetrics:
                   """
 
         try:
+            time.sleep(15)
             # get client_id, user_auth_key from secret manager
             secret_manager_key = api_params['secret_manager_key']
             client_id = secrets_util.get_secret(secret_manager_key, 'client_id')
@@ -84,25 +86,22 @@ class coremetrics:
                     f.write(new_xml_tree_string)
                 with open('/tmp/coremetrics.xml', 'r') as f, open('/tmp/coremetrics_root.xml', 'w') as g:
                     g.write("<root>{}</root>".format(f.read()))
-
-                #writing raw data to raw S3 bucket
-                s3_client.move_from_tmp_to_bucket("/tmp/coremetrics_root.xml",
-                                                  bucket_key_folder + "/" + "COREMETRICS_VANS_CM_{}.xml".format(
-                                                      yesterday_date), target_bucket)
-                #tree.write("/tmp/coremetrics" + str(i) + '.xml')
-
-				                #s3_client.move_from_tmp_to_bucket("/tmp/coremetrics{}.xml".format(i),
-                                                  #bucket_key_folder + "/"  + yesterday_date + "/COREMETRICS_VANS_CM_{}_{}_{}.xml".format(
-                                                      #yesterday_date, device_category[i], view_id_list[i]),
-                                                 # target_bucket)
             except Exception as e:
-                message = (
-                    f"Exception: {e} \nMessage: File coremetrics could not be"
-                    f"uploaded to S3 bucket {target_bucket}"
-                    "\nFunction name: coremetrics"
-                )
-                sns_notification(
-                    SNS_FAILURE_TOPIC,
-                    message,
-                    "General exception occurred."
-                )
+                print(e)
+        try:
+            #writing raw data to raw S3 bucket
+            s3_client.move_from_tmp_to_bucket("/tmp/coremetrics_root.xml",
+                                          bucket_key_folder + "/" + "COREMETRICS_VANS_CM_{}.xml".format(
+                                              yesterday_date), target_bucket)
+            time.sleep(15)
+        except Exception as error:
+            message = (
+                f"Exception: {error} \nMessage: File coremetrics could not be"
+                f"uploaded to S3 bucket {target_bucket}"
+                "\nFunction name: coremetrics"
+            )
+            sns_notification(
+                SNS_FAILURE_TOPIC,
+                message,
+                "General exception occurred."
+            )

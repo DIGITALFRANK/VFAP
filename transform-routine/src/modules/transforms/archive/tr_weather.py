@@ -50,9 +50,11 @@ class tr_weather(Dataprocessor_Job):
             df_weather = df_weather.withColumnRenamed("MaxTempLY[degF]", "MaxTempLY_degF")
             df_weather = df_weather.withColumnRenamed("MinTempNorm[degF]", "MinTempNorm_degf")
             df_weather = df_weather.withColumnRenamed("MaxTempNorm[degF]", "MaxTempNorm_degF")
-            #converting the file_date to the desired format
-            filedate = datetime.strptime(x[-1][0:8], '%Y%m%d')
-            df_file_date = df_weather.withColumn("file_date", lit(datetime.strftime(filedate, '%Y-%m-%d')))
+            # converting the file_date to the desired format
+            filedate = x[-1].strip('.csv')
+            # datetime.strptime(x[-1][0:8], '%Y%m%d')
+            # df_file_date = df_weather.withColumn("file_date", lit(datetime.strftime(filedate, '%Y-%m-%d')))
+            df_file_date = df_weather.withColumn("file_date", lit(filedate))
             df_insert = df_file_date.withColumn("ETL_INSERT_TIME", lit(now))
             df_update = df_insert.withColumn("ETL_UPDATE_TIME", lit(""))
             df_jobid = df_update.withColumn("JOB_ID", lit(job_id))
@@ -108,4 +110,4 @@ class tr_weather(Dataprocessor_Job):
             full_load_df = None
             logger.info("Error Occurred While processiong "
                         "tr_weather due to : {}".format(error))
-        return full_load_df, x[-1][0:8]
+        return full_load_df, filedate

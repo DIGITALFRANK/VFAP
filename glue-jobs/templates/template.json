@@ -50,7 +50,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,
 				  "FileNameArgument": "email_xref",
@@ -84,12 +84,46 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "loyalty_xref",
 				  "JobParamArgument": "NULL",
 				  "JobTypeArgument": "NULL",			
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"TNFMapTibco": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10, 
+				  "ScriptName": "map_main.py",
+				  "GlueJobName": "map-tnf-tibco",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 10,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,	
+				  "FileNameArgument": "NULL",
+				  "JobParamArgument": "weekly_map_tnf_tibco",
+				  "JobTypeArgument": "MAP",			
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
 				  "Application": { "Ref": "Application" },
@@ -118,7 +152,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "vans_clean_xref",
@@ -152,7 +186,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "cust_xref",
@@ -186,7 +220,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,
 				  "FileNameArgument": "NULL",
@@ -220,7 +254,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "tnf_style_xref_clean",
@@ -254,7 +288,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "NULL",
@@ -288,7 +322,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "NULL",
@@ -322,7 +356,7 @@
 				  "MaxConcurrentRuns":1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "cm_session_xref",
@@ -356,7 +390,7 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "NULL",
@@ -390,11 +424,79 @@
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,	
 				  "FileNameArgument": "NULL",
 				  "JobParamArgument": "weekly_map_wcs",
+				  "JobTypeArgument": "MAP",			
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"MapZetaEmail": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10, 
+				  "ScriptName": "map_main.py",
+				  "GlueJobName": "map-zeta-email",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 10,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,	
+				  "FileNameArgument": "NULL",
+				  "JobParamArgument": "weekly_map_zeta_email",
+				  "JobTypeArgument": "MAP",			
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"MapZetaPreference": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10, 
+				  "ScriptName": "map_main.py",
+				  "GlueJobName": "map-zeta-preference",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 10,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,	
+				  "FileNameArgument": "NULL",
+				  "JobParamArgument": "weekly_map_zeta_preference",
 				  "JobTypeArgument": "MAP",			
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },
@@ -424,7 +526,7 @@
 				  "MaxConcurrentRuns":1 ,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 10,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,
 				  "FileNameArgument": "NULL",
@@ -452,9 +554,9 @@
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
-				  "AllocatedCapacity": 10, 
+				  "AllocatedCapacity": 10,
 				  "ScriptName": "main.py",
-				  "GlueJobName": "daily-job",
+				  "GlueJobName": "daily-etl-job",
 				  "MaxConcurrentRuns": 70,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 8,
@@ -482,17 +584,214 @@
                 ]
             }
         },
-		"ReportingFileChecklist": {
+		"DailyInitJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": { 
+				  "ScriptName": "main_job_queue.py",
+				  "GlueJobName": "daily-init-job",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "Timeout": 480,			
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/daily-glue-etl-job.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"WeekWeatherSumJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "reporting_main.py",
+				  "GlueJobName": "week-weather-sum-job",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "reporting_week_weather_sum",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"ETLReportMissingDatesJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "reporting_main.py",
+				  "GlueJobName": "etl-report-missing-dates",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "Standard",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "reporting_etl_rpt_missing_dates",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"RptDedupeSummary": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "reporting_main.py",
+				  "GlueJobName": "rpt-dedupe-summary",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "Standard",
+				  "Timeout": 120,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "reporting_dedupe_summary",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"StatusReportJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "reporting_main.py",
+				  "GlueJobName": "status-report-job",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "Standard",
+				  "Timeout": 120,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "reporting_send_daily_etl_job_status_report",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"BuildEmailInputsJob": {
+			  "Type": "AWS::CloudFormation::Stack",
+			  "Properties": {
+				"Parameters": {
+				  "AllocatedCapacity": 10,
+				  "ScriptName": "reporting_main.py",
+				  "GlueJobName": "build-email-input-job",
+				  "MaxConcurrentRuns": 1,
+				  "MaxRetries": 0,
+				  "MaxCapacity": 8,
+				  "WorkerType": "G.2X",
+				  "Timeout": 480,
+				  "NumberOfWorkers": 8,
+				  "FileNameArgument": "reporting_csv_build_email_inputs",
+				  "JobParamArgument": "NULL",
+				  "JobTypeArgument": "NULL",				
+				  "Environment": { "Ref": "Environment" },
+				  "ResourceGroup": { "Ref": "ResourceGroup" },
+				  "Application": { "Ref": "Application" },
+				  "BusinessOwnerEmail": { "Ref": "BusinessOwnerEmail" },
+				  "TechOwnerEmail": { "Ref": "TechOwnerEmail" },
+				  "GlueRole": { "Ref": "GlueRole" }
+				},
+				"TemplateURL": "https://s3.amazonaws.com/vf-artifacts-bucket/vfap/glue-jobs/templates/glue-etl-jobs.json",
+                "Tags": [
+					  { "Key": "CostCenter", "Value": "118204800" },
+					  { "Key": "TechOwnerEmail", "Value": { "Ref": "TechOwnerEmail" } },
+					  { "Key": "Environment", "Value": { "Ref": "Environment" } },
+					  { "Key": "BusinessOwnerEmail", "Value": { "Ref": "BusinessOwnerEmail" } },
+					  { "Key": "ResourceGroup", "Value": { "Ref": "ResourceGroup" } },
+					  { "Key": "Application", "Value": { "Ref": "Application" } }
+                ]
+            }
+        },
+		"ReportingCRMFileChecklist": {
 			  "Type": "AWS::CloudFormation::Stack",
 			  "Properties": {
 				"Parameters": {
 				  "AllocatedCapacity": 10, 
 				  "ScriptName": "reporting_main.py",
-				  "GlueJobName": "reporting-file-checklist",
+				  "GlueJobName": "reporting-crm-file-checklist",
 				  "MaxConcurrentRuns": 1,
 				  "MaxRetries": 0,
 				  "MaxCapacity": 8,
-				  "WorkerType": "G.1X",
+				  "WorkerType": "G.2X",
 				  "Timeout": 480,
 				  "NumberOfWorkers": 8,
 				  "FileNameArgument": "reporting_crm_file_checklist",
@@ -518,7 +817,7 @@
         },
 		"WeeklyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingFileChecklist" ],
+			  "DependsOn" : [ "LoyaltyXRef" ,"VansCleanXRef", "CustomerXRef", "EmailXRef", "AdobeMap", "TNFCleanXRef", "EmailResponsysMap", "ExperianGoldMap", "CMSessionXRef", "CustomShoeMap", "WCSMap", "CoremetricsMAP", "ReportingCRMFileChecklist", "StatusReportJob", "BuildEmailInputsJob", "MapZetaEmail", "MapZetaPreference", "RptDedupeSummary", "TNFMapTibco" ],
 			  "Properties": {
 				"Parameters": {
 					"LoyaltyXRef": { "Fn::GetAtt": [ "LoyaltyXRef", "Outputs.JobName" ] },
@@ -533,7 +832,13 @@
 					"CustomShoeMap": { "Fn::GetAtt": [ "CustomShoeMap", "Outputs.JobName" ] },
 					"WCSMap": { "Fn::GetAtt": [ "WCSMap", "Outputs.JobName" ] },
 					"CoremetricsMAP": { "Fn::GetAtt": [ "CoremetricsMAP", "Outputs.JobName" ] },
-					"ReportingFileChecklist": { "Fn::GetAtt": [ "ReportingFileChecklist", "Outputs.JobName" ] },
+					"ReportingCRMFileChecklist": { "Fn::GetAtt": [ "ReportingCRMFileChecklist", "Outputs.JobName" ] },
+					"StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
+					"BuildEmailInputsJob": { "Fn::GetAtt": [ "BuildEmailInputsJob", "Outputs.JobName" ] },
+					"MapZetaEmail": { "Fn::GetAtt": [ "MapZetaEmail", "Outputs.JobName" ] },
+					"MapZetaPreference": { "Fn::GetAtt": [ "MapZetaPreference", "Outputs.JobName" ] },
+					"RptDedupeSummary": { "Fn::GetAtt": [ "RptDedupeSummary", "Outputs.JobName" ] },
+					"TNFMapTibco": { "Fn::GetAtt": [ "TNFMapTibco", "Outputs.JobName" ] },
 					"StartOnCreation" : { "Ref": "StartOnCreation" },
 				    "Environment": { "Ref": "Environment" },
 				    "ResourceGroup": { "Ref": "ResourceGroup" },
@@ -554,10 +859,13 @@
         },
 		"DailyGlueWorkflow": {
 			  "Type": "AWS::CloudFormation::Stack",
-			  "DependsOn" : [ "DailyETLJob" ],
+			  "DependsOn" : [ "DailyInitJob", "StatusReportJob", "ETLReportMissingDatesJob", "WeekWeatherSumJob" ],
 			  "Properties": {
 				"Parameters": {
-				  "DailyETLJob": { "Fn::GetAtt": [ "DailyETLJob", "Outputs.JobName" ] },
+				  "DailyInitJob": { "Fn::GetAtt": [ "DailyInitJob", "Outputs.JobName" ] },
+				  "StatusReportJob": { "Fn::GetAtt": [ "StatusReportJob", "Outputs.JobName" ] },
+				  "WeekWeatherSumJob": { "Fn::GetAtt": [ "WeekWeatherSumJob", "Outputs.JobName" ] },
+				  "ETLReportMissingDatesJob": { "Fn::GetAtt": [ "ETLReportMissingDatesJob", "Outputs.JobName" ] },
 				  "StartOnCreation" : { "Ref": "StartOnCreation" },
 				  "Environment": { "Ref": "Environment" },
 				  "ResourceGroup": { "Ref": "ResourceGroup" },

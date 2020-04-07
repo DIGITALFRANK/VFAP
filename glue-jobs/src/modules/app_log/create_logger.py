@@ -14,12 +14,23 @@ def get_logger(logger_name=None):
     try:
         key = utils.get_parameter_store_key()
         env_params = utils.get_param_store_configs(key)
-        if env_params["env_name"].lower() == "production":
+        if (
+            env_params["env_name"].lower() == "production"
+            or env_params["env_name"].lower() == "prod"
+        ):
             mode = logging.ERROR
-        elif env_params["env_name"].lower() == "qa":
+        elif (
+            env_params["env_name"].lower() == "qa"
+            or env_params["env_name"].lower() == "uat"
+        ):
             mode = logging.INFO
-        else:
+        elif (
+            env_params["env_name"].lower() == "development"
+            or env_params["env_name"].lower() == "dev"
+        ):
             mode = logging.DEBUG
+        else:
+            mode = logging.INFO
     except Exception as error:
         logging.error("Error file configuring logger {}".format(error))
         mode = logging.DEBUG

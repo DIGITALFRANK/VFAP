@@ -177,13 +177,29 @@ class DynamoUtils():
     def check_record(file_name, params):
         try:
             filetable = dynamo_db.Table(params['status_table'])
-            response = filetable.query(
-                # Select='ALL_ATTRIBUTES',
+            file_response = filetable.query(
                 KeyConditionExpression=Key('file_name').eq(file_name))
-            if response['Count'] >= 1:
-                return True
+            if file_response['Count'] == 1:
+                response = filetable.scan(
+                    FilterExpression=Attr('file_name').eq(file_name) & Attr(
+                        'job_status').eq('Success')
+                )
+                if response['Count'] == 1:
+                    return True
+                else:
+                    print("Record available with failed status.Deleting the "
+                          "record from the table")
+                    filetable.delete_item(
+                        Key={
+                            'file_name': file_name,
+                            'processing_date': file_response["Items"][0][
+                                "processing_date"]
+                            }
+                    )
+                    print("Record deleted from the DynamoDB table.")
+                    return False
             else:
                 return False
+
         except Exception as error:
-            logger.info(
-                "Error Occured in check_record due to : {}".format(error))
+            raise Exception("{}".format(error))

@@ -32,8 +32,10 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
         qdate1 = datetime.strptime(qdate1, '%Y%m%d')
         qdate = qdate1.strftime('%Y-%m-%d')
         env_params = self.env_params
-        query = "DELETE FROM vfap_retail.vfap_attribution WHERE day = '{}';".format(
-            qdate)
+        rs_schema = redshift_details["dbSchema"]
+        query = "DELETE FROM {}.vfap_attribution WHERE day = '{}';".format(
+            rs_schema, qdate)
+        print(query)
         delimiter = params["raw_source_file_delimiter"]
         # attribution_biweekly = \
         #     'digitallab/common_files/VF_ADOBE_BI_WEEKLY_ATTRIBUTION_CHANNEL.csv'
@@ -52,7 +54,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
             attribution_df.show()
             # Format date columns
             dfdate = df.withColumn("Date", date_format(
-                to_date(col("Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
+                to_date(col("day"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             dfdate = dfdate.withColumn("Prev_Date", date_format(
                 to_date(col("Prev_Date"), "yyyy-MM-dd"), "yyyy-MM-dd"))
             df_insert = dfdate.withColumn("ETL_INSERT_TIME", lit(now))
@@ -85,7 +87,6 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
 
             df_merge.show()
 
-
             # Join with weekly attribution files
             print("Create bi-weekly merge file")
             df_merge.createOrReplaceTempView("df_merge")
@@ -100,7 +101,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
                                   "attribution_df.Sales_Local, "
                                   "attribution_df.Sales_USD, "
                                   "attribution_df.Visits, "
-                                  "attribution_df.Weekly_Visits, "###
+                                  "attribution_df.Weekly_Visits, "
                                   "df_merge.BI_Weekly_Visits, "
                                   "attribution_df.Bounces, "
                                   "attribution_df.Entries, "
@@ -112,7 +113,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
                                   "attribution_df.Prev_Sales_Local, "
                                   "attribution_df.Prev_Sales_USD, "
                                   "attribution_df.Prev_Visits, "
-                                  "attribution_df.Prev_Weekly_Visits, "
+                                  "attribution_df.prev_weekly_visits, "
                                   "df_merge.prev_bi_weekly_visits, "
                                   "attribution_df.Prev_Bounces, "
                                   "attribution_df.Prev_Entries, "
@@ -143,6 +144,7 @@ class tr_adobe_attribution_biweekly_merge(Dataprocessor_merge):
         except Exception as error:
             full_load_df = None
             logger.info(
-                "Error Occured While processiong tr adobe attribution merge due to : {}".format(
-                    error))
+                "Error Occurred While processing tr adobe attribution bi "
+                "weekly merge due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df

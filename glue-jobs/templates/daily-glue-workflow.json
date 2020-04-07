@@ -28,8 +28,20 @@
             "Description": "The Technical Owner Email",
             "Type": "String"
         },
-		"DailyETLJob": {
-            "Description": "DailyETL Job name",
+		"DailyInitJob": {
+            "Description": "Daily init Job name",
+            "Type": "String"
+        },
+		"StatusReportJob": {
+            "Description": "Status Reporting Job name",
+            "Type": "String"
+        },
+		"WeekWeatherSumJob": {
+            "Description": "Week Weather Sum Job name",
+            "Type": "String"
+        },
+		"ETLReportMissingDatesJob": {
+            "Description": "ETL Report Missing Dates Job name",
             "Type": "String"
         },
 		"StartOnCreation": {
@@ -58,11 +70,11 @@
 		  "Type" : "AWS::Glue::Trigger",
 		  "Properties" : {
 			  "Actions" : [ 
-				{  "JobName" : { "Ref": "DailyETLJob" } }
+				{  "JobName" : { "Ref": "DailyInitJob" } }
 			  ],
 			  "Description" : "Glue workflow daily trigger",
 			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-job-trigger" ] ] },
-			  "Schedule" : "cron(0 22 * * ? *)",
+			  "Schedule" : "cron(0 22 ? * MON-THU *)",
 			  "StartOnCreation" : { "Ref": "StartOnCreation" },
 			  "Tags" : {
 				"CostCenter":"118204800",
@@ -73,6 +85,71 @@
 				"Application":{ "Ref": "Application" }
 			  },
 			  "Type" : "SCHEDULED",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"RunReportingTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "ETLReportMissingDatesJob" } },
+				{  "JobName" : { "Ref": "WeekWeatherSumJob" } }
+			  ],
+			  "Description" : "Run Reporting status trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "run-reporting-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "DailyInitJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					}
+				]
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
+			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
+			}
+		},
+		"DailyStatusReportTrigger": {
+		  "Type" : "AWS::Glue::Trigger",
+		  "Properties" : {
+			  "Actions" : [ 
+				{  "JobName" : { "Ref": "StatusReportJob" } }
+			  ],
+			  "Description" : "daily status trigger",
+			  "Name" : { "Fn::Join": [ "-", [ "vf", { "Ref": "Environment" }, "daily-status-trigger" ] ] },
+			  "Predicate" : {
+				"Conditions" : [ 
+					{
+					  "JobName" : { "Ref": "WeekWeatherSumJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					},
+					{
+					  "JobName" : { "Ref": "ETLReportMissingDatesJob" },
+					  "LogicalOperator" : "EQUALS",
+					  "State" : "SUCCEEDED"
+					} 
+				],
+				"Logical" : "AND"
+			  },
+			  "Tags" : {
+				"CostCenter":"118204800",
+				"TechOwnerEmail":{ "Ref": "TechOwnerEmail" },
+				"Environment":{ "Ref": "Environment" },
+				"BusinessOwnerEmail":{ "Ref": "BusinessOwnerEmail" },
+				"ResourceGroup":{ "Ref": "ResourceGroup" },
+				"Application":{ "Ref": "Application" }
+			  },
+			  "Type" : "CONDITIONAL",
 			  "WorkflowName" : { "Ref": "GlueWorkFlow" }
 			}
 		}

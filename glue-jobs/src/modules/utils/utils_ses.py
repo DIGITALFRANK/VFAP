@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from modules.config import ses_config
+from modules.constants import constant
 from pyspark.sql import DataFrame
 
 
@@ -179,6 +180,9 @@ def send_job_status_email(
 
     True if success - raises Exception otherwise
     """
+    if job_status is not constant.failure:
+        log.info("Abandoning job status email: job status email disabled for non-failing jobs")
+        return True
     log.info("Building job completion email notification")
     log.debug("Validating user input")
     if type(job_status) != str:
@@ -230,11 +234,43 @@ def send_job_status_email(
         + end_time
     )
 
-    # Construct body
-    if exception is not None:
-        body_text = "Job Failed - {0}".format(exception)
-    else:
-        body_text = "Job Successful!"
+    # Build HTML head
+    html_head = _create_html_report_string_head(log)
+
+    html_job_report = """
+    <table>
+      <tr>
+        <td>File Name</td>
+        <td>{0}</td>
+      </tr>
+      <tr>
+        <td>Job Status</td>
+        <td>{1}</td>
+      </tr>
+      <tr>
+        <td>Start Time</td>
+        <td>{2}</td>
+      </tr>
+      <tr>
+        <td>End Time</td>
+        <td>{3}</td>
+      </tr>
+      <tr>
+        <td>Error Message</td>
+        <td>{4}</td>
+      </tr>
+    </table>
+    """.format(
+        file_name, job_status, start_time, end_time, exception
+    )
+
+    html_footer = """
+    </body>
+    </html>
+    """
+
+    html_report = html_head + html_job_report + html_footer
+
     for recipient in recipient_list:
 
         _send_email_smtp(
@@ -243,8 +279,8 @@ def send_job_status_email(
             subject=subject,
             sender_name=sender_name,
             attachment=None,
-            body_text=body_text,
-            body_html=None,
+            body_text=None,
+            body_html=html_report,
             smtp_username=smtp_username,
             smtp_password=smtp_password,
             smtp_host=smtp_host,
@@ -306,7 +342,7 @@ def _append_spark_table_to_html_string(html_string, title, df, footnote, log):
     """
     # Build an HTML string specifying line and 4 spaces delimited table headers
     cols = df.columns
-    col_string = "\n    ".join(["<th>{0}</th>".format(col) for col in cols])
+    col_string = "\n    ".join(["<th>{0}</th>".format(col.upper()) for col in cols])
     html_string += """
 <p></p>
 <h4>{0}</h4>
@@ -519,10 +555,7 @@ def send_report_email(
         )
 
     html = build_html_summary(
-        dataframes=dataframes,
-        table_titles=table_titles,
-        footnote=footnote,
-        log=log,
+        dataframes=dataframes, table_titles=table_titles, footnote=footnote, log=log
     )
 
     for recipient in recipient_list:
@@ -543,6 +576,7 @@ def send_report_email(
         )
 
     return
+
 
 def send_absent_report_email(
     job_name,

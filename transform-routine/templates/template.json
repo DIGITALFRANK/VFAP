@@ -39,10 +39,9 @@
 		"MergeGlueStack": {
 		  "Type": "AWS::Glue::Job",
 		  "Properties": {
-			"AllocatedCapacity": 15,
+			"MaxCapacity": 2,
 			"Command": {
 			  "Name": "glueetl",
-			  "PythonVersion": "3",
 			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/main.py"
 			},
 			"Connections": {
@@ -77,10 +76,9 @@
 		"TransformGlueStack": {
 		  "Type": "AWS::Glue::Job",
 		  "Properties": {
-			"AllocatedCapacity": 20,
+			"MaxCapacity": 2,
 			"Command": {
 			  "Name": "glueetl",
-			  "PythonVersion": "3",
 			  "ScriptLocation": "s3://vf-artifacts-bucket/vfap/transform-routine/src/digital_main.py"
 			},
 			"Connections": {

@@ -145,6 +145,17 @@ from {cust_attribute} attr where attribute_grouping_code = 'VNBR' and sas_brand_
 where row_number = 1 """.format(
     cust_attribute=CUST_ATTRIBUTE_VIEW
 )
+
+# LOYALTY_XREF_QUERY = """create table {0}.LOYALTY_XREF
+# AS
+# SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT AS LOYA_ID
+# FROM
+# (SELECT CUSTOMER_ID,ATTRIBUTE_COMMENT,
+# ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID ORDER BY ATTRIBUTE_DATE DESC) AS row_number
+# FROM {0}.CUST_ATTRIBUTE attr
+# WHERE ATTRIBUTE_GROUPING_CODE = 'VNBR' AND SAS_BRAND_ID = 4
+# )
+# WHERE row_number = 1"""
 # --------------------------WEBS_XREF-------------------------------------------------------------------
 MAP_ADOBE_TEMP_VIEW = "cust_alt_key"
 WEBS_XREF_QUERY = """select sas_brand_id,webs_customer_id,max(customer_id) as customer_id
@@ -278,7 +289,8 @@ Raise info ''only_1_new_customer_qry executed successfully'';
 old_customers_to_find_new_customer_qry = ''create temp table old_customers_to_find_new_customer_itr1 as
 select old_customer_no,new_customer_no
 from unique_customers_to_find 
-where old_cust  is null  and new_cust is not null'';
+where old_customer_no not in ( select distinct old_customer_no from only_1_new_customer)'';
+
 
 EXECUTE old_customers_to_find_new_customer_qry;
 Raise info ''old_customers_to_find_new_customer_qry executed successfully'';
@@ -355,3 +367,284 @@ Raise info ''Append_brand_id_qry executed successfully!!'';
 END;
 ' LANGUAGE plpgsql;
 """
+
+# --------------------------REPORTING JOB CONFIGURATIONS -------------------------
+
+transpose_stored_procedure = """CREATE OR REPLACE PROCEDURE {0}.create_transpose_tables(query_out INOUT VARCHAR(max) ,query_sum_out INOUT varchar(max) ,category IN VARCHAR , var_list IN VARCHAR )
+AS '
+ 
+DECLARE 
+ customer_rec record;
+ full_query varchar(max);
+ dist_qry varchar;
+ tmp_tbl_qry varchar;
+ drop_tbl_qry varchar;
+ cat varchar;
+ var_nm varchar;
+ 
+BEGIN
+ 
+dist_qry = ''create temp table distinct_'' + category + '' as select distinct '' + category + '' from {0}.temp_tnf_''+ category +''_metrics''; 
+Raise info ''dist_qry : %'',dist_qry;
+Execute dist_qry;
+tmp_tbl_qry = ''select ''+ category +'' as category from distinct_'' + category;
+Raise info ''tmp_tbl_qry : %'',tmp_tbl_qry;
+ 
+for customer_rec in Execute tmp_tbl_qry loop
+cat = customer_rec.category;
+var_nm = category + ''_'' + var_list+ ''_'' + cat;
+ 
+query_out := query_out||'',case when ''+ category + ''= ''||quote_literal(cat)||'' then '' + var_list + '' else null end as ''||var_nm;
+Raise info ''query_out : %'',query_out;
+ 
+query_sum_out := query_sum_out||'',sum(''||var_nm||'') as '' + var_nm ;
+Raise info ''query_sum_out : %'',query_sum_out;
+end loop; 
+ 
+drop_tbl_qry = ''drop table if exists {0}.''+ category + ''_csv_''+var_list;
+EXECUTE drop_tbl_qry;
+full_query = ''create table {0}.''+ category + ''_csv_''+var_list+'' DISTKEY(customer_id_'' + category + ''_'' + var_list+'') as ( with ''+ category + ''_csv_''+var_list+'' as ( 
+ select customer_id as customer_id_'' + category + ''_'' + var_list || query_out || '' from {0}.temp_tnf_''+ category +''_metrics ) select customer_id_''+category + ''_'' + var_list||query_sum_out||'' from ''
+ + category + ''_csv_''+var_list + '' group by customer_id_'' +category + ''_'' + var_list+'' )'';
+Raise info ''Full Query : %'',full_query;
+EXECUTE full_query ;
+Raise info ''Query Executed successfully'';
+ 
+ 
+END;
+' LANGUAGE plpgsql;"""
+
+dedup_summary_non_wcs = """CREATE OR REPLACE PROCEDURE {0}.dedup_summary_non_wcs(sas_brand_id IN integer,input_table varchar(max), key_var varchar(max))
+AS'
+DECLARE 
+create_dup_for_each_table_qry varchar(max);
+create_unq_for_each_table_qry varchar(max);
+drop_dup_summary_qry varchar(max);
+create_dup_summary_qry varchar(max);
+insert_into_final_table_qry varchar(max);
+ 
+BEGIN
+drop_dup_summary_qry = ''drop table if exists {0}.dup_summary'';
+create_dup_summary_qry = ''create table if not exists {0}.dup_summary
+  (Observations integer, 
+ Output_Table_Name varchar(300),
+ Created_Date timestamp, 
+ Keys varchar(1000), 
+ Brand varchar(5), 
+ Dup varchar(5)
+ )'';
+ 
+ Raise info ''create_dup_summary_qry : %'',create_dup_summary_qry;
+ --Execute drop_dup_summary_qry;
+ Execute create_dup_summary_qry;
+ 
+create_dup_for_each_table_qry = ''create temp table '' + input_table+''_DUP''+SAS_BRAND_ID+'' as
+select *,
+case
+ 
+when '' + SAS_BRAND_ID + ''=4 then ''''tnf'''' when '' + SAS_BRAND_ID + ''=7 then ''''vans'''' else ''''ERROR'''' end as Brand,
+case
+when Observations > 0 then ''''Y''''
+when Observations = 0 then ''''N''''
+else ''''ERROR''''
+end as Dup from (
+SELECT count(*) as Observations, 
+upper('''''' + input_table+''_DUP''+SAS_BRAND_ID+'''''') as Output_Table_Name,
+current_timestamp as Created_Date, 
+upper('''''' + key_var + '''''') as keys
+FROM
+(SELECT 
+row_number() over (partition BY '' + key_var + '' order by ''+ key_var + '') rn
+FROM {0}.'' + input_table + ''
+where
+sas_brand_id = '' + sas_brand_id + ''
+)
+WHERE rn <> 1
+)'';
+ 
+create_unq_for_each_table_qry = ''create temp table '' + input_table+''_UNQ''+SAS_BRAND_ID+'' as
+select *,
+case
+when '' + SAS_BRAND_ID + ''=4 then ''''tnf'''' when '' + SAS_BRAND_ID + ''=7 then ''''vans'''' else ''''ERROR'''' end as Brand,
+case
+when Observations > 0 then ''''N''''
+when Observations = 0 then ''''Y''''
+else ''''ERROR''''
+end as Dup from (
+SELECT count(*) as Observations, 
+upper('''''' + input_table+''_UNQ''+SAS_BRAND_ID+'''''') as Output_Table_Name,
+current_timestamp as Created_Date, 
+upper('''''' + key_var + '''''') as keys
+FROM
+(SELECT 
+row_number() over (partition BY '' + key_var + '' order by ''+ key_var + '') rn
+FROM {0}.'' + input_table + ''
+where
+sas_brand_id = '' + sas_brand_id + ''
+)
+WHERE rn = 1
+)'';
+ 
+insert_into_final_table_qry = ''Insert into {0}.dup_summary (select * from ''+ input_table+''_UNQ''+SAS_BRAND_ID + '' 
+union all select * from ''+ input_table+''_DUP''+SAS_BRAND_ID+'')'';
+ 
+
+ 
+EXECUTE create_dup_for_each_table_qry;
+EXECUTE create_unq_for_each_table_qry;
+Execute insert_into_final_table_qry;
+Raise info ''create_dup_for_each_table : %'',create_dup_for_each_table_qry;
+Raise info ''create_unq_for_each_table : %'',create_unq_for_each_table_qry;
+ 
+END;
+'LANGUAGE plpgsql;"""
+
+
+dedup_summary_wcs = """CREATE OR REPLACE PROCEDURE {0}.dedup_summary_wcs(sas_brand_id IN integer,input_table varchar(max), key_var varchar(max), email varchar(max))
+AS'
+DECLARE 
+create_dup_for_each_table_qry varchar(max);
+create_unq_for_each_table_qry varchar(max);
+drop_dup_summary_qry varchar(max);
+create_dup_summary_qry varchar(max);
+insert_into_final_table_qry varchar(max);
+ 
+BEGIN
+drop_dup_summary_qry = ''drop table if exists {0}.dup_summary'';
+create_dup_summary_qry = ''create table if not exists {0}.dup_summary
+  (Observations integer, 
+ Output_Table_Name varchar(300),
+ Created_Date timestamp, 
+ Keys varchar(1000), 
+ Brand varchar(5), 
+ Dup varchar(5)
+ )'';
+ 
+ Raise info ''create_dup_summary_qry : %'',create_dup_summary_qry;
+ --Execute drop_dup_summary_qry;
+ Execute create_dup_summary_qry;
+ 
+create_dup_for_each_table_qry = ''create temp table '' + input_table+''_DUP''+SAS_BRAND_ID+'' as
+select *,
+case
+ 
+when '' + SAS_BRAND_ID + ''=4 then ''''tnf'''' when '' + SAS_BRAND_ID + ''=7 then ''''vans'''' else ''''ERROR'''' end as Brand,
+case
+when Observations > 0 then ''''Y''''
+when Observations = 0 then ''''N''''
+else ''''ERROR''''
+end as Dup from (
+SELECT count(*) as Observations, 
+upper('''''' + input_table+''_DUP''+SAS_BRAND_ID+'''''') as Output_Table_Name,
+current_timestamp as Created_Date, 
+upper('''''' + key_var + '''''') as keys
+FROM
+(SELECT 
+row_number() over (partition BY '' + key_var + '' order by ''+ key_var + '') rn
+FROM {0}.'' + input_table + ''
+where
+sas_brand_id = '' + sas_brand_id + '' and '' + email + '' is not null
+)
+WHERE rn <> 1
+)'';
+ 
+create_unq_for_each_table_qry = ''create temp table '' + input_table+''_UNQ''+SAS_BRAND_ID+'' as
+select *,
+case
+when '' + SAS_BRAND_ID + ''=4 then ''''tnf'''' when '' + SAS_BRAND_ID + ''=7 then ''''vans'''' else ''''ERROR'''' end as Brand,
+case
+when Observations > 0 then ''''N''''
+when Observations = 0 then ''''Y''''
+else ''''ERROR''''
+end as Dup from (
+SELECT count(*) as Observations, 
+upper('''''' + input_table+''_UNQ''+SAS_BRAND_ID+'''''') as Output_Table_Name,
+current_timestamp as Created_Date, 
+upper('''''' + key_var + '''''') as keys
+FROM
+(SELECT 
+row_number() over (partition BY '' + key_var + '' order by ''+ key_var + '') rn
+FROM {0}.'' + input_table + ''
+where
+sas_brand_id = '' + sas_brand_id + '' and '' + email + '' is not null
+)
+WHERE rn = 1
+)'';
+ 
+insert_into_final_table_qry = ''Insert into {0}.dup_summary (select * from ''+ input_table+''_UNQ''+SAS_BRAND_ID + '' 
+union all select * from ''+ input_table+''_DUP''+SAS_BRAND_ID+'')'';
+ 
+
+ 
+EXECUTE create_dup_for_each_table_qry;
+EXECUTE create_unq_for_each_table_qry;
+Execute insert_into_final_table_qry;
+Raise info ''create_dup_for_each_table : %'',create_dup_for_each_table_qry;
+Raise info ''create_unq_for_each_table : %'',create_unq_for_each_table_qry;
+ 
+END;
+'LANGUAGE plpgsql;"""
+
+
+execute_stp_wcs_non_wcs = """CREATE OR REPLACE PROCEDURE {0}.execute_stp_wcs_non_wcs()
+AS'
+
+BEGIN
+Execute ''drop table if exists {0}.dup_summary'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''ADDRESS'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''ADDRESS'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CLASS'''',''''class_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CLASS'''',''''class_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''COLOR'''',''''color_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''COLOR'''',''''color_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CUST'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CUST'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CUST_ALT_KEY'''',''''customer_id, alternate_key, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CUST_ALT_KEY'''',''''customer_id, alternate_key, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CUST_ATTRIBUTE'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CUST_ATTRIBUTE'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CUST_XREF'''',''''old_customer_no, new_customer_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CUST_XREF'''',''''old_customer_no, new_customer_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''DEPT'''',''''department_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''DEPT'''',''''department_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''PRODUCTXREF'''',''''product_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''PRODUCTXREF'''',''''product_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''REGION'''',''''region_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''REGION'''',''''region_code, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''STORE'''',''''store_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''STORE'''',''''store_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''STYLE'''',''''style_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''STYLE'''',''''style_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''TRANS_CATEGORY'''',''''transaction_category, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''TRANS_CATEGORY'''',''''transaction_category, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''TRANS_DETAIL'''',''''transaction_id, transaction_line_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''TRANS_DETAIL'''',''''transaction_id, transaction_line_no, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''TRANS_HEADER'''',''''transaction_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''TRANS_HEADER'''',''''transaction_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''VANS_COUPON'''',''''detail_line_number, pos_trans_no, store, register, transaction_date, deal_number, event_number, promotion_amount, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''EXPERIAN_BRONZE'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''EXPERIAN_BRONZE'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''EXPERIAN_GOLD'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''EXPERIAN_GOLD'''',''''customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_ABANDON'''',''''session_id, cookie_id, ts, product_id, abandonment_attribute_1, abandonment_attribute_2, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CM_ABANDON'''',''''session_id, cookie_id, ts, product_id, abandonment_attribute_1, abandonment_attribute_2, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_CONVERSION'''',''''session_id, cookie_id, ts, event_action_type, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_PAGEVIEW'''',''''session_id, cookie_id, ts, page, page_id, page_url, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_PRODUCTVIEW'''',''''session_id, cookie_id, ts, product_name, product_id, page_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CM_PRODUCTVIEW'''',''''session_id, cookie_id, ts, product_name, product_id, page_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_REGISTRATION'''',''''session_id, cookie_id, registration_id, email_address, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CM_REGISTRATION'''',''''session_id, cookie_id, registration_id, email_address, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_SESSION_FIRST_PAGE_VIEW'''',''''session_id, cookie_id, first_ts, ip_address, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''CM_SESSION_XREF'''',''''session_id, customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(7,''''CM_SESSION_XREF'''',''''session_id, customer_id, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_non_wcs(4,''''TNF_TIBCO'''',''''loyaltylabrewardid, firstname, lastname, processdatetime, pointbalanceextractdate, SAS_BRAND_ID'''')'';
+Execute ''call {0}.dedup_summary_wcs(4,''''TNF_WCS_ABANDONED_WISH_CART'''',''''customer_id, email, versioncode, firstname, lastname, product_id, cart_itm_dt, SAS_BRAND_ID'''',''''email'''')'';
+Execute ''call {0}.dedup_summary_wcs(4,''''TNF_WCS_RETURNS_US'''',''''customer_id, productid, orderid, userid, price, dt, rmaid, emailid, SAS_BRAND_ID'''',''''emailid'''')'';
+Execute ''call {0}.dedup_summary_wcs(7,''''VANS_WCS_ABANDONED_CART'''',''''email, product_id, cartlisturl, cart_itm_dt, SAS_BRAND_ID'''',''''email'''')'';
+Execute ''call {0}.dedup_summary_wcs(7,''''VANS_WCS_RETURNS_US'''',''''customer_id, productid, orderid, userid, rmaid, emailid, price, dt, SAS_BRAND_ID'''',''''emailid'''')'';
+Execute ''call {0}.dedup_summary_wcs(7,''''VANS_WCS_WISHLIST'''',''''customer_id, firstname, lastname, product_id,
+cart_itm_dt, cartlisturl, email, versioncode, SAS_BRAND_ID'''',''''email'''')''; 
+
+END;
+
+'LANGUAGE plpgsql;"""

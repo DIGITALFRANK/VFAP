@@ -75,6 +75,13 @@ class rf_google:
                             lst_final[z]['vgtimeonpage'], lst_final[z]['pageviews'], lst_final[z]['vgSessionDuration'],
                             lst_final[z]['visitbouncerate'], lst_final[z]['users'], lst_final[z]['Profile_id'],
                             lst_final[z]['Profile']])
+            with open('/tmp/GOOGLE_ANALYTICS_GOOGLEANALYTICS.csv') as file:
+                data = list(csv.reader(file))
+                new_data = [a for i, a in enumerate(data) if a not in data[:i]]
+            with open('/tmp/GOOGLE_ANALYTICS_GOOGLEANALYTICS.csv', 'w') as t:
+                write = csv.writer(t)
+                write.writerows(new_data)
+
         except Exception as error:
             print(error)
         return '/tmp/GOOGLE_ANALYTICS_GOOGLEANALYTICS.csv', lst_final[0]['date']

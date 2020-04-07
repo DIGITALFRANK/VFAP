@@ -100,6 +100,7 @@ class tr_coremetrics_ecomm(Dataprocessor_Job):
             logger.info("Transformed DF Count : {}".format(full_load_df.count()))
         except Exception as error:
             full_load_df = None
-            logger.info("Error Occurred While processiong "
+            logger.info("Error Occurred While processing "
                         "tr_coremetrics_ecomm due to : {}".format(error))
+            raise Exception("{}".format(error))
         return full_load_df, date
