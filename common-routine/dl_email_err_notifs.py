@@ -2,14 +2,29 @@ import boto3
 from botocore.exceptions import ClientError
 from datetime import datetime
 
+"""
+This module handles email notification in case of any error while processing any file within the DL pipeline
+"""
+
+## in transform-routine >> src >> digital_main.py,
+## add the following import
+# from common-routine.dl_email_err_notifs import send_err_notif_email
+
+## add the following line at the end of the Error Handling code block
+## BEFORE the last line [ raise Exception("{}".format(error)) ]
+# send_err_notif_email(environment, file_name, data_source, job_run_id, error)
+
+## can you get env & data source from Dynamo Config table?? -- read the main.py code
+## make sure all these params are available within digital_main.py, and are passed to the function
+
 
 def send_err_notif_email(environment, file_name, data_source, job_run_id, exception):
     # create a new SES resource and specify a region
     client = boto3.client('ses', region_name="us-east-1")
     # sender address must be verified with Amazon SES
-    sender = "DL Notifications <retail_analytics@mail.vfc.com>"
+    sender = "DL Notifications <francis_agbodji@vfc.com>"  # change to retail_analytics@mail.vfc.com?
     # if your account is still in the sandbox, recipient address must be verified as well
-    recipient = "frank@digitalfrank.com"
+    recipient = "frank@digitalfrank.com"  # change to vfap team?
     # subject line for the email
     subject = f"{environment} - {file_name} failed: {datetime.utcnow()}"
     # character encoding for the email
@@ -72,11 +87,3 @@ def send_err_notif_email(environment, file_name, data_source, job_run_id, except
         print(response['MessageId'])
 
 
-## add the following import in DL "main.py"
-# from common-routine.dl_email_err_notifs import send_err_notif_email
-
-## in transform-routine >> src >> digital_main.py,
-## add the following line at the end of the Error Handling code block
-## BEFORE the last line [ raise Exception("{}".format(error)) ]
-# send_err_notif_email(environment, file_name, data_source, job_run_id, error)
-## can you get env & data source from Dynamo Config table?? -- read the main.py code
