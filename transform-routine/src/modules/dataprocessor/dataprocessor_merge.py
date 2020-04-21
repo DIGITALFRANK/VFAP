@@ -325,6 +325,20 @@ class Dataprocessor_merge:
                 df_merged = df_merged_initial.union(df3)
                 transformed_df = tr_obj.transform(df_merged)
                 transformed_df.show()
+
+
+                ### BEGIN FRANK'S EDITS
+                merge_job_record_count = transformed_df.count()
+                sources = [df1, df2, df3]
+                missing_sources = []
+                for source in sources:
+                    if source.count() == 0:
+                        missing_sources.append(source)
+                if missing_sources != []:
+                    send_ecomm_merge_missing_file_notif(environment, missing_sources, merge_job_record_count, date):
+                ### END FRANK'S EDITS
+
+
                 status = tr_obj.write_to_tgt(
                     df=transformed_df,
                     mode='append',

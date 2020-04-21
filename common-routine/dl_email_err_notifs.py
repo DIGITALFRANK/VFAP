@@ -120,7 +120,7 @@ elif df2.count() == 0:
 """
 
 
-def send_ecomm_merge_missing_file_notif(environment, file_source, merge_job_record_count, date):
+def send_ecomm_merge_missing_file_notif(environment, file_sources, merge_job_record_count, date): # file_sources in a list []
     """
     Works with modules.dataprocessor.dataprocessor_merge.process
     Sends email in case of missing source file
@@ -133,10 +133,10 @@ def send_ecomm_merge_missing_file_notif(environment, file_source, merge_job_reco
     """
 
     # subject line for the email
-    subject = f"{upper(environment)} - {file_source} missing for E-COMM MERGE: {str(datetime.utcnow())}"
+    subject = f"{upper(environment)} - {file_sources} missing for E-COMM MERGE: {str(datetime.utcnow())}"
 
     # email body for recipients with non-HTML clients.
-    body_text = (f"{upper(environment)} - {file_source} failed:\r\n"
+    body_text = (f"{upper(environment)} - {file_source} failed:\r\n" # todo: figure out how to pass list of possible multiple sources
                  f"Data Source: {file_source}"
                  f"Ecomm Merge Record Count: {merge_job_record_count}"
                  f"Date: {str(date)}"
