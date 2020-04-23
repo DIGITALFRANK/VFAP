@@ -339,6 +339,37 @@ class Dataprocessor_merge:
                 ### END FRANK'S EDITS
 
 
+                ### BEGIN FRANK'S EDITS - READ FROM S3 ###
+                import boto3
+                s3 = boto3.client("s3")
+                expected_file_counts = {
+                "Adobe Analytics": 11,
+                "Google Analytics": 1,
+                "CoreMetrics": 1
+                }
+                sources_file_counts = {}
+                missing_sources = []
+                final_merge_job_record_count = transformed_df.count()
+
+                sources_file_counts["Adobe Analytics"] = len(s3.list_objects_v2(
+                    Bucket=env_params["transformed_bucket"],
+                    Prefix=env_params["adobe_source_dir"] + "/" + date
+                ))
+                sources_file_counts["Google Analytics"] = len(s3.list_objects_v2(
+                    Bucket=env_params["transformed_bucket"],
+                    Prefix=env_params["google_source_dir"] + "/" + date
+                ))
+                sources_file_counts["CoreMetrics"] = len(s3.list_objects_v2(
+                    Bucket=env_params["transformed_bucket"],
+                    Prefix=env_params["coremetricse_source_dir"] + "/" + date
+                ))
+                expected = expected_file_counts.items()
+                sources = sources_file_counts.items()
+                for source in sources:
+                    if source[]
+                ### BEGIN FRANK'S EDITS - READ FROM S3 ###
+
+
                 status = tr_obj.write_to_tgt(
                     df=transformed_df,
                     mode='append',
