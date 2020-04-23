@@ -342,15 +342,16 @@ class Dataprocessor_merge:
                 ### BEGIN FRANK'S EDITS - READ FROM S3 ###
                 import boto3
                 s3 = boto3.client("s3")
+                environment = env_params["transformed_bucket"].split('-')[2]
+                job_run_id = "?"
+                # records we expect for the Ecomm Merge job to run appropriately
                 expected_file_counts = {
                 "Adobe Analytics": 11,
                 "Google Analytics": 1,
                 "CoreMetrics": 1
                 }
+                # programmatically get actual number of files received in s3 for each source
                 sources_file_counts = {}
-                missing_sources = []
-                final_merge_job_record_count = transformed_df.count()
-
                 sources_file_counts["Adobe Analytics"] = len(s3.list_objects_v2(
                     Bucket=env_params["transformed_bucket"],
                     Prefix=env_params["adobe_source_dir"] + "/" + date
@@ -363,11 +364,22 @@ class Dataprocessor_merge:
                     Bucket=env_params["transformed_bucket"],
                     Prefix=env_params["coremetricse_source_dir"] + "/" + date
                 ))
+                # compare the two and calculate number of missing files
                 expected = expected_file_counts.items()
                 sources = sources_file_counts.items()
-                for source in sources:
-                    if source[]
-                ### BEGIN FRANK'S EDITS - READ FROM S3 ###
+                # Todo: use zip() to compare both lists for matches and set apart mismatches to calculate number of missing files
+                missing_sources = [(i[0], int(i[1]) - int(j[1])) for i, j in zip(expected, sources) if i[1] != j[1]]
+                final_merge_job_record_count = transformed_df.count()
+                # if there are missing files, send notification
+                if missing_sources != []:
+                    send_ecomm_merge_missing_file_notif(
+                        environment,
+                        missing_sources,
+                        final_merge_job_record_count,
+                        date,
+                        job_run_id
+                    )
+                ### END FRANK'S EDITS - READ FROM S3 ###
 
 
                 status = tr_obj.write_to_tgt(
