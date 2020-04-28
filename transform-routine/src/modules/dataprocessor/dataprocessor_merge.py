@@ -327,16 +327,30 @@ class Dataprocessor_merge:
                 transformed_df.show()
 
 
-                ### BEGIN FRANK'S EDITS
-                merge_job_record_count = transformed_df.count()
-                sources = [df1, df2, df3]
-                missing_sources = []
-                for source in sources:
-                    if source.count() == 0:
-                        missing_sources.append(source)
-                if missing_sources != []:
-                    send_ecomm_merge_missing_file_notif(environment, missing_sources, merge_job_record_count, date):
-                ### END FRANK'S EDITS
+                ### BEGIN FRANK'S EDITS - READ FROM DATAFRAME
+                # merge_job_record_count = transformed_df.count()
+                # sources = [df1, df2, df3]
+                # missing_sources = []
+                # for source in sources:
+                #     if source.count() == 0:
+                #         missing_sources.append(source)
+                # if missing_sources != []:
+                #     # use following syntax import if Glue packages entire feature-final/master branch for jobs
+                #     # & common module can be accessible to both DL & CLM
+                #     # else move common-routine module to DL directory (transfrom-routine)
+                #     # & use below commented out import
+                #     # from common-routine import dl_email_err_notifs
+                #     import sys
+                #     sys.path.insert(1, '/common-routine')
+                #     import dl_email_err_notifs
+                #     dl_email_err_notifs.send_ecomm_merge_missing_file_notif(
+                #         environment,
+                #         missing_sources,
+                #         final_merge_job_record_count,
+                #         date,
+                #         job_run_id
+                #     )
+                ### END FRANK'S EDITS - READ FROM DATAFRAME
 
 
                 ### BEGIN FRANK'S EDITS - READ FROM S3 ###
@@ -346,24 +360,25 @@ class Dataprocessor_merge:
                 job_run_id = "?"
                 # records we expect for the Ecomm Merge job to run appropriately
                 expected_file_counts = {
-                "Adobe Analytics": 11,
-                "Google Analytics": 1,
-                "CoreMetrics": 1
+                    "Adobe Analytics": 11,
+                    "Google Analytics": 1,
+                    "CoreMetrics": 1
                 }
                 # programmatically get actual number of files received in s3 for each source
-                sources_file_counts = {}
-                sources_file_counts["Adobe Analytics"] = len(s3.list_objects_v2(
-                    Bucket=env_params["transformed_bucket"],
-                    Prefix=env_params["adobe_source_dir"] + "/" + date
-                ))
-                sources_file_counts["Google Analytics"] = len(s3.list_objects_v2(
-                    Bucket=env_params["transformed_bucket"],
-                    Prefix=env_params["google_source_dir"] + "/" + date
-                ))
-                sources_file_counts["CoreMetrics"] = len(s3.list_objects_v2(
-                    Bucket=env_params["transformed_bucket"],
-                    Prefix=env_params["coremetricse_source_dir"] + "/" + date
-                ))
+                sources_file_counts = {
+                    "Adobe Analytics": len(s3.list_objects_v2(
+                        Bucket=env_params["transformed_bucket"],
+                        Prefix=env_params["adobe_source_dir"] + "/" + date
+                    )),
+                    "Google Analytics": len(s3.list_objects_v2(
+                        Bucket=env_params["transformed_bucket"],
+                        Prefix=env_params["google_source_dir"] + "/" + date
+                    )),
+                    "CoreMetrics": len(s3.list_objects_v2(
+                        Bucket=env_params["transformed_bucket"],
+                        Prefix=env_params["coremetricse_source_dir"] + "/" + date
+                    ))
+                }
                 # compare the two and calculate number of missing files
                 expected = expected_file_counts.items()
                 sources = sources_file_counts.items()
@@ -372,7 +387,15 @@ class Dataprocessor_merge:
                 final_merge_job_record_count = transformed_df.count()
                 # if there are missing files, send notification
                 if missing_sources != []:
-                    send_ecomm_merge_missing_file_notif(
+                    # use following syntax import if Glue packages entire feature-final/master branch for jobs
+                    # & common module can be accessible to both DL & CLM
+                    # else move common-routine module to DL directory (transfrom-routine)
+                    # & use below commented out import
+                    # from common-routine import dl_email_err_notifs
+                    import sys
+                    sys.path.insert(1, '/common-routine')
+                    import dl_email_err_notifs
+                    dl_email_err_notifs.send_ecomm_merge_missing_file_notif(
                         environment,
                         missing_sources,
                         final_merge_job_record_count,

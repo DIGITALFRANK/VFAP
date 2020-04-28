@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="3af57528-7822-4e60-82ce-edd95bbafb37" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/common-routine/dl_email_err_notifs.py" beforeDir="false" afterPath="$PROJECT_DIR$/common-routine/dl_email_err_notifs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/dataprocessor_merge.py" beforeDir="false" afterPath="$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/dataprocessor_merge.py" afterDir="false" />
     </list>
@@ -15,33 +16,34 @@
     <session id="-307957206">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="6" />
+          <entry key="project.closed" value="7" />
           <entry key="project.open.time.0" value="2" />
           <entry key="project.open.time.1" value="1" />
           <entry key="project.open.time.2" value="2" />
           <entry key="project.open.time.3" value="1" />
           <entry key="project.open.time.5" value="2" />
-          <entry key="project.opened" value="8" />
+          <entry key="project.open.time.6" value="1" />
+          <entry key="project.opened" value="9" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="py" value="13" />
+          <entry key="py" value="15" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Python" value="13" />
+          <entry key="Python" value="15" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="3633" />
+          <entry key="py" value="4539" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="3633" />
+          <entry key="Python" value="4539" />
         </counts>
       </usages-collector>
     </session>
@@ -51,8 +53,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/transform-routine/src/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-483">
-              <caret lean-forward="true" />
+            <state relative-caret-position="-1063">
               <folding>
                 <element signature="e#0#69#0" expanded="true" />
               </folding>
@@ -63,8 +64,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/dataprocessor_merge.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-114">
-              <caret line="345" column="31" selection-start-line="345" selection-start-column="31" selection-end-line="345" selection-end-column="31" />
+            <state relative-caret-position="623">
+              <caret line="398" column="36" lean-forward="true" selection-start-line="398" selection-start-column="36" selection-end-line="398" selection-end-column="36" />
               <folding>
                 <element signature="e#0#14#0" expanded="true" />
               </folding>
@@ -73,9 +74,20 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/utils/utils_dataprocessor.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-467">
+              <folding>
+                <element signature="e#0#11#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/transform-routine/src/digital_main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-725">
+            <state relative-caret-position="-157">
               <folding>
                 <element signature="e#0#69#0" expanded="true" />
               </folding>
@@ -86,11 +98,12 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/common-routine/dl_email_err_notifs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="125">
-              <caret line="122" column="107" selection-start-line="122" selection-start-column="97" selection-end-line="122" selection-end-column="107" />
+            <state relative-caret-position="-1042">
+              <caret line="68" column="24" selection-start-line="68" selection-start-column="4" selection-end-line="68" selection-end-column="24" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
-                <marker date="1587657133507" expanded="true" signature="3847:3852" ph="..." />
+                <marker date="1587846359643" expanded="true" signature="1425:2378" ph="..." />
+                <marker date="1587846359643" expanded="true" signature="3773:3778" ph="..." />
               </folding>
             </state>
           </provider>
@@ -110,8 +123,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/clm-ingest-unzip-test/src/main.py" />
-        <option value="$PROJECT_DIR$/common-routine/dl_email_err_notifs.py" />
         <option value="$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/dataprocessor_merge.py" />
+        <option value="$PROJECT_DIR$/common-routine/dl_email_err_notifs.py" />
       </list>
     </option>
   </component>
@@ -142,7 +155,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -181,10 +193,19 @@
               <item name="modules" type="462c0819:PsiDirectoryNode" />
               <item name="dataprocessor" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="vfap" type="b2602c69:ProjectViewProjectNode" />
+              <item name="vfap" type="462c0819:PsiDirectoryNode" />
+              <item name="transform-routine" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="modules" type="462c0819:PsiDirectoryNode" />
+              <item name="utils" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -219,7 +240,7 @@
     <frame x="0" y="23" width="1680" height="1027" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.22893773" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.23137973" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -266,19 +287,30 @@
     <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/__init__.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/transform-routine/src/main.py">
+    <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/utils/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/utils/utils_dataprocessor.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-483">
-          <caret lean-forward="true" />
+        <state relative-caret-position="-467">
           <folding>
-            <element signature="e#0#69#0" expanded="true" />
+            <element signature="e#0#11#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/transform-routine/src/digital_main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-725">
+        <state relative-caret-position="-157">
+          <folding>
+            <element signature="e#0#69#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/transform-routine/src/main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1063">
           <folding>
             <element signature="e#0#69#0" expanded="true" />
           </folding>
@@ -287,8 +319,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/transform-routine/src/modules/dataprocessor/dataprocessor_merge.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-114">
-          <caret line="345" column="31" selection-start-line="345" selection-start-column="31" selection-end-line="345" selection-end-column="31" />
+        <state relative-caret-position="623">
+          <caret line="398" column="36" lean-forward="true" selection-start-line="398" selection-start-column="36" selection-end-line="398" selection-end-column="36" />
           <folding>
             <element signature="e#0#14#0" expanded="true" />
           </folding>
@@ -297,11 +329,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/common-routine/dl_email_err_notifs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="125">
-          <caret line="122" column="107" selection-start-line="122" selection-start-column="97" selection-end-line="122" selection-end-column="107" />
+        <state relative-caret-position="-1042">
+          <caret line="68" column="24" selection-start-line="68" selection-start-column="4" selection-end-line="68" selection-end-column="24" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
-            <marker date="1587657133507" expanded="true" signature="3847:3852" ph="..." />
+            <marker date="1587846359643" expanded="true" signature="1425:2378" ph="..." />
+            <marker date="1587846359643" expanded="true" signature="3773:3778" ph="..." />
           </folding>
         </state>
       </provider>
